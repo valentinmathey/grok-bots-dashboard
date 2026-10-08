@@ -3,6 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
   --bg: #f3f0ea;
   --bg-raised: #fffdf8;
   --bg-card: #ffffff;
@@ -18,6 +19,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --bg: #0c0f12;
   --bg-raised: #12181e;
   --bg-card: #171d24;
@@ -77,6 +79,19 @@ select {
   background: var(--bg-card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+}
+
+.bot-skin {
+  --bot-accent: var(--bot-fill, var(--accent));
+}
+
+.bot-skin .surface,
+.bot-skin.surface {
+  border-color: color-mix(in srgb, var(--bot-fill, var(--line)) 28%, var(--line));
+}
+
+.bot-skin .bot-tint {
+  background: color-mix(in srgb, var(--bot-fill, var(--accent)) 10%, var(--bg-card));
 }
 
 .markdown {

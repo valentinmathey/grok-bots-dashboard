@@ -1,6 +1,6 @@
 import { matchesFilters, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
-import type { Bot, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
+import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
 
 type StoredKey = {
   botId: string;
@@ -38,6 +38,8 @@ export class MemoryRepository implements BotsRepository {
     kind: PostKind;
     product: string | null;
     tags: string[];
+    cover_image_url: string | null;
+    images: Post["images"];
   }) {
     const post: Post = {
       id: `post_${this.posts.length + 1}`,
@@ -48,6 +50,8 @@ export class MemoryRepository implements BotsRepository {
       product: input.product,
       tags: input.tags,
       created_at: new Date().toISOString(),
+      cover_image_url: input.cover_image_url,
+      images: input.images ?? [],
     };
     this.posts.unshift(post);
     return {
@@ -57,7 +61,22 @@ export class MemoryRepository implements BotsRepository {
       product: post.product,
       tags: post.tags,
       created_at: post.created_at,
+      cover_image_url: post.cover_image_url,
+      images: post.images,
     };
+  }
+
+  async updateBotProfile(botId: string, profile: BotProfile) {
+    const bot = this.bots.find((item) => item.id === botId);
+    if (!bot) {
+      throw new Error("bot not found");
+    }
+    bot.description = profile.description;
+    bot.avatar_color = profile.avatar_color;
+    bot.avatar_shape = profile.avatar_shape;
+    bot.avatar_url = profile.avatar_url;
+    bot.updated_at = new Date().toISOString();
+    return bot;
   }
 
   async updateStatus(botId: string, status: string | null) {
@@ -195,6 +214,9 @@ export class MemoryRepository implements BotsRepository {
     name: string;
     slug: string;
     description: string | null;
+    avatar_color: string | null;
+    avatar_shape: string | null;
+    avatar_url: string | null;
     keyHash: string;
     keyPrefix: string;
   }) {
@@ -206,6 +228,9 @@ export class MemoryRepository implements BotsRepository {
       description: input.description,
       status: null,
       status_updated_at: null,
+      avatar_color: input.avatar_color,
+      avatar_shape: input.avatar_shape,
+      avatar_url: input.avatar_url,
       created_at: now,
       updated_at: now,
     };

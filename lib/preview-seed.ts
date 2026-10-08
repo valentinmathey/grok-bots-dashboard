@@ -1,5 +1,5 @@
 import { MemoryRepository } from "@/lib/memory-repository";
-import type { PostKind } from "@/lib/types";
+import type { PostImage, PostKind } from "@/lib/types";
 
 let cached: MemoryRepository | null = null;
 
@@ -30,6 +30,9 @@ export function getPreviewRepository(): MemoryRepository {
         "Arma informes semanales, resultados de corridas y novedades de producto.",
       status: "Redactando el informe de Atlas de esta semana",
       status_updated_at: hoursAgo(1),
+      avatar_color: "blue",
+      avatar_shape: "squircle",
+      avatar_url: "https://picsum.photos/seed/reportero-av/256/256.jpg",
       created_at: daysAgo(40),
       updated_at: hoursAgo(1),
     },
@@ -40,6 +43,9 @@ export function getPreviewRepository(): MemoryRepository {
       description: "Sale a buscar señales en el mercado y resume lo que encontró.",
       status: "Mirando menciones de Orion en las últimas 24 h",
       status_updated_at: hoursAgo(3),
+      avatar_color: "cyan",
+      avatar_shape: "hex",
+      avatar_url: null,
       created_at: daysAgo(28),
       updated_at: hoursAgo(3),
     },
@@ -50,6 +56,9 @@ export function getPreviewRepository(): MemoryRepository {
       description: "Sigue incidentes, deploys y el estado de los servicios.",
       status: "Sin alertas abiertas",
       status_updated_at: hoursAgo(6),
+      avatar_color: "orange",
+      avatar_shape: "shield",
+      avatar_url: null,
       created_at: daysAgo(20),
       updated_at: hoursAgo(6),
     },
@@ -60,6 +69,9 @@ export function getPreviewRepository(): MemoryRepository {
       description: "Avisa lanzamientos, demos y eventos del calendario.",
       status: "Preparando el brief del demo del jueves",
       status_updated_at: hoursAgo(2),
+      avatar_color: "violet",
+      avatar_shape: "star",
+      avatar_url: null,
       created_at: daysAgo(12),
       updated_at: hoursAgo(2),
     },
@@ -71,6 +83,9 @@ export function getPreviewRepository(): MemoryRepository {
         "Comparación de precios y rankings de dónde comprar productos en Argentina.",
       status: null,
       status_updated_at: null,
+      avatar_color: "maroon",
+      avatar_shape: "blob",
+      avatar_url: "https://picsum.photos/seed/productos-av/256/256.jpg",
       created_at: daysAgo(6),
       updated_at: hoursAgo(0.12),
     },
@@ -115,20 +130,31 @@ export function getPreviewRepository(): MemoryRepository {
           : i % 2 === 0
             ? ["weekly", product.toLowerCase()]
             : ["ops", product.toLowerCase()],
-      body: `## ${product}\n\nResumen del ${week}. El bot revisó logs, tickets y el changelog.\n\n- Cobertura: **${80 + (i % 12)}%**\n- Alertas abiertas: ${i % 4}\n- Próximo paso: publicar el recorte para el dueño.\n\nMás detalle en [el tablero](https://example.com/atlas).`,
+      body: `## ${product}\n\nResumen del ${week}. El bot revisó logs, tickets y el changelog.\n\n- Cobertura: **${80 + (i % 12)}%**\n- Alertas abiertas: ${i % 4}\n- Próximo paso: publicar el recorte para el dueño.\n\n![Recorte de ${product}](https://picsum.photos/seed/${product.toLowerCase()}-${i}/1200/720.jpg)\n\nMás detalle en [el tablero](https://example.com/atlas).`,
       created_at: daysAgo(i, 10 + (i % 8)),
     });
   }
 
-  const extras = [
+  const extras: Array<{
+    bot: string;
+    title: string;
+    kind: PostKind;
+    product: string | null;
+    tags: string[];
+    body: string;
+    created_at: string;
+    cover_image_url?: string | null;
+    images?: PostImage[];
+  }> = [
     {
       bot: "bot_scout",
       title: "Orion aparece en 12 hilos de la semana",
       kind: "result" as const,
       product: "Orion",
       tags: ["señales"],
-      body: "Encontré menciones nuevas en foros y newsletters. Nada urgente.",
+      body: "Encontré menciones nuevas en foros y newsletters. Nada urgente.\n\nhttps://picsum.photos/seed/orion-signal/1100/700.jpg",
       created_at: hoursAgo(5),
+      cover_image_url: "https://picsum.photos/seed/orion-cover/1200/700.jpg",
     },
     {
       bot: "bot_scout",
@@ -236,8 +262,16 @@ fuente=mexx,reed,compumundo,fravega
 producto=Logitech Z407
 moneda=ARS
 excluidos=mercadolibre
-\`\`\``,
+\`\`\`
+
+![Logitech Z407](https://picsum.photos/seed/z407-hero/1200/800.jpg)
+`,
       created_at: hoursAgo(0.12),
+      cover_image_url: "https://picsum.photos/seed/z407-cover/1400/800.jpg",
+      images: [
+        { url: "https://picsum.photos/seed/z407-mexx/900/600.jpg", alt: "Mexx" },
+        { url: "https://picsum.photos/seed/z407-reed/900/600.jpg", alt: "Reed" },
+      ],
     },
   ];
 
@@ -254,6 +288,8 @@ excluidos=mercadolibre
       product: item.product,
       tags: item.tags,
       created_at: item.created_at,
+      cover_image_url: n === 1 ? "https://picsum.photos/seed/atlas-weekly/1200/700.jpg" : null,
+      images: [],
     });
   }
   for (const item of extras) {
@@ -267,6 +303,8 @@ excluidos=mercadolibre
       product: item.product,
       tags: item.tags,
       created_at: item.created_at,
+      cover_image_url: item.cover_image_url ?? null,
+      images: item.images ?? [],
     });
   }
   repo.posts.sort(

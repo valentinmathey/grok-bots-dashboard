@@ -20,12 +20,20 @@ export type Bot = {
   status_updated_at: string | null;
   created_at: string;
   updated_at: string;
+  avatar_color?: string | null;
+  avatar_shape?: string | null;
+  avatar_url?: string | null;
 };
 
 export type BotSummary = Bot & {
   post_count: number;
   last_activity_at: string | null;
   latest_title: string | null;
+};
+
+export type PostImage = {
+  url: string;
+  alt: string;
 };
 
 export type Post = {
@@ -37,6 +45,8 @@ export type Post = {
   product: string | null;
   tags: string[];
   created_at: string;
+  cover_image_url?: string | null;
+  images?: PostImage[];
 };
 
 export type PostWithBot = Post & {
@@ -57,6 +67,15 @@ export type CreatedPost = {
   product: string | null;
   tags: string[];
   created_at: string;
+  cover_image_url?: string | null;
+  images?: PostImage[];
+};
+
+export type BotProfile = {
+  description: string | null;
+  avatar_color: string | null;
+  avatar_shape: string | null;
+  avatar_url: string | null;
 };
 
 export type PostFacets = {

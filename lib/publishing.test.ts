@@ -8,6 +8,7 @@ import {
   publishPost,
   publishStatus,
   regenerateOwnedKey,
+  updateBotProfile,
 } from "@/lib/publishing";
 
 function repoWithBot() {
@@ -153,6 +154,33 @@ describe("API de publicación", () => {
     expect(summaries[0]?.post_count).toBe(1);
     expect(summaries[0]?.latest_title).toBe("Logitech Z407 en Mexx");
     expect(summaries[0]?.last_activity_at).toBeTruthy();
+  });
+
+  it("publica portada y galería por URL y deja actualizar el perfil", async () => {
+    const { repo, key } = repoWithBot();
+    const published = await publishPost(repo, `Bearer ${key}`, {
+      title: "Con fotos",
+      body: "![detalle](https://picsum.photos/seed/md/800.jpg)",
+      cover_image_url: "https://picsum.photos/seed/cover/1200.jpg",
+      images: [{ url: "https://picsum.photos/seed/g/800.jpg", alt: "Galería" }],
+    });
+    expect(published.ok).toBe(true);
+    if (published.ok) {
+      expect(published.data.post.cover_image_url).toContain("cover");
+      expect(published.data.post.images?.[0]?.alt).toBe("Galería");
+    }
+
+    const profile = await updateBotProfile(repo, `Bearer ${key}`, {
+      description: "Compara precios",
+      avatar_color: "maroon",
+      avatar_shape: "blob",
+      avatar_url: "https://picsum.photos/seed/av/256.jpg",
+    });
+    expect(profile.ok).toBe(true);
+    if (profile.ok) {
+      expect(profile.data.bot.avatar_color).toBe("maroon");
+      expect(profile.data.bot.description).toBe("Compara precios");
+    }
   });
 
   it("lista las publicaciones del bot autenticado", async () => {

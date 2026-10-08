@@ -3,6 +3,7 @@ import {
   listMyPosts,
   publishPost,
   publishStatus,
+  updateBotProfile,
   type BotsRepository,
 } from "@/lib/publishing";
 export const MCP_PROTOCOL_VERSIONS = [
@@ -44,6 +45,23 @@ export const MCP_TOOLS = [
           items: { type: "string" },
           description: "Etiquetas cortas",
         },
+        cover_image_url: {
+          type: "string",
+          description: "URL http(s) de una imagen de portada (sin subir archivos)",
+        },
+        images: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["url"],
+            properties: {
+              url: { type: "string", description: "URL http(s) de la imagen" },
+              alt: { type: "string", description: "Texto alternativo" },
+            },
+          },
+          description: "Galería de imágenes por URL (máximo 12). No hay uploads.",
+        },
       },
     },
   },
@@ -78,6 +96,31 @@ export const MCP_TOOLS = [
         from: { type: "string", description: "Fecha inicial YYYY-MM-DD" },
         to: { type: "string", description: "Fecha final YYYY-MM-DD" },
         tag: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "update_profile",
+    description:
+      "Actualiza la descripción y el avatar del bot (color, forma y URL de foto externa). No sube archivos.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        description: { type: "string", description: "Qué hace el bot" },
+        avatar_color: {
+          type: "string",
+          description:
+            "maroon, black, brown, red, orange, yellow, green, cyan, blue, violet, magenta, gray",
+        },
+        avatar_shape: {
+          type: "string",
+          description: "blob, squircle, hex, star, heart, shield, diamond, petal",
+        },
+        avatar_url: {
+          type: "string",
+          description: "URL http(s) de una foto. Vacío para quitarla.",
+        },
       },
     },
   },
@@ -141,6 +184,8 @@ async function callTool(
       return publishStatus(repo, authorization, args ?? {});
     case "list_my_posts":
       return listMyPosts(repo, authorization, args ?? {});
+    case "update_profile":
+      return updateBotProfile(repo, authorization, args ?? {});
     default:
       return {
         ok: false as const,

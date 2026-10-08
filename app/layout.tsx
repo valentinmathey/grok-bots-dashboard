@@ -27,11 +27,21 @@ export const viewport: Viewport = {
 };
 
 const themeScript = `
-try {
-  if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-    document.documentElement.classList.add("dark");
-  }
-} catch (e) {}
+(function () {
+  try {
+    var key = "gb-theme";
+    var stored = localStorage.getItem(key);
+    if (stored !== "light" && stored !== "dark" && stored !== "system") {
+      var match = document.cookie.match(/(?:^|; )gb-theme=([^;]+)/);
+      stored = match ? decodeURIComponent(match[1]) : "system";
+    }
+    if (stored !== "light" && stored !== "dark") stored = "system";
+    var systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var dark = stored === "dark" || (stored === "system" && systemDark);
+    document.documentElement.classList.toggle("dark", dark);
+    document.documentElement.setAttribute("data-theme", stored);
+  } catch (e) {}
+})();
 `;
 
 export default function RootLayout({

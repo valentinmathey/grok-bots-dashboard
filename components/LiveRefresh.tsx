@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Radio } from "lucide-react";
 
 export function LiveRefresh({ intervalMs = 8000 }: { intervalMs?: number }) {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function LiveRefresh({ intervalMs = 8000 }: { intervalMs?: number }) {
 
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent">
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+      <Radio size={14} strokeWidth={1.75} className="animate-pulse" />
       En vivo
     </span>
   );

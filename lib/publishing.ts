@@ -2,9 +2,11 @@ import { generateApiKey, hashApiKey, parseBearerToken } from "@/lib/api-keys";
 import { fail } from "@/lib/http";
 import type { PostFilters } from "@/lib/filters";
 import { normalizeProduct } from "@/lib/filters";
+import { normalizeHttpUrl, normalizePostImages } from "@/lib/images";
 import type {
   AuthenticatedBot,
   Bot,
+  BotProfile,
   BotSummary,
   CreatedPost,
   PageOptions,
@@ -18,6 +20,7 @@ import {
   formatZodError,
   listPostsQuerySchema,
   normalizeTags,
+  updateProfileSchema,
   updateStatusSchema,
 } from "@/lib/validations";
 
@@ -30,8 +33,11 @@ export type BotsRepository = {
     kind: CreatedPost["kind"];
     product: string | null;
     tags: string[];
+    cover_image_url: string | null;
+    images: CreatedPost["images"];
   }): Promise<CreatedPost>;
   updateStatus(botId: string, status: string | null): Promise<void>;
+  updateBotProfile(botId: string, profile: BotProfile): Promise<Bot>;
   listBots(): Promise<Bot[]>;
   listBotSummaries(): Promise<BotSummary[]>;
   getBotBySlug(slug: string): Promise<Bot | null>;
@@ -55,6 +61,9 @@ export type BotsRepository = {
     name: string;
     slug: string;
     description: string | null;
+    avatar_color: string | null;
+    avatar_shape: string | null;
+    avatar_url: string | null;
     keyHash: string;
     keyPrefix: string;
   }): Promise<Bot>;
@@ -114,6 +123,8 @@ export async function publishPost(
     kind: parsed.data.kind,
     product: normalizeProduct(parsed.data.product),
     tags: normalizeTags(parsed.data.tags),
+    cover_image_url: normalizeHttpUrl(parsed.data.cover_image_url),
+    images: normalizePostImages(parsed.data.images),
   });
 
   return { ok: true, status: 201, data: { post, bot: auth.data } };
@@ -175,6 +186,9 @@ export async function createOwnedBot(
     name: parsed.data.name,
     slug: parsed.data.slug,
     description: parsed.data.description || null,
+    avatar_color: parsed.data.avatar_color ?? null,
+    avatar_shape: parsed.data.avatar_shape ?? null,
+    avatar_url: normalizeHttpUrl(parsed.data.avatar_url),
     keyHash: generated.hash,
     keyPrefix: generated.prefix,
   });
@@ -221,6 +235,99 @@ export async function listMyPosts(
     data: {
       bot: auth.data,
       posts: posts.slice(0, parsed.data.limit),
+    },
+  };
+}
+
+export async function updateOwnedProfile(
+  repo: BotsRepository,
+  botId: string,
+  payload: unknown,
+): Promise<Result<{ bot: Bot }>> {
+  const bot = await repo.getBotById(botId);
+  if (!bot) {
+    return fail(404, "not_found", "No encontramos ese bot");
+  }
+  const parsed = updateProfileSchema.safeParse(payload);
+  if (!parsed.success) {
+    return fail(
+      400,
+      "invalid_input",
+      "El perfil no es válido",
+      formatZodError(parsed.error),
+    );
+  }
+  const next = await repo.updateBotProfile(botId, {
+    description:
+      parsed.data.description !== undefined
+        ? parsed.data.description.trim() || null
+        : (bot.description ?? null),
+    avatar_color:
+      parsed.data.avatar_color !== undefined
+        ? parsed.data.avatar_color
+        : (bot.avatar_color ?? null),
+    avatar_shape:
+      parsed.data.avatar_shape !== undefined
+        ? parsed.data.avatar_shape
+        : (bot.avatar_shape ?? null),
+    avatar_url:
+      parsed.data.avatar_url !== undefined
+        ? normalizeHttpUrl(parsed.data.avatar_url)
+        : (bot.avatar_url ?? null),
+  });
+  return { ok: true, data: { bot: next } };
+}
+
+export async function updateBotProfile(
+  repo: BotsRepository,
+  authorization: string | null,
+  payload: unknown,
+): Promise<Result<{ bot: AuthenticatedBot & BotProfile }>> {
+  const auth = await authenticateBot(repo, authorization);
+  if (!auth.ok) {
+    return auth;
+  }
+  const parsed = updateProfileSchema.safeParse(payload);
+  if (!parsed.success) {
+    return fail(
+      400,
+      "invalid_input",
+      "El perfil no es válido",
+      formatZodError(parsed.error),
+    );
+  }
+  const current = await repo.getBotById(auth.data.botId);
+  if (!current) {
+    return fail(404, "not_found", "No encontramos ese bot");
+  }
+  const next = await repo.updateBotProfile(auth.data.botId, {
+    description:
+      parsed.data.description !== undefined
+        ? parsed.data.description.trim() || null
+        : (current.description ?? null),
+    avatar_color:
+      parsed.data.avatar_color !== undefined
+        ? parsed.data.avatar_color
+        : (current.avatar_color ?? null),
+    avatar_shape:
+      parsed.data.avatar_shape !== undefined
+        ? parsed.data.avatar_shape
+        : (current.avatar_shape ?? null),
+    avatar_url:
+      parsed.data.avatar_url !== undefined
+        ? normalizeHttpUrl(parsed.data.avatar_url)
+        : (current.avatar_url ?? null),
+  });
+  return {
+    ok: true,
+    data: {
+      bot: {
+        ...auth.data,
+        description: next.description,
+        avatar_color: next.avatar_color ?? null,
+        avatar_shape: next.avatar_shape ?? null,
+        avatar_url: next.avatar_url ?? null,
+      },
     },
   };
 }

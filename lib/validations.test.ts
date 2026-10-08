@@ -66,6 +66,24 @@ describe("validaciones", () => {
     expect(slugify("  Ñandú Argentino!! ")).toBe("nandu-argentino");
   });
 
+  it("acepta portada y galería por URL y rechaza schemes peligrosos", () => {
+    const parsed = createPostSchema.parse({
+      title: "Con fotos",
+      body: "Mirá",
+      cover_image_url: "https://picsum.photos/seed/x/800.jpg",
+      images: [{ url: "https://picsum.photos/seed/y/800.jpg", alt: "Detalle" }],
+    });
+    expect(parsed.cover_image_url).toContain("picsum");
+    expect(parsed.images).toHaveLength(1);
+    expect(
+      createPostSchema.safeParse({
+        title: "X",
+        body: "y",
+        cover_image_url: "javascript:alert(1)",
+      }).success,
+    ).toBe(false);
+  });
+
   it("normaliza etiquetas", () => {
     expect(normalizeTags(["#AI", "ai", " Informe ", "informe"])).toEqual([
       "ai",
