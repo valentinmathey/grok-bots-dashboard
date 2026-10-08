@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EmptyState } from "@/components/EmptyState";
-import { FeedFilters } from "@/components/FeedFilters";
 import { LiveRefresh } from "@/components/LiveRefresh";
-import { PostCard } from "@/components/PostCard";
-import { RegenerateKeyButton } from "@/components/RegenerateKeyButton";
+import { PostFeed } from "@/components/PostFeed";
 import { TimeStamp } from "@/components/TimeStamp";
-import { hasActiveFilters, parsePostFilters } from "@/lib/filters";
-import { formatDateTime } from "@/lib/format";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
+import { getRepository } from "@/lib/data";
+import { PAGE_SIZE, parseFeedQuery } from "@/lib/filters";
 
 export default async function BotPage({
   params,
@@ -18,89 +14,70 @@ export default async function BotPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const filters = parsePostFilters(await searchParams);
-  const repo = createSupabaseRepository();
+  const query = parseFeedQuery(await searchParams);
+  const repo = getRepository();
   const bot = await repo.getBotBySlug(slug);
   if (!bot) {
     notFound();
   }
 
-  const [posts, keyPrefix, products] = await Promise.all([
-    repo.listPostsByBot(bot.id, filters),
-    repo.getActiveKeyPrefix(bot.id),
-    repo.listProducts(bot.id),
+  const [page, facets] = await Promise.all([
+    repo.listPostsPage(bot.id, query, {
+      sort: query.sort,
+      limit: PAGE_SIZE,
+      offset: 0,
+    }),
+    repo.listFacets(bot.id),
   ]);
 
-  const panelPath = `/bots/${bot.slug}`;
+  const busy = Boolean(bot.status?.trim());
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <Link href="/" className="text-sm text-accent">
-          ← Inicio
+        <Link href="/" className="text-sm font-medium text-accent">
+          ← Bots
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{bot.name}</h1>
-        <p className="font-mono text-xs text-muted">/{bot.slug}</p>
-        {bot.description ? (
-          <p className="mt-3 text-sm leading-6 text-foreground/85">
-            {bot.description}
-          </p>
-        ) : null}
-      </div>
-
-      <section className="rounded-2xl border border-line bg-card p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            En qué está
-          </p>
+        <div className="mt-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[1.75rem] font-semibold tracking-tight">
+              {bot.name}
+            </h1>
+            {bot.description ? (
+              <p className="mt-1.5 text-sm leading-6 text-muted">
+                {bot.description}
+              </p>
+            ) : null}
+          </div>
           <LiveRefresh />
         </div>
-        <p className="mt-2 text-lg leading-7">
-          {bot.status?.trim()
-            ? bot.status
-            : "Todavía no actualizó su estado."}
+      </div>
+
+      <section className="surface rounded-3xl p-4 sm:p-5">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+          En qué está
+        </p>
+        <p className="mt-2 flex items-start gap-2 text-[17px] leading-7">
+          <span
+            className={`mt-2 h-2 w-2 shrink-0 rounded-full ${busy ? "animate-pulse bg-accent" : "bg-muted/40"}`}
+          />
+          {busy ? bot.status : "Todavía no actualizó su estado."}
         </p>
         {bot.status_updated_at ? (
-          <p className="mt-2 text-xs text-muted">
-            Actualizado <TimeStamp iso={bot.status_updated_at} /> ·{" "}
-            {formatDateTime(bot.status_updated_at)}
+          <p className="mt-2 pl-4 text-xs text-muted">
+            Actualizado <TimeStamp iso={bot.status_updated_at} />
           </p>
         ) : null}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold tracking-tight">Publicaciones</h2>
-        <FeedFilters action={panelPath} products={products} values={filters} />
-        {posts.length === 0 ? (
-          <EmptyState
-            title={
-              hasActiveFilters(filters)
-                ? "Nada con esos filtros"
-                : "Este bot todavía no publicó"
-            }
-            body={
-              hasActiveFilters(filters)
-                ? "Probá otro producto, tipo o rango de fechas."
-                : "Cuando publique por REST o MCP, el post aparece acá al toque."
-            }
-          />
-        ) : (
-          posts.map((post) => (
-            <PostCard key={post.id} post={post} filterBasePath={panelPath} />
-          ))
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-line bg-raised p-4 sm:p-5">
-        <h2 className="text-base font-semibold">Administración</h2>
-        <p className="mt-1 text-sm leading-6 text-muted">
-          Regenerar la clave revoca la anterior. El bot tiene que empezar a usar
-          la nueva en el header Authorization, tanto en REST como en MCP.
-        </p>
-        <div className="mt-4">
-          <RegenerateKeyButton botId={bot.id} keyPrefix={keyPrefix} />
-        </div>
-      </section>
+      <PostFeed
+        key={JSON.stringify(query)}
+        slug={bot.slug}
+        query={query}
+        initialPosts={page.posts}
+        total={page.total}
+        facets={facets}
+      />
     </div>
   );
 }

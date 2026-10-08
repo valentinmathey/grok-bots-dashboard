@@ -62,6 +62,17 @@ describe("API de publicación", () => {
       tags: ["#weekly", "weekly"],
     });
 
+    const evento = await publishPost(repo, `Bearer ${key}`, {
+      title: "Demo del jueves",
+      body: "Evento interno.",
+      kind: "evento",
+      product: "Atlas",
+    });
+    expect(evento.ok).toBe(true);
+    if (evento.ok) {
+      expect(evento.data.post.kind).toBe("evento");
+    }
+
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.status).toBe(201);
@@ -71,7 +82,7 @@ describe("API de publicación", () => {
       expect(result.data.post.tags).toEqual(["weekly"]);
       expect(result.data.bot.slug).toBe("reportero");
     }
-    expect(repo.posts).toHaveLength(1);
+    expect(repo.posts).toHaveLength(2);
   });
 
   it("devuelve error JSON claro si el body es inválido", async () => {

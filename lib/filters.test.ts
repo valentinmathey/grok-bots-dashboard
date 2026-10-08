@@ -63,4 +63,12 @@ describe("filtros", () => {
     expect(hasActiveFilters({})).toBe(false);
     expect(hasActiveFilters({ product: "Atlas" })).toBe(true);
   });
+
+  it("acepta kind evento y otros slugs", () => {
+    expect(parsePostFilters({ kind: "evento" }).kind).toBe("evento");
+    expect(parsePostFilters({ kind: "123" }).kind).toBeUndefined();
+    expect(matchesFilters(post({ kind: "evento" }), { kind: "evento" })).toBe(
+      true,
+    );
+  });
 });

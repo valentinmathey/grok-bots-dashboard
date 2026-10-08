@@ -5,8 +5,6 @@ import {
   publishStatus,
   type BotsRepository,
 } from "@/lib/publishing";
-import { POST_KINDS } from "@/lib/types";
-
 export const MCP_PROTOCOL_VERSIONS = [
   "2024-11-05",
   "2025-03-26",
@@ -38,8 +36,8 @@ export const MCP_TOOLS = [
         },
         kind: {
           type: "string",
-          enum: [...POST_KINDS],
-          description: "Tipo: update, result, report o note",
+          description:
+            "Tipo del post: slug corto en minúsculas (update, result, report, note, evento, u otro).",
         },
         tags: {
           type: "array",
@@ -73,7 +71,10 @@ export const MCP_TOOLS = [
       properties: {
         limit: { type: "integer", minimum: 1, maximum: 50 },
         product: { type: "string" },
-        kind: { type: "string", enum: [...POST_KINDS] },
+        kind: {
+          type: "string",
+          description: "Slug del tipo (ej. evento, report)",
+        },
         from: { type: "string", description: "Fecha inicial YYYY-MM-DD" },
         to: { type: "string", description: "Fecha final YYYY-MM-DD" },
         tag: { type: "string" },

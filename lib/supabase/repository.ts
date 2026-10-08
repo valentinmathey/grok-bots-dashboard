@@ -3,7 +3,7 @@ import "server-only";
 import { dayEndIso, dayStartIso, type PostFilters } from "@/lib/filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
-import type { Bot, Post, PostKind } from "@/lib/types";
+import type { Bot, BotSummary, Post, PostKind } from "@/lib/types";
 
 function applyFilters<T>(query: T, filters: PostFilters = {}): T {
   let next = query as T & {
@@ -123,6 +123,45 @@ export function createSupabaseRepository(): BotsRepository {
       return (data ?? []).map((row) => asBot(row as Bot));
     },
 
+    async listBotSummaries() {
+      const { data, error } = await admin
+        .from("bot_home")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (!error && data) {
+        return data.map((row) => ({
+          ...(row as Bot),
+          post_count: Number(row.post_count ?? 0),
+          last_activity_at: (row.last_activity_at as string | null) ?? null,
+        })) as BotSummary[];
+      }
+
+      const bots = await this.listBots();
+      const { data: posts } = await admin
+        .from("posts")
+        .select("bot_id, created_at")
+        .order("created_at", { ascending: false });
+      const counts = new Map<string, { post_count: number; last_activity_at: string | null }>();
+      for (const row of posts ?? []) {
+        const botId = row.bot_id as string;
+        const current = counts.get(botId);
+        if (!current) {
+          counts.set(botId, {
+            post_count: 1,
+            last_activity_at: row.created_at as string,
+          });
+        } else {
+          current.post_count += 1;
+        }
+      }
+      return bots.map((bot) => ({
+        ...bot,
+        post_count: counts.get(bot.id)?.post_count ?? 0,
+        last_activity_at: counts.get(bot.id)?.last_activity_at ?? null,
+      }));
+    },
+
     async getBotBySlug(slug) {
       const { data, error } = await admin
         .from("bots")
@@ -163,6 +202,60 @@ export function createSupabaseRepository(): BotsRepository {
         throw error;
       }
       return (data ?? []) as Post[];
+    },
+
+    async listPostsPage(botId, filters, options) {
+      const limit = options.limit ?? 12;
+      const offset = options.offset ?? 0;
+      const ascending = options.sort === "oldest";
+      const filtered = applyFilters(
+        admin
+          .from("posts")
+          .select("*", { count: "exact" })
+          .eq("bot_id", botId),
+        filters,
+      );
+      const { data, error, count } = await filtered
+        .order("created_at", { ascending })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        throw error;
+      }
+      return {
+        posts: (data ?? []) as Post[],
+        total: count ?? 0,
+      };
+    },
+
+    async listFacets(botId) {
+      const { data, error } = await admin
+        .from("posts")
+        .select("kind, product, tags")
+        .eq("bot_id", botId);
+
+      if (error) {
+        throw error;
+      }
+
+      const products = new Map<string, string>();
+      const kinds = new Set<string>();
+      const tags = new Set<string>();
+      for (const row of data ?? []) {
+        if (typeof row.kind === "string" && row.kind) kinds.add(row.kind);
+        if (typeof row.product === "string" && row.product) {
+          const key = row.product.toLowerCase();
+          if (!products.has(key)) products.set(key, row.product);
+        }
+        for (const tag of (row.tags as string[] | null) ?? []) {
+          if (tag) tags.add(tag);
+        }
+      }
+      return {
+        products: [...products.values()].sort((a, b) => a.localeCompare(b, "es")),
+        kinds: [...kinds].sort(),
+        tags: [...tags].sort(),
+      };
     },
 
     async listRecentPosts(limit, filters) {

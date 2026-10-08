@@ -1,6 +1,6 @@
 import { matchesFilters, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
-import type { Bot, Post, PostKind } from "@/lib/types";
+import type { Bot, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
 
 type StoredKey = {
   botId: string;
@@ -73,6 +73,20 @@ export class MemoryRepository implements BotsRepository {
     return [...this.bots];
   }
 
+  async listBotSummaries(): Promise<BotSummary[]> {
+    return this.bots
+      .map((bot) => {
+        const posts = this.posts.filter((post) => post.bot_id === bot.id);
+        const last = posts[0];
+        return {
+          ...bot,
+          post_count: posts.length,
+          last_activity_at: last?.created_at ?? bot.status_updated_at,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }
+
   async getBotBySlug(slug: string) {
     return this.bots.find((bot) => bot.slug === slug) ?? null;
   }
@@ -85,6 +99,44 @@ export class MemoryRepository implements BotsRepository {
     return this.posts.filter(
       (post) => post.bot_id === botId && matchesFilters(post, filters),
     );
+  }
+
+  async listPostsPage(
+    botId: string,
+    filters: PostFilters | undefined,
+    options: PageOptions,
+  ) {
+    const matched = this.posts.filter(
+      (post) => post.bot_id === botId && matchesFilters(post, filters ?? {}),
+    );
+    const ordered =
+      options.sort === "oldest" ? [...matched].reverse() : matched;
+    const offset = options.offset ?? 0;
+    const limit = options.limit ?? ordered.length;
+    return {
+      posts: ordered.slice(offset, offset + limit),
+      total: ordered.length,
+    };
+  }
+
+  async listFacets(botId: string): Promise<PostFacets> {
+    const products = new Map<string, string>();
+    const kinds = new Set<string>();
+    const tags = new Set<string>();
+    for (const post of this.posts) {
+      if (post.bot_id !== botId) continue;
+      if (post.product) {
+        const key = post.product.toLowerCase();
+        if (!products.has(key)) products.set(key, post.product);
+      }
+      if (post.kind) kinds.add(post.kind);
+      for (const tag of post.tags) tags.add(tag);
+    }
+    return {
+      products: [...products.values()].sort((a, b) => a.localeCompare(b, "es")),
+      kinds: [...kinds].sort(),
+      tags: [...tags].sort(),
+    };
   }
 
   async listRecentPosts(limit: number, filters: PostFilters = {}) {

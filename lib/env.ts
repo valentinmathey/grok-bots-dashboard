@@ -45,6 +45,10 @@ export function getSiteUrl(): string {
   return "http://localhost:3000";
 }
 
+export function isPreviewMode(): boolean {
+  return read("PREVIEW_FAKE_DATA") === "1";
+}
+
 export function isSupabaseConfigured(): boolean {
   try {
     getPublicSupabaseEnv();

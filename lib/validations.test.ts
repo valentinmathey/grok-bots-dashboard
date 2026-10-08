@@ -18,6 +18,22 @@ describe("validaciones", () => {
     expect(parsed.tags).toEqual([]);
   });
 
+  it("acepta kind evento y slugs libres en minúsculas", () => {
+    expect(createPostSchema.parse({
+      title: "Meetup",
+      body: "Hoy",
+      kind: "evento",
+    }).kind).toBe("evento");
+    expect(createPostSchema.parse({
+      title: "X",
+      body: "y",
+      kind: "Release",
+    }).kind).toBe("release");
+    expect(
+      createPostSchema.safeParse({ title: "X", body: "y", kind: "Evento!" }).success,
+    ).toBe(false);
+  });
+
   it("rechaza un título vacío", () => {
     const parsed = createPostSchema.safeParse({
       title: "   ",

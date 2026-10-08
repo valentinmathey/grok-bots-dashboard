@@ -1,4 +1,7 @@
-import { POST_KINDS, type Post, type PostKind } from "@/lib/types";
+import { isKindSlug } from "@/lib/validations";
+import type { Post, PostKind } from "@/lib/types";
+
+export type SortOrder = "newest" | "oldest";
 
 export type PostFilters = {
   from?: string;
@@ -6,6 +9,10 @@ export type PostFilters = {
   product?: string;
   kind?: PostKind;
   tag?: string;
+};
+
+export type FeedQuery = PostFilters & {
+  sort: SortOrder;
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -27,8 +34,7 @@ function asDate(value: string | undefined): string | undefined {
 export function parsePostFilters(
   searchParams: Record<string, string | string[] | undefined>,
 ): PostFilters {
-  const kindRaw = firstString(searchParams.kind)?.trim();
-  const kind = POST_KINDS.find((item) => item === kindRaw);
+  const kindRaw = firstString(searchParams.kind)?.trim().toLowerCase();
   const product = firstString(searchParams.product)?.trim();
   const tag = firstString(searchParams.tag)?.trim().replace(/^#/, "").toLowerCase();
 
@@ -36,18 +42,33 @@ export function parsePostFilters(
     from: asDate(firstString(searchParams.from)),
     to: asDate(firstString(searchParams.to)),
     product: product || undefined,
-    kind,
+    kind: kindRaw && isKindSlug(kindRaw) ? kindRaw : undefined,
     tag: tag || undefined,
   };
 }
 
-export function filtersToSearchParams(filters: PostFilters): URLSearchParams {
+export function parseSort(
+  searchParams: Record<string, string | string[] | undefined>,
+): SortOrder {
+  return firstString(searchParams.sort) === "oldest" ? "oldest" : "newest";
+}
+
+export function parseFeedQuery(
+  searchParams: Record<string, string | string[] | undefined>,
+): FeedQuery {
+  return { ...parsePostFilters(searchParams), sort: parseSort(searchParams) };
+}
+
+export function filtersToSearchParams(
+  filters: PostFilters & { sort?: SortOrder },
+): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
   if (filters.product) params.set("product", filters.product);
   if (filters.kind) params.set("kind", filters.kind);
   if (filters.tag) params.set("tag", filters.tag);
+  if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
   return params;
 }
 
@@ -55,6 +76,12 @@ export function hasActiveFilters(filters: PostFilters): boolean {
   return Boolean(
     filters.from || filters.to || filters.product || filters.kind || filters.tag,
   );
+}
+
+export function countActiveFilters(filters: PostFilters): number {
+  return [filters.from, filters.to, filters.product, filters.kind, filters.tag].filter(
+    Boolean,
+  ).length;
 }
 
 export function dayStartIso(date: string): string {
@@ -94,3 +121,5 @@ export function normalizeProduct(
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
 }
+
+export const PAGE_SIZE = 12;

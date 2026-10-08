@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { getOwnerFromRequest } from "@/lib/auth";
 import { jsonError, resultToResponse } from "@/lib/http";
 import { regenerateOwnedKey } from "@/lib/publishing";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
+import { getRepository } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export async function POST(
   }
 
   const { id } = await context.params;
-  const result = await regenerateOwnedKey(createSupabaseRepository(), id);
+  const result = await regenerateOwnedKey(getRepository(), id);
   if (result.ok) {
     revalidatePath("/");
     revalidatePath(`/bots/${result.data.bot.slug}`);

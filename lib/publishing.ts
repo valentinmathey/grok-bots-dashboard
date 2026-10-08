@@ -5,8 +5,11 @@ import { normalizeProduct } from "@/lib/filters";
 import type {
   AuthenticatedBot,
   Bot,
+  BotSummary,
   CreatedPost,
+  PageOptions,
   Post,
+  PostFacets,
   Result,
 } from "@/lib/types";
 import {
@@ -30,9 +33,16 @@ export type BotsRepository = {
   }): Promise<CreatedPost>;
   updateStatus(botId: string, status: string | null): Promise<void>;
   listBots(): Promise<Bot[]>;
+  listBotSummaries(): Promise<BotSummary[]>;
   getBotBySlug(slug: string): Promise<Bot | null>;
   getBotById(id: string): Promise<Bot | null>;
   listPostsByBot(botId: string, filters?: PostFilters): Promise<Post[]>;
+  listPostsPage(
+    botId: string,
+    filters: PostFilters | undefined,
+    options: PageOptions,
+  ): Promise<{ posts: Post[]; total: number }>;
+  listFacets(botId: string): Promise<PostFacets>;
   listRecentPosts(
     limit: number,
     filters?: PostFilters,

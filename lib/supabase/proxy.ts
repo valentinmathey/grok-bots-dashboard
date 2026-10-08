@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getPublicSupabaseEnv, getOwnerEmail } from "@/lib/env";
+import { getPublicSupabaseEnv, getOwnerEmail, isPreviewMode } from "@/lib/env";
 import { isOwnerEmail } from "@/lib/owner";
 
 function isPublicPath(pathname: string): boolean {
@@ -29,6 +29,10 @@ function applyCookies(
 }
 
 export async function updateSession(request: NextRequest) {
+  if (isPreviewMode()) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   let env: { url: string; anonKey: string };
