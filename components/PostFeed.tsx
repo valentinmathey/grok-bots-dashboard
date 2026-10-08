@@ -73,7 +73,7 @@ export function PostFeed({
   }, [loadMore, posts.length, total]);
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <FilterSheet action={path} facets={facets} query={query} />
       {posts.length === 0 ? (
         <EmptyState

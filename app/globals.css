@@ -50,6 +50,7 @@
 
 html {
   background: var(--bg);
+  overflow-x: clip;
 }
 
 body {
@@ -57,6 +58,7 @@ body {
   color: var(--ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   min-height: 100%;
+  overflow-x: clip;
 }
 
 a {
@@ -78,7 +80,17 @@ select {
 }
 
 .markdown {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+@media (min-width: 640px) {
+  .markdown {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
 }
 
 .markdown > :first-child {
@@ -94,7 +106,7 @@ select {
 .markdown ol,
 .markdown pre,
 .markdown blockquote,
-.markdown table {
+.markdown .markdown-table-wrap {
   margin: 0.85em 0;
 }
 
@@ -133,6 +145,7 @@ select {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
+  overflow-wrap: anywhere;
 }
 
 .markdown code {
@@ -147,8 +160,10 @@ select {
   background: var(--bg-raised);
   border: 1px solid var(--line);
   border-radius: 0.85rem;
-  padding: 0.9rem 1rem;
+  padding: 0.75rem 0.9rem;
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .markdown pre code {
@@ -162,20 +177,59 @@ select {
   color: var(--muted);
 }
 
+.markdown-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--bg-raised);
+}
+
 .markdown table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  font-size: 0.95em;
+  font-size: 0.9em;
+  margin: 0;
 }
 
 .markdown th,
 .markdown td {
   border: 1px solid var(--line);
-  padding: 0.4rem 0.55rem;
+  padding: 0.55rem 0.75rem;
   text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+
+.markdown th {
+  white-space: nowrap;
+  font-weight: 650;
+  background: color-mix(in srgb, var(--chip) 70%, transparent);
+  min-width: 4.75rem;
+}
+
+.markdown td {
+  min-width: 7.5rem;
+}
+
+.markdown td:first-child,
+.markdown th:first-child {
+  min-width: 4.5rem;
+}
+
+.markdown td:last-child,
+.markdown th:last-child {
+  white-space: nowrap;
+  min-width: 3.75rem;
 }
 
 .markdown img {
+  display: block;
   max-width: 100%;
+  height: auto;
   border-radius: 0.75rem;
 }

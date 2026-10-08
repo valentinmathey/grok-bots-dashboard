@@ -40,8 +40,8 @@ export default async function SettingsPage() {
         ) : (
           withKeys.map((bot) => (
             <div key={bot.id} className="surface rounded-3xl p-5">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="font-semibold">{bot.name}</h3>
+              <div className="flex min-w-0 items-baseline justify-between gap-3">
+                <h3 className="min-w-0 truncate font-semibold">{bot.name}</h3>
                 <Link href={`/bots/${bot.slug}`} className="text-sm text-accent">
                   Ver panel
                 </Link>

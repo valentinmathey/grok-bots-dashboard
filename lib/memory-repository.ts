@@ -77,11 +77,15 @@ export class MemoryRepository implements BotsRepository {
     return this.bots
       .map((bot) => {
         const posts = this.posts.filter((post) => post.bot_id === bot.id);
-        const last = posts[0];
+        const last = posts.reduce<Post | null>((best, post) => {
+          if (!best) return post;
+          return new Date(post.created_at) > new Date(best.created_at) ? post : best;
+        }, null);
         return {
           ...bot,
           post_count: posts.length,
           last_activity_at: last?.created_at ?? bot.status_updated_at,
+          latest_title: last?.title ?? null,
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name, "es"));

@@ -1,4 +1,4 @@
-import type { PostKind } from "@/lib/types";
+import type { BotSummary, PostKind } from "@/lib/types";
 
 const KIND_LABELS: Record<string, string> = {
   update: "Actualización",
@@ -47,6 +47,38 @@ export function formatDate(iso: string): string {
 
 export function formatCount(n: number, one: string, many: string): string {
   return n === 1 ? `1 ${one}` : `${n} ${many}`;
+}
+
+export function formatPublicationCount(n: number): string {
+  return formatCount(n, "publicación", "publicaciones");
+}
+
+export type BotCardLead = {
+  tone: "live" | "latest" | "empty";
+  label: string | null;
+  text: string;
+};
+
+export function botCardLead(bot: Pick<BotSummary, "status" | "post_count" | "latest_title">): BotCardLead {
+  const status = bot.status?.trim();
+  if (status) {
+    return { tone: "live", label: null, text: status };
+  }
+  if (bot.post_count > 0 && bot.latest_title?.trim()) {
+    return {
+      tone: "latest",
+      label: "Última publicación",
+      text: bot.latest_title.trim(),
+    };
+  }
+  if (bot.post_count > 0) {
+    return {
+      tone: "latest",
+      label: null,
+      text: formatPublicationCount(bot.post_count),
+    };
+  }
+  return { tone: "empty", label: null, text: "Todavía no publicó" };
 }
 
 export function formatRelative(iso: string, now = new Date()): string {
