@@ -25,6 +25,7 @@ export type Bot = {
 export type BotSummary = Bot & {
   post_count: number;
   last_activity_at: string | null;
+  latest_title: string | null;
 };
 
 export type Post = {

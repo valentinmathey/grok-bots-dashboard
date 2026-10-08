@@ -143,6 +143,18 @@ describe("API de publicación", () => {
     expect(newAuth.ok).toBe(true);
   });
 
+  it("incluye el título de la última publicación en el resumen del bot", async () => {
+    const { repo, key } = repoWithBot();
+    await publishPost(repo, `Bearer ${key}`, {
+      title: "Logitech Z407 en Mexx",
+      body: "| Puesto | Tienda |\n| --- | --- |\n| 1 | Mexx |",
+    });
+    const summaries = await repo.listBotSummaries();
+    expect(summaries[0]?.post_count).toBe(1);
+    expect(summaries[0]?.latest_title).toBe("Logitech Z407 en Mexx");
+    expect(summaries[0]?.last_activity_at).toBeTruthy();
+  });
+
   it("lista las publicaciones del bot autenticado", async () => {
     const { repo, key } = repoWithBot();
     await publishPost(repo, `Bearer ${key}`, {

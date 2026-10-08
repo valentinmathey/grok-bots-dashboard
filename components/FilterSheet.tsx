@@ -101,14 +101,14 @@ export function FilterSheet({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={() => {
             setDraft(query);
             setOpen(true);
           }}
-          className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-4 text-sm font-medium sm:flex-none"
+          className="inline-flex min-h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:flex-none sm:px-4"
         >
           Filtros
           {active > 0 ? (
@@ -117,7 +117,7 @@ export function FilterSheet({
             </span>
           ) : null}
         </button>
-        <div className="flex rounded-full bg-chip p-1">
+        <div className="flex shrink-0 rounded-full bg-chip p-1">
           <button
             type="button"
             onClick={() => toggleSort("newest")}
@@ -248,7 +248,7 @@ export function FilterSheet({
               </section>
             ) : null}
 
-            <section className="mt-5 grid grid-cols-2 gap-3">
+            <section className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
               <label className="text-xs">
                 <span className="mb-1 block font-medium text-muted">Desde</span>
                 <input

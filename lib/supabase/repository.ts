@@ -129,36 +129,50 @@ export function createSupabaseRepository(): BotsRepository {
         .select("*")
         .order("name", { ascending: true });
 
+      let summaries: BotSummary[];
+
       if (!error && data) {
-        return data.map((row) => ({
+        summaries = data.map((row) => ({
           ...(row as Bot),
           post_count: Number(row.post_count ?? 0),
           last_activity_at: (row.last_activity_at as string | null) ?? null,
-        })) as BotSummary[];
+          latest_title: (row.latest_title as string | null) ?? null,
+        }));
+      } else {
+        const bots = await this.listBots();
+        const { data: posts } = await admin
+          .from("posts")
+          .select("bot_id, title, created_at")
+          .order("created_at", { ascending: false });
+        const counts = new Map<
+          string,
+          { post_count: number; last_activity_at: string | null; latest_title: string | null }
+        >();
+        for (const row of posts ?? []) {
+          const botId = row.bot_id as string;
+          const current = counts.get(botId);
+          if (!current) {
+            counts.set(botId, {
+              post_count: 1,
+              last_activity_at: row.created_at as string,
+              latest_title: (row.title as string | null) ?? null,
+            });
+          } else {
+            current.post_count += 1;
+          }
+        }
+        summaries = bots.map((bot) => ({
+          ...bot,
+          post_count: counts.get(bot.id)?.post_count ?? 0,
+          last_activity_at: counts.get(bot.id)?.last_activity_at ?? null,
+          latest_title: counts.get(bot.id)?.latest_title ?? null,
+        }));
       }
 
-      const bots = await this.listBots();
-      const { data: posts } = await admin
-        .from("posts")
-        .select("bot_id, created_at")
-        .order("created_at", { ascending: false });
-      const counts = new Map<string, { post_count: number; last_activity_at: string | null }>();
-      for (const row of posts ?? []) {
-        const botId = row.bot_id as string;
-        const current = counts.get(botId);
-        if (!current) {
-          counts.set(botId, {
-            post_count: 1,
-            last_activity_at: row.created_at as string,
-          });
-        } else {
-          current.post_count += 1;
-        }
-      }
-      return bots.map((bot) => ({
+      const latest = await this.latestPostByBotIds(summaries.map((bot) => bot.id));
+      return summaries.map((bot) => ({
         ...bot,
-        post_count: counts.get(bot.id)?.post_count ?? 0,
-        last_activity_at: counts.get(bot.id)?.last_activity_at ?? null,
+        latest_title: latest[bot.id]?.title ?? bot.latest_title,
       }));
     },
 

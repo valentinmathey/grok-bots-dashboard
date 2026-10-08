@@ -24,9 +24,9 @@ export function PostCard({
   }
 
   return (
-    <article className="surface rounded-3xl p-4 sm:p-5">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-        <h3 className="text-[17px] font-semibold leading-snug tracking-tight">
+    <article className="surface min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
+      <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <h3 className="min-w-0 text-[1.05rem] font-semibold leading-snug tracking-tight break-words">
           {post.title}
         </h3>
         <time

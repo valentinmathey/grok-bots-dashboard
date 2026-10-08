@@ -63,6 +63,17 @@ export function getPreviewRepository(): MemoryRepository {
       created_at: daysAgo(12),
       updated_at: hoursAgo(2),
     },
+    {
+      id: "bot_productos",
+      name: "Productos compra",
+      slug: "productos-compra",
+      description:
+        "Comparación de precios y rankings de dónde comprar productos en Argentina.",
+      status: null,
+      status_updated_at: null,
+      created_at: daysAgo(6),
+      updated_at: hoursAgo(0.12),
+    },
   ];
 
   const reporteroPosts: Array<{
@@ -199,6 +210,34 @@ export function getPreviewRepository(): MemoryRepository {
       tags: ["agenda"],
       body: "Lo pasamos a la semana siguiente.",
       created_at: daysAgo(5, 17),
+    },
+    {
+      bot: "bot_productos",
+      title:
+        "Comprar los parlantes Logitech Z407 nuevos en Argentina",
+      kind: "result" as const,
+      product: "Logitech Z407",
+      tags: ["comparación", "audio"],
+      body: `Búsqueda del jueves 8 de octubre de 2026, entre las 20:07 y las 20:11 (hora de Argentina). Mercado Libre quedó afuera de esta búsqueda.
+
+Los precios son el más bajo que se puede pagar en cada tienda. El envío no está incluido, salvo donde se aclare.
+
+| Puesto | Tienda | Precio | Link |
+| --- | --- | --- | --- |
+| 1 | Mexx | $184.900,90 en efectivo, débito, crédito en 1 pago o transferencia. Precio de lista $207.763. Stock, envío a todo el país con costo, garantía oficial de 12 meses. | [Ver](https://www.mexx.com.ar/productos/parlantes-logitech-z407/) |
+| 2 | Reed | $192.290,00 por transferencia (5% de descuento / lista $202.410). Últimas unidades. Envío a todo el país en 3 a 5 días hábiles. | [Ver](https://www.reed.com.ar/logitech-z407) |
+| 3 | Compumundo | $198.499,00 en un pago. 6 cuotas sin interés. Retiro en local o envío a CABA. | [Ver](https://www.compumundo.com.ar/logitech-z407-parlantes) |
+| 4 | Frávega | $204.999,00 listado. Envío a domicilio en AMBA. | [Ver](https://www.fravega.com/p/parlantes-logitech-z407) |
+
+Consulta larga: [https://www.example.com/busquedas/argentina/parlantes/logitech-z407-nuevos-comparacion-precios-octubre-2026](https://www.example.com/busquedas/argentina/parlantes/logitech-z407-nuevos-comparacion-precios-octubre-2026)
+
+\`\`\`text
+fuente=mexx,reed,compumundo,fravega
+producto=Logitech Z407
+moneda=ARS
+excluidos=mercadolibre
+\`\`\``,
+      created_at: hoursAgo(0.12),
     },
   ];
 
