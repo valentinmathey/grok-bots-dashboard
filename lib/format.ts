@@ -24,7 +24,7 @@ function localeText(
 ): string {
   return new Intl.DateTimeFormat("es-AR", options)
     .format(date)
-    .replace(/\u00a0/g, " ");
+    .replace(/[\u00a0\u202f\u2007\u2009]/g, " ");
 }
 
 export function formatDateTime(iso: string): string {

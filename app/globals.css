@@ -200,7 +200,7 @@ select {
   padding: 0.55rem 0.75rem;
   text-align: left;
   vertical-align: top;
-  overflow-wrap: break-word;
+  overflow-wrap: normal;
   word-break: normal;
   hyphens: none;
 }
@@ -213,18 +213,22 @@ select {
 }
 
 .markdown td {
-  min-width: 7.5rem;
+  min-width: 7.25rem;
+  max-width: 16.5rem;
+  white-space: normal;
 }
 
 .markdown td:first-child,
 .markdown th:first-child {
-  min-width: 4.5rem;
+  min-width: 4.25rem;
+  max-width: 6.5rem;
 }
 
 .markdown td:last-child,
 .markdown th:last-child {
   white-space: nowrap;
   min-width: 3.75rem;
+  max-width: none;
 }
 
 .markdown img {

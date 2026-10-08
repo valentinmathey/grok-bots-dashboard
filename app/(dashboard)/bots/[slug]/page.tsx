@@ -53,24 +53,22 @@ export default async function BotPage({
         </div>
       </div>
 
-      <section className="surface min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
-          En qué está
-        </p>
-        <p className="mt-2 flex items-start gap-2 text-[1.05rem] leading-7">
-          <span
-            className={`mt-2 h-2 w-2 shrink-0 rounded-full ${busy ? "animate-pulse bg-accent" : "bg-muted/40"}`}
-          />
-          <span className="min-w-0 break-words">
-            {busy ? bot.status : "Todavía no actualizó su estado."}
-          </span>
-        </p>
-        {bot.status_updated_at ? (
-          <p className="mt-2 pl-4 text-xs text-muted">
-            Actualizado <TimeStamp iso={bot.status_updated_at} />
+      {busy ? (
+        <section className="surface min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+            En qué está
           </p>
-        ) : null}
-      </section>
+          <p className="mt-2 flex items-start gap-2 text-[1.05rem] leading-7">
+            <span className="mt-2 h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" />
+            <span className="min-w-0 break-words">{bot.status}</span>
+          </p>
+          {bot.status_updated_at ? (
+            <p className="mt-2 pl-4 text-xs text-muted">
+              Actualizado <TimeStamp iso={bot.status_updated_at} />
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <PostFeed
         key={JSON.stringify(query)}

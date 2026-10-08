@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   botCardLead,
+  formatDateTime,
   formatPublicationCount,
 } from "@/lib/format";
+
+describe("formatDateTime", () => {
+  it("no usa espacios de no-separación (evita mismatch de hidratación)", () => {
+    const text = formatDateTime("2026-10-08T10:00:00.000Z");
+    expect(text).not.toMatch(/[\u00a0\u202f\u2007\u2009]/);
+    expect(text).toMatch(/2026/);
+  });
+});
 
 describe("formatPublicationCount", () => {
   it("usa singular y plural en español", () => {
