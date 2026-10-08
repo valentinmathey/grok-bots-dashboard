@@ -65,7 +65,11 @@ alter table public.posts
     and jsonb_array_length(images) <= 12
   );
 
-create or replace view public.bot_home as
+-- Postgres no deja agregar columnas en el medio con CREATE OR REPLACE VIEW,
+-- así que la vista se recrea.
+drop view if exists public.bot_home;
+
+create view public.bot_home as
 select
   b.id,
   b.name,
