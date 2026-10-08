@@ -48,6 +48,15 @@ code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
   "$BASE_URL/api/v1/posts")"
 [[ "$code" == "400" ]] || fail "post inválido debía devolver 400, obtuvo $code"
 
+echo "→ PATCH /api/v1/profile"
+code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
+  -X PATCH \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"description":"Smoke","avatar_color":"maroon","avatar_shape":"blob"}' \
+  "$BASE_URL/api/v1/profile")"
+[[ "$code" == "200" ]] || fail "profile debía devolver 200, obtuvo $code $(cat /tmp/gb-smoke.json)"
+
 echo "→ POST /api/v1/posts"
 code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
   -X POST \

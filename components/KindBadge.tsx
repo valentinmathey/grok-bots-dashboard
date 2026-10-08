@@ -1,12 +1,35 @@
+import {
+  CalendarDays,
+  CircleDot,
+  FileText,
+  Flag,
+  NotebookPen,
+  Sparkles,
+} from "lucide-react";
 import { kindLabel } from "@/lib/format";
 import type { PostKind } from "@/lib/types";
 
-const KNOWN: Record<string, string> = {
-  update: "bg-sky-500/12 text-sky-800 dark:text-sky-200",
-  result: "bg-teal-500/12 text-teal-800 dark:text-teal-200",
-  report: "bg-amber-500/12 text-amber-900 dark:text-amber-200",
-  note: "bg-violet-500/12 text-violet-800 dark:text-violet-200",
-  evento: "bg-rose-500/12 text-rose-800 dark:text-rose-200",
+const KNOWN: Record<string, { className: string; Icon: typeof Sparkles }> = {
+  update: {
+    className: "bg-sky-500/12 text-sky-800 dark:text-sky-200",
+    Icon: CircleDot,
+  },
+  result: {
+    className: "bg-teal-500/12 text-teal-800 dark:text-teal-200",
+    Icon: Flag,
+  },
+  report: {
+    className: "bg-amber-500/12 text-amber-900 dark:text-amber-200",
+    Icon: FileText,
+  },
+  note: {
+    className: "bg-violet-500/12 text-violet-800 dark:text-violet-200",
+    Icon: NotebookPen,
+  },
+  evento: {
+    className: "bg-rose-500/12 text-rose-800 dark:text-rose-200",
+    Icon: CalendarDays,
+  },
 };
 
 const FALLBACK = [
@@ -17,7 +40,7 @@ const FALLBACK = [
 
 function styleFor(kind: string): string {
   if (KNOWN[kind]) {
-    return KNOWN[kind];
+    return KNOWN[kind].className;
   }
   let hash = 0;
   for (const ch of kind) hash = (hash + ch.charCodeAt(0)) % FALLBACK.length;
@@ -25,10 +48,12 @@ function styleFor(kind: string): string {
 }
 
 export function KindBadge({ kind }: { kind: PostKind }) {
+  const Icon = KNOWN[kind]?.Icon ?? Sparkles;
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide ${styleFor(kind)}`}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide ${styleFor(kind)}`}
     >
+      <Icon size={12} strokeWidth={1.75} />
       {kindLabel(kind)}
     </span>
   );

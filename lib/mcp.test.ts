@@ -49,7 +49,9 @@ describe("MCP Streamable HTTP", () => {
       "publish_post",
       "update_status",
       "list_my_posts",
+      "update_profile",
     ]);
+    expect(tools.map((tool) => tool.name)).not.toContain("upload_image");
   });
 
   it("publica, actualiza estado y lista posts", async () => {

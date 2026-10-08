@@ -3,7 +3,7 @@ import "server-only";
 import { dayEndIso, dayStartIso, type PostFilters } from "@/lib/filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
-import type { Bot, BotSummary, Post, PostKind } from "@/lib/types";
+import type { Bot, BotSummary, Post, PostImage, PostKind } from "@/lib/types";
 
 function applyFilters<T>(query: T, filters: PostFilters = {}): T {
   let next = query as T & {
@@ -79,8 +79,10 @@ export function createSupabaseRepository(): BotsRepository {
           kind: input.kind,
           product: input.product,
           tags: input.tags,
+          cover_image_url: input.cover_image_url,
+          images: input.images ?? [],
         })
-        .select("id, title, kind, product, tags, created_at")
+        .select("id, title, kind, product, tags, created_at, cover_image_url, images")
         .single();
 
       if (error) {
@@ -94,7 +96,28 @@ export function createSupabaseRepository(): BotsRepository {
         product: (data.product as string | null) ?? null,
         tags: (data.tags as string[]) ?? [],
         created_at: data.created_at as string,
+        cover_image_url: (data.cover_image_url as string | null) ?? null,
+        images: (data.images as PostImage[] | null) ?? [],
       };
+    },
+
+    async updateBotProfile(botId, profile) {
+      const { data, error } = await admin
+        .from("bots")
+        .update({
+          description: profile.description,
+          avatar_color: profile.avatar_color,
+          avatar_shape: profile.avatar_shape,
+          avatar_url: profile.avatar_url,
+        })
+        .eq("id", botId)
+        .select("*")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      return asBot(data as Bot);
     },
 
     async updateStatus(botId, status) {
@@ -364,6 +387,9 @@ export function createSupabaseRepository(): BotsRepository {
           name: input.name,
           slug: input.slug,
           description: input.description,
+          avatar_color: input.avatar_color,
+          avatar_shape: input.avatar_shape,
+          avatar_url: input.avatar_url,
         })
         .select("*")
         .single();

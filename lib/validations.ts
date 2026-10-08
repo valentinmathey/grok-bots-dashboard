@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { AVATAR_COLORS, AVATAR_SHAPES } from "@/lib/avatar";
+import { isHttpUrl } from "@/lib/images";
 
 export const KIND_SLUG_RE = /^[a-z][a-z0-9-]{0,31}$/;
 
@@ -19,6 +21,19 @@ export const slugSchema = z
     "Usá solo minúsculas, números y guiones (sin guión al inicio o al final)",
   );
 
+const httpUrlSchema = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((value) => value === "" || isHttpUrl(value), {
+    message: "La URL tiene que ser http o https",
+  });
+
+export const postImageSchema = z.object({
+  url: httpUrlSchema.min(8, "La URL de la imagen es obligatoria"),
+  alt: z.string().trim().max(160).optional().default(""),
+});
+
 export const createPostSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio").max(200),
   body: z
@@ -32,6 +47,8 @@ export const createPostSchema = z.object({
     .max(12, "Máximo 12 etiquetas")
     .optional()
     .default([]),
+  cover_image_url: httpUrlSchema.optional().default(""),
+  images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional().default([]),
 });
 
 export const listPostsQuerySchema = z.object({
@@ -62,11 +79,22 @@ export const createBotSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio").max(80),
   slug: slugSchema,
   description: z.string().trim().max(500).optional().default(""),
+  avatar_color: z.enum(AVATAR_COLORS).optional(),
+  avatar_shape: z.enum(AVATAR_SHAPES).optional(),
+  avatar_url: httpUrlSchema.optional().default(""),
+});
+
+export const updateProfileSchema = z.object({
+  description: z.string().trim().max(500).optional(),
+  avatar_color: z.enum(AVATAR_COLORS).nullable().optional(),
+  avatar_shape: z.enum(AVATAR_SHAPES).nullable().optional(),
+  avatar_url: httpUrlSchema.nullable().optional(),
 });
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
 export type CreateBotInput = z.infer<typeof createBotSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export function isKindSlug(value: string): boolean {
   return KIND_SLUG_RE.test(value);

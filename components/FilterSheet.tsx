@@ -3,6 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  ArrowDownNarrowWide,
+  ArrowUpNarrowWide,
+  CalendarDays,
+  Hash,
+  Package,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
+import {
   countActiveFilters,
   filtersToSearchParams,
   type FeedQuery,
@@ -110,6 +119,7 @@ export function FilterSheet({
           }}
           className="inline-flex min-h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:flex-none sm:px-4"
         >
+          <SlidersHorizontal size={16} strokeWidth={1.75} />
           Filtros
           {active > 0 ? (
             <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-ink">
@@ -125,6 +135,7 @@ export function FilterSheet({
               query.sort === "newest" ? "bg-card text-foreground shadow-sm" : "text-muted"
             }`}
           >
+            <ArrowDownNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
             Nuevas
           </button>
           <button
@@ -134,6 +145,7 @@ export function FilterSheet({
               query.sort === "oldest" ? "bg-card text-foreground shadow-sm" : "text-muted"
             }`}
           >
+            <ArrowUpNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
             Antiguas
           </button>
         </div>
@@ -179,6 +191,7 @@ export function FilterSheet({
             {facets.products.length > 0 ? (
               <section className="mt-5">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  <Package size={12} strokeWidth={1.75} className="mr-1 inline" />
                   Producto
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -203,6 +216,7 @@ export function FilterSheet({
             {facets.kinds.length > 0 ? (
               <section className="mt-5">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  <Sparkles size={12} strokeWidth={1.75} className="mr-1 inline" />
                   Tipo
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -227,6 +241,7 @@ export function FilterSheet({
             {facets.tags.length > 0 ? (
               <section className="mt-5">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  <Hash size={12} strokeWidth={1.75} className="mr-1 inline" />
                   Etiquetas
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -250,7 +265,10 @@ export function FilterSheet({
 
             <section className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
               <label className="text-xs">
-                <span className="mb-1 block font-medium text-muted">Desde</span>
+                <span className="mb-1 flex items-center gap-1 font-medium text-muted">
+                  <CalendarDays size={12} strokeWidth={1.75} />
+                  Desde
+                </span>
                 <input
                   type="date"
                   value={draft.from ?? ""}

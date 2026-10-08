@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { BotAvatar } from "@/components/BotAvatar";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { PostFeed } from "@/components/PostFeed";
 import { TimeStamp } from "@/components/TimeStamp";
+import { resolveAvatar } from "@/lib/avatar";
 import { getRepository } from "@/lib/data";
 import { PAGE_SIZE, parseFeedQuery } from "@/lib/filters";
 
@@ -31,25 +34,33 @@ export default async function BotPage({
   ]);
 
   const busy = Boolean(bot.status?.trim());
+  const avatar = resolveAvatar(bot);
 
   return (
-    <div className="mx-auto min-w-0 max-w-2xl space-y-5 sm:space-y-6">
+    <div
+      className="bot-skin mx-auto min-w-0 max-w-2xl space-y-5 sm:space-y-6"
+      style={{ "--bot-fill": avatar.fill } as React.CSSProperties}
+    >
       <div className="min-w-0">
-        <Link href="/" className="text-sm font-medium text-accent">
-          ← Bots
+        <Link href="/" className="inline-flex items-center gap-1 text-sm font-medium text-accent">
+          <ArrowLeft size={16} strokeWidth={1.75} />
+          Bots
         </Link>
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="break-words text-[1.65rem] font-semibold tracking-tight sm:text-[1.75rem]">
-              {bot.name}
-            </h1>
+        <div className="mt-3 flex items-start gap-3">
+          <BotAvatar bot={bot} size="xl" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="break-words text-[1.65rem] font-semibold tracking-tight sm:text-[1.75rem]">
+                {bot.name}
+              </h1>
+              <LiveRefresh />
+            </div>
             {bot.description ? (
               <p className="mt-1.5 text-sm leading-6 text-muted">
                 {bot.description}
               </p>
             ) : null}
           </div>
-          <LiveRefresh />
         </div>
       </div>
 

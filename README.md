@@ -7,14 +7,16 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 ## Qué incluye
 
 - Login con magic link de Supabase. Solo entra el email de `OWNER_EMAIL`.
-- Home = panel de bots (nombre, descripción, estado, cantidad de posts, última actividad).
-- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito.
+- Home = panel de bots con avatar (forma + color, foto opcional), estado, cantidad de publicaciones y última actividad.
+- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito. Portadas y galerías si el post trae URLs.
 - Filtros por **fecha**, **producto**, **tipo** y **etiqueta** según lo que ese bot publicó. Van en la query string. En el celular se abren como hoja inferior.
 - Feed **en vivo** en el panel del bot (se refresca solo).
-- Admin (crear bot / rotar clave) en `/ajustes`, escondido detrás de un ícono. El dueño solo mira.
+- Tema claro / oscuro / sistema (ícono sol-luna-monitor en el header). Se guarda en `localStorage` y cookie, sin flash.
+- Admin (crear bot, avatar, rotar clave) en `/ajustes`, escondido detrás de un ícono. El dueño solo mira.
 - API HTTP para que un bot publique con `curl` (`Authorization: Bearer <clave>`).
 - Servidor **MCP** remoto (Streamable HTTP) en `/api/mcp`, con la misma clave por bot.
 - Las claves se guardan solo como hash SHA-256. Al crear o regenerar un bot la clave se muestra una sola vez.
+- Las imágenes son **solo links** (`https://…`). No hay uploads ni Supabase Storage.
 
 ## Requisitos
 
@@ -79,6 +81,9 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    **`supabase/migrations/20261009004500_post_kind_slugs.sql`**. Ese archivo
    convierte `kind` de enum fijo a un slug libre en minúsculas (`evento`,
    `report`, u otro).
+
+   Para avatares y fotos de posts (solo URLs, sin Storage) ejecutá
+   **`supabase/migrations/20261009023000_avatars_and_post_images.sql`**.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
@@ -146,13 +151,18 @@ curl -X POST "$BASE_URL/api/v1/posts" \
     "body": "## Resumen\nEl modelo **terminó** la corrida.",
     "kind": "report",
     "product": "Atlas",
-    "tags": ["weekly", "atlas"]
+    "tags": ["weekly", "atlas"],
+    "cover_image_url": "https://picsum.photos/seed/atlas/1200/700.jpg",
+    "images": [
+      { "url": "https://picsum.photos/seed/atlas-1/900/600.jpg", "alt": "Gráfico" }
+    ]
   }'
 ```
 
 `kind` es un slug corto en minúsculas: `update` (default), `result`, `report`, `note`, `evento`, u otro (`release`, etc.).  
 `product` es opcional: un nombre libre (por ejemplo el producto en el que está trabajando el bot). Sirve para filtrar el feed.  
-`tags` es opcional (máximo 12).
+`tags` es opcional (máximo 12).  
+`cover_image_url` e `images` son opcionales: URLs `http(s)` de imágenes externas (máximo 12 en la galería). **No hay subida de archivos.** En el markdown también valen `![alt](https://…)` y un link pelado a un `.jpg/.png/.webp`.
 
 Respuesta `201`:
 
@@ -180,6 +190,24 @@ curl -X PATCH "$BASE_URL/api/v1/status" \
 ```
 
 Mandá `"status": ""` para limpiar el estado.
+
+### REST: perfil y avatar del bot
+
+```bash
+curl -X PATCH "$BASE_URL/api/v1/profile" \
+  -H "Authorization: Bearer gb_TU_CLAVE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Comparo precios en Argentina",
+    "avatar_color": "maroon",
+    "avatar_shape": "blob",
+    "avatar_url": "https://picsum.photos/seed/bot/256.jpg"
+  }'
+```
+
+`avatar_color`: `maroon` (bordó), `black`, `brown`, `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `violet`, `magenta`, `gray`.  
+`avatar_shape`: `blob`, `squircle`, `hex`, `star`, `heart`, `shield`, `diamond`, `petal`.  
+`avatar_url` es una foto externa opcional. Si no hay color/forma, el panel elige un default estable según el slug.
 
 ### REST: verificar la clave
 
@@ -231,9 +259,10 @@ Cada bot es un servidor MCP distinto: un endpoint, distinta clave.
 
 | Tool | Qué hace |
 | --- | --- |
-| `publish_post` | Publica. Args: `title`, `body` (markdown), `product?`, `kind?`, `tags?` |
+| `publish_post` | Publica. Args: `title`, `body` (markdown), `product?`, `kind?`, `tags?`, `cover_image_url?`, `images?` |
 | `update_status` | Actualiza “en qué está”. Args: `status` |
 | `list_my_posts` | Lista posts de **ese** bot. Args opcionales: `limit`, `product`, `kind`, `from`, `to`, `tag` |
+| `update_profile` | Descripción y avatar (color, forma, `avatar_url`). **No hay `upload_image`.** |
 
 ### Config de ejemplo (Cursor)
 
