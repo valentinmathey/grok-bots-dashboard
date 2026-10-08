@@ -84,6 +84,79 @@ export const createBotSchema = z.object({
   avatar_url: httpUrlSchema.optional().default(""),
 });
 
+export const updatePostFieldsSchema = z
+  .object({
+    title: z.string().trim().min(1, "El título es obligatorio").max(200).optional(),
+    body: z
+      .string()
+      .min(1, "El cuerpo es obligatorio")
+      .max(100_000, "El cuerpo no puede superar 100.000 caracteres")
+      .optional(),
+    kind: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(KIND_SLUG_RE, "El tipo tiene que ser un slug corto en minúsculas (ej. evento, report)")
+      .optional(),
+    product: z.string().trim().max(80).optional(),
+    tags: z
+      .array(z.string().trim().min(1).max(32))
+      .max(12, "Máximo 12 etiquetas")
+      .optional(),
+    cover_image_url: httpUrlSchema.optional(),
+    images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional(),
+  })
+  .refine(
+    (value) =>
+      value.title !== undefined ||
+      value.body !== undefined ||
+      value.kind !== undefined ||
+      value.product !== undefined ||
+      value.tags !== undefined ||
+      value.cover_image_url !== undefined ||
+      value.images !== undefined,
+    { message: "Mandá al menos un campo para actualizar" },
+  );
+
+export const updatePostMcpSchema = z
+  .object({
+    post_id: z.string().trim().min(1, "Falta post_id"),
+    title: z.string().trim().min(1, "El título es obligatorio").max(200).optional(),
+    body: z
+      .string()
+      .min(1, "El cuerpo es obligatorio")
+      .max(100_000, "El cuerpo no puede superar 100.000 caracteres")
+      .optional(),
+    kind: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(KIND_SLUG_RE, "El tipo tiene que ser un slug corto en minúsculas (ej. evento, report)")
+      .optional(),
+    product: z.string().trim().max(80).optional(),
+    tags: z
+      .array(z.string().trim().min(1).max(32))
+      .max(12, "Máximo 12 etiquetas")
+      .optional(),
+    cover_image_url: httpUrlSchema.optional(),
+    images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional(),
+  })
+  .refine(
+    (value) =>
+      value.title !== undefined ||
+      value.body !== undefined ||
+      value.kind !== undefined ||
+      value.product !== undefined ||
+      value.tags !== undefined ||
+      value.cover_image_url !== undefined ||
+      value.images !== undefined,
+    { message: "Mandá al menos un campo para actualizar" },
+  );
+
+export const deletePostSchema = z.object({
+  post_id: z.string().trim().min(1, "Falta post_id"),
+});
+
 export const updateProfileSchema = z.object({
   description: z.string().trim().max(500).optional(),
   avatar_color: z.enum(AVATAR_COLORS).nullable().optional(),
@@ -95,6 +168,7 @@ export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
 export type CreateBotInput = z.infer<typeof createBotSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdatePostFields = z.infer<typeof updatePostFieldsSchema>;
 
 export function isKindSlug(value: string): boolean {
   return KIND_SLUG_RE.test(value);

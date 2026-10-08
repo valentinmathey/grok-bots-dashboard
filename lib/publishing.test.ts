@@ -4,11 +4,13 @@ import { MemoryRepository } from "@/lib/memory-repository";
 import {
   authenticateBot,
   createOwnedBot,
+  deleteOwnPost,
   listMyPosts,
   publishPost,
   publishStatus,
   regenerateOwnedKey,
   updateBotProfile,
+  updateOwnPost,
 } from "@/lib/publishing";
 
 function repoWithBot() {
@@ -202,7 +204,68 @@ describe("API de publicación", () => {
     if (listed.ok) {
       expect(listed.data.posts).toHaveLength(1);
       expect(listed.data.posts[0]?.title).toBe("Uno");
+      expect(listed.data.posts[0]?.id).toBeTruthy();
     }
+  });
+
+  it("edita y borra solo los posts propios", async () => {
+    const { repo, key } = repoWithBot();
+    const other = await createOwnedBot(repo, {
+      name: "Otro",
+      slug: "otro",
+    });
+    expect(other.ok).toBe(true);
+    if (!other.ok) return;
+
+    const mine = await publishPost(repo, `Bearer ${key}`, {
+      title: "Mio",
+      body: "original",
+    });
+    const theirs = await publishPost(repo, `Bearer ${other.data.api_key}`, {
+      title: "Ajeno",
+      body: "no tocar",
+    });
+    expect(mine.ok && theirs.ok).toBe(true);
+    if (!mine.ok || !theirs.ok) return;
+
+    const edited = await updateOwnPost(repo, `Bearer ${key}`, mine.data.post.id, {
+      title: "Mio editado",
+      kind: "report",
+    });
+    expect(edited.ok).toBe(true);
+    if (edited.ok) {
+      expect(edited.data.post.title).toBe("Mio editado");
+      expect(edited.data.post.kind).toBe("report");
+    }
+    expect(repo.posts.find((post) => post.id === mine.data.post.id)?.body_markdown).toBe(
+      "original",
+    );
+
+    const stolen = await updateOwnPost(repo, `Bearer ${key}`, theirs.data.post.id, {
+      title: "Hack",
+    });
+    expect(stolen.ok).toBe(false);
+    if (!stolen.ok) {
+      expect(stolen.status).toBe(404);
+    }
+    expect(repo.posts.find((post) => post.id === theirs.data.post.id)?.title).toBe("Ajeno");
+
+    const empty = await updateOwnPost(repo, `Bearer ${key}`, mine.data.post.id, {});
+    expect(empty.ok).toBe(false);
+
+    const deletedOther = await deleteOwnPost(
+      repo,
+      `Bearer ${key}`,
+      theirs.data.post.id,
+    );
+    expect(deletedOther.ok).toBe(false);
+    if (!deletedOther.ok) {
+      expect(deletedOther.status).toBe(404);
+    }
+
+    const deleted = await deleteOwnPost(repo, `Bearer ${key}`, mine.data.post.id);
+    expect(deleted.ok).toBe(true);
+    expect(repo.posts.some((post) => post.id === mine.data.post.id)).toBe(false);
   });
 
   it("no permite slugs duplicados", async () => {

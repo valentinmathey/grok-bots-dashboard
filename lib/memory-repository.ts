@@ -50,6 +50,7 @@ export class MemoryRepository implements BotsRepository {
       product: input.product,
       tags: input.tags,
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       cover_image_url: input.cover_image_url,
       images: input.images ?? [],
     };
@@ -61,9 +62,45 @@ export class MemoryRepository implements BotsRepository {
       product: post.product,
       tags: post.tags,
       created_at: post.created_at,
+      updated_at: post.updated_at,
       cover_image_url: post.cover_image_url,
       images: post.images,
     };
+  }
+
+  async getPostById(id: string) {
+    return this.posts.find((post) => post.id === id) ?? null;
+  }
+
+  async updatePost(
+    id: string,
+    patch: {
+      title?: string;
+      body?: string;
+      kind?: PostKind;
+      product?: string | null;
+      tags?: string[];
+      cover_image_url?: string | null;
+      images?: Post["images"];
+    },
+  ) {
+    const post = this.posts.find((item) => item.id === id);
+    if (!post) {
+      throw new Error("post not found");
+    }
+    if (patch.title !== undefined) post.title = patch.title;
+    if (patch.body !== undefined) post.body_markdown = patch.body;
+    if (patch.kind !== undefined) post.kind = patch.kind;
+    if (patch.product !== undefined) post.product = patch.product;
+    if (patch.tags !== undefined) post.tags = patch.tags;
+    if (patch.cover_image_url !== undefined) post.cover_image_url = patch.cover_image_url;
+    if (patch.images !== undefined) post.images = patch.images;
+    post.updated_at = new Date().toISOString();
+    return post;
+  }
+
+  async deletePost(id: string) {
+    this.posts = this.posts.filter((post) => post.id !== id);
   }
 
   async updateBotProfile(botId: string, profile: BotProfile) {

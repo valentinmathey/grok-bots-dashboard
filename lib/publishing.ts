@@ -17,9 +17,12 @@ import type {
 import {
   createBotSchema,
   createPostSchema,
+  deletePostSchema,
   formatZodError,
   listPostsQuerySchema,
   normalizeTags,
+  updatePostFieldsSchema,
+  updatePostMcpSchema,
   updateProfileSchema,
   updateStatusSchema,
 } from "@/lib/validations";
@@ -36,6 +39,20 @@ export type BotsRepository = {
     cover_image_url: string | null;
     images: CreatedPost["images"];
   }): Promise<CreatedPost>;
+  getPostById(id: string): Promise<Post | null>;
+  updatePost(
+    id: string,
+    patch: {
+      title?: string;
+      body?: string;
+      kind?: CreatedPost["kind"];
+      product?: string | null;
+      tags?: string[];
+      cover_image_url?: string | null;
+      images?: CreatedPost["images"];
+    },
+  ): Promise<Post>;
+  deletePost(id: string): Promise<void>;
   updateStatus(botId: string, status: string | null): Promise<void>;
   updateBotProfile(botId: string, profile: BotProfile): Promise<Bot>;
   listBots(): Promise<Bot[]>;
@@ -128,6 +145,136 @@ export async function publishPost(
   });
 
   return { ok: true, status: 201, data: { post, bot: auth.data } };
+}
+
+function toCreatedPost(post: Post): CreatedPost {
+  return {
+    id: post.id,
+    title: post.title,
+    kind: post.kind,
+    product: post.product,
+    tags: post.tags,
+    created_at: post.created_at,
+    updated_at: post.updated_at,
+    cover_image_url: post.cover_image_url ?? null,
+    images: post.images ?? [],
+  };
+}
+
+async function requireOwnPost(
+  repo: BotsRepository,
+  botId: string,
+  postId: string,
+): Promise<Result<Post>> {
+  const post = await repo.getPostById(postId);
+  if (!post || post.bot_id !== botId) {
+    return fail(404, "not_found", "No encontramos esa publicación");
+  }
+  return { ok: true, data: post };
+}
+
+function patchFromUpdateFields(parsed: {
+  title?: string;
+  body?: string;
+  kind?: string;
+  product?: string;
+  tags?: string[];
+  cover_image_url?: string;
+  images?: Array<{ url: string; alt: string }>;
+}) {
+  const patch: Parameters<BotsRepository["updatePost"]>[1] = {};
+  if (parsed.title !== undefined) patch.title = parsed.title;
+  if (parsed.body !== undefined) patch.body = parsed.body;
+  if (parsed.kind !== undefined) patch.kind = parsed.kind;
+  if (parsed.product !== undefined) patch.product = normalizeProduct(parsed.product);
+  if (parsed.tags !== undefined) patch.tags = normalizeTags(parsed.tags);
+  if (parsed.cover_image_url !== undefined) {
+    patch.cover_image_url = normalizeHttpUrl(parsed.cover_image_url);
+  }
+  if (parsed.images !== undefined) patch.images = normalizePostImages(parsed.images);
+  return patch;
+}
+
+export async function updateOwnPost(
+  repo: BotsRepository,
+  authorization: string | null,
+  postId: string,
+  payload: unknown,
+): Promise<Result<{ post: CreatedPost; bot: AuthenticatedBot }>> {
+  const auth = await authenticateBot(repo, authorization);
+  if (!auth.ok) {
+    return auth;
+  }
+
+  const parsed = updatePostFieldsSchema.safeParse(payload);
+  if (!parsed.success) {
+    return fail(
+      400,
+      "invalid_input",
+      "Los datos de la publicación no son válidos",
+      formatZodError(parsed.error),
+    );
+  }
+
+  const owned = await requireOwnPost(repo, auth.data.botId, postId);
+  if (!owned.ok) {
+    return owned;
+  }
+
+  const post = await repo.updatePost(owned.data.id, patchFromUpdateFields(parsed.data));
+  return { ok: true, data: { post: toCreatedPost(post), bot: auth.data } };
+}
+
+export async function updateOwnPostFromMcp(
+  repo: BotsRepository,
+  authorization: string | null,
+  payload: unknown,
+): Promise<Result<{ post: CreatedPost; bot: AuthenticatedBot }>> {
+  const parsed = updatePostMcpSchema.safeParse(payload ?? {});
+  if (!parsed.success) {
+    return fail(
+      400,
+      "invalid_input",
+      "Los datos de la publicación no son válidos",
+      formatZodError(parsed.error),
+    );
+  }
+  const { post_id, ...fields } = parsed.data;
+  return updateOwnPost(repo, authorization, post_id, fields);
+}
+
+export async function deleteOwnPost(
+  repo: BotsRepository,
+  authorization: string | null,
+  postId: string,
+): Promise<Result<{ deleted: true; id: string; bot: AuthenticatedBot }>> {
+  const auth = await authenticateBot(repo, authorization);
+  if (!auth.ok) {
+    return auth;
+  }
+  const owned = await requireOwnPost(repo, auth.data.botId, postId);
+  if (!owned.ok) {
+    return owned;
+  }
+  await repo.deletePost(owned.data.id);
+  return { ok: true, data: { deleted: true, id: owned.data.id, bot: auth.data } };
+}
+
+export async function deleteOwnPostFromMcp(
+  repo: BotsRepository,
+  authorization: string | null,
+  payload: unknown,
+): Promise<Result<{ deleted: true; id: string; bot: AuthenticatedBot }>> {
+  const parsed = deletePostSchema.safeParse(payload ?? {});
+  if (!parsed.success) {
+    return fail(
+      400,
+      "invalid_input",
+      "Falta el id de la publicación",
+      formatZodError(parsed.error),
+    );
+  }
+  return deleteOwnPost(repo, authorization, parsed.data.post_id);
 }
 
 export async function publishStatus(

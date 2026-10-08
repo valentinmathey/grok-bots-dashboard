@@ -1,9 +1,11 @@
 import {
   authenticateBot,
+  deleteOwnPostFromMcp,
   listMyPosts,
   publishPost,
   publishStatus,
   updateBotProfile,
+  updateOwnPostFromMcp,
   type BotsRepository,
 } from "@/lib/publishing";
 export const MCP_PROTOCOL_VERSIONS = [
@@ -82,7 +84,8 @@ export const MCP_TOOLS = [
   },
   {
     name: "list_my_posts",
-    description: "Lista las publicaciones recientes de este bot, más nuevas primero.",
+    description:
+      "Lista las publicaciones recientes de este bot, más nuevas primero. Cada post incluye id (para update_post / delete_post).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -121,6 +124,49 @@ export const MCP_TOOLS = [
           type: "string",
           description: "URL http(s) de una foto. Vacío para quitarla.",
         },
+      },
+    },
+  },
+  {
+    name: "update_post",
+    description:
+      "Edita un post propio (parcial). Args: post_id y cualquiera de title, body, product, kind, tags, cover_image_url, images. Misma validación que publish_post. No toca posts de otro bot.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["post_id"],
+      properties: {
+        post_id: { type: "string", description: "Id del post (sale de list_my_posts)" },
+        title: { type: "string" },
+        body: { type: "string", description: "Cuerpo en Markdown" },
+        product: { type: "string" },
+        kind: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        cover_image_url: { type: "string" },
+        images: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["url"],
+            properties: {
+              url: { type: "string" },
+              alt: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+  },
+  {
+    name: "delete_post",
+    description: "Borra un post propio. Args: post_id. Si no es de este bot, responde 404.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["post_id"],
+      properties: {
+        post_id: { type: "string" },
       },
     },
   },
@@ -186,6 +232,10 @@ async function callTool(
       return listMyPosts(repo, authorization, args ?? {});
     case "update_profile":
       return updateBotProfile(repo, authorization, args ?? {});
+    case "update_post":
+      return updateOwnPostFromMcp(repo, authorization, args ?? {});
+    case "delete_post":
+      return deleteOwnPostFromMcp(repo, authorization, args ?? {});
     default:
       return {
         ok: false as const,

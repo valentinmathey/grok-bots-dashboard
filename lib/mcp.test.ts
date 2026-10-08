@@ -50,6 +50,8 @@ describe("MCP Streamable HTTP", () => {
       "update_status",
       "list_my_posts",
       "update_profile",
+      "update_post",
+      "delete_post",
     ]);
     expect(tools.map((tool) => tool.name)).not.toContain("upload_image");
   });
@@ -105,6 +107,30 @@ describe("MCP Streamable HTTP", () => {
         : "";
     expect(text).toContain("Via MCP");
     expect(text).toContain("Atlas");
+    expect(text).toContain('"id"');
+
+    const postId = repo.posts[0]?.id;
+    expect(postId).toBeTruthy();
+    const updated = await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 7,
+      method: "tools/call",
+      params: {
+        name: "update_post",
+        arguments: { post_id: postId, title: "Via MCP editado" },
+      },
+    });
+    expect(updated.body && "error" in updated.body && updated.body.error).toBeFalsy();
+    expect(repo.posts[0]?.title).toBe("Via MCP editado");
+
+    const removed = await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 8,
+      method: "tools/call",
+      params: { name: "delete_post", arguments: { post_id: postId } },
+    });
+    expect(removed.body && "error" in removed.body && removed.body.error).toBeFalsy();
+    expect(repo.posts).toHaveLength(0);
   });
 
   it("devuelve isError si la herramienta falla la validación", async () => {

@@ -82,7 +82,7 @@ export function createSupabaseRepository(): BotsRepository {
           cover_image_url: input.cover_image_url,
           images: input.images ?? [],
         })
-        .select("id, title, kind, product, tags, created_at, cover_image_url, images")
+        .select("id, title, kind, product, tags, created_at, updated_at, cover_image_url, images")
         .single();
 
       if (error) {
@@ -96,9 +96,50 @@ export function createSupabaseRepository(): BotsRepository {
         product: (data.product as string | null) ?? null,
         tags: (data.tags as string[]) ?? [],
         created_at: data.created_at as string,
+        updated_at: (data.updated_at as string | null) ?? (data.created_at as string),
         cover_image_url: (data.cover_image_url as string | null) ?? null,
         images: (data.images as PostImage[] | null) ?? [],
       };
+    },
+
+    async getPostById(id) {
+      const { data, error } = await admin
+        .from("posts")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+      return data ? (data as Post) : null;
+    },
+
+    async updatePost(id, patch) {
+      const fields: Record<string, unknown> = {};
+      if (patch.title !== undefined) fields.title = patch.title;
+      if (patch.body !== undefined) fields.body_markdown = patch.body;
+      if (patch.kind !== undefined) fields.kind = patch.kind;
+      if (patch.product !== undefined) fields.product = patch.product;
+      if (patch.tags !== undefined) fields.tags = patch.tags;
+      if (patch.cover_image_url !== undefined) fields.cover_image_url = patch.cover_image_url;
+      if (patch.images !== undefined) fields.images = patch.images;
+      const { data, error } = await admin
+        .from("posts")
+        .update(fields)
+        .eq("id", id)
+        .select("*")
+        .single();
+      if (error) {
+        throw error;
+      }
+      return data as Post;
+    },
+
+    async deletePost(id) {
+      const { error } = await admin.from("posts").delete().eq("id", id);
+      if (error) {
+        throw error;
+      }
     },
 
     async updateBotProfile(botId, profile) {

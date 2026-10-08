@@ -66,6 +66,25 @@ code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
   "$BASE_URL/api/v1/posts")"
 [[ "$code" == "201" ]] || fail "post debía devolver 201, obtuvo $code $(cat /tmp/gb-smoke.json)"
 
+post_id="$(node -e "const j=require('/tmp/gb-smoke.json'); process.stdout.write(j.post?.id || '')")"
+[[ -n "$post_id" ]] || fail "el post creado no trajo id"
+
+echo "→ PATCH /api/v1/posts/{id}"
+code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
+  -X PATCH \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Smoke test editado"}' \
+  "$BASE_URL/api/v1/posts/$post_id")"
+[[ "$code" == "200" ]] || fail "patch post debía devolver 200, obtuvo $code $(cat /tmp/gb-smoke.json)"
+
+echo "→ DELETE /api/v1/posts/{id}"
+code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
+  -X DELETE \
+  -H "Authorization: Bearer $KEY" \
+  "$BASE_URL/api/v1/posts/$post_id")"
+[[ "$code" == "200" ]] || fail "delete post debía devolver 200, obtuvo $code $(cat /tmp/gb-smoke.json)"
+
 echo "→ POST /api/mcp sin clave (espera 401)"
 code="$(curl -sS -o /tmp/gb-smoke.json -w "%{http_code}" \
   -X POST \
