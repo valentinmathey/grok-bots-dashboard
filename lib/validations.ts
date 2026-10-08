@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { POST_KINDS } from "@/lib/types";
 
-export const postKindSchema = z.enum(POST_KINDS);
+export const KIND_SLUG_RE = /^[a-z][a-z0-9-]{0,31}$/;
+
+export const postKindSchema = z.preprocess((value) => {
+  if (value == null || value === "") {
+    return "update";
+  }
+  return String(value).trim().toLowerCase();
+}, z.string().regex(KIND_SLUG_RE, "El tipo tiene que ser un slug corto en minúsculas (ej. evento, report)"));
 
 export const slugSchema = z
   .string()
@@ -31,7 +37,12 @@ export const createPostSchema = z.object({
 export const listPostsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
   product: z.string().trim().max(80).optional(),
-  kind: postKindSchema.optional(),
+  kind: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(KIND_SLUG_RE)
+    .optional(),
   from: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Usá el formato YYYY-MM-DD")
@@ -56,6 +67,10 @@ export const createBotSchema = z.object({
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdateStatusInput = z.infer<typeof updateStatusSchema>;
 export type CreateBotInput = z.infer<typeof createBotSchema>;
+
+export function isKindSlug(value: string): boolean {
+  return KIND_SLUG_RE.test(value);
+}
 
 export function slugify(value: string): string {
   return value

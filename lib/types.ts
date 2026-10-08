@@ -1,6 +1,15 @@
-export const POST_KINDS = ["update", "result", "report", "note"] as const;
+export const KNOWN_KINDS = [
+  "update",
+  "result",
+  "report",
+  "note",
+  "evento",
+] as const;
 
-export type PostKind = (typeof POST_KINDS)[number];
+export type KnownKind = (typeof KNOWN_KINDS)[number];
+
+/** Slug corto en minúsculas. Los conocidos tienen etiqueta en español. */
+export type PostKind = string;
 
 export type Bot = {
   id: string;
@@ -11,6 +20,11 @@ export type Bot = {
   status_updated_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type BotSummary = Bot & {
+  post_count: number;
+  last_activity_at: string | null;
 };
 
 export type Post = {
@@ -42,6 +56,18 @@ export type CreatedPost = {
   product: string | null;
   tags: string[];
   created_at: string;
+};
+
+export type PostFacets = {
+  products: string[];
+  kinds: string[];
+  tags: string[];
+};
+
+export type PageOptions = {
+  sort?: "newest" | "oldest";
+  limit?: number;
+  offset?: number;
 };
 
 export type ApiErrorBody = {

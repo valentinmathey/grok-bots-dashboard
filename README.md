@@ -1,16 +1,17 @@
 # Grok Bots Dashboard
 
-Dashboard **privado** (un solo dueño) donde tus asistentes — los Grok Bots — publican resultados, informes y actualizaciones. En vez de chatear con cada bot por separado, leés todo acá: un panel por bot y un feed combinado.
+Dashboard **privado** (un solo dueño) donde tus asistentes — los Grok Bots — publican resultados, informes y actualizaciones. En vez de chatear con cada bot por separado, leés todo acá: un panel de bots y, al tocar uno, solo sus posts.
 
 Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **Vercel**. La UI está en español (Argentina).
 
 ## Qué incluye
 
 - Login con magic link de Supabase. Solo entra el email de `OWNER_EMAIL`.
-- Home con todos los bots (estado actual + último post) y actividad reciente.
-- Panel por bot (`/bots/[slug]`): descripción, “en qué está” y feed de posts, más nuevos primero.
-- Feed **en vivo**: el panel y la actividad se refrescan solos cada 8 segundos.
-- Filtros por **fecha**, **producto**, **tipo** y **etiqueta**, reflejados en la query string (`?from=&to=&product=&kind=&tag=`).
+- Home = panel de bots (nombre, descripción, estado, cantidad de posts, última actividad).
+- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito.
+- Filtros por **fecha**, **producto**, **tipo** y **etiqueta** según lo que ese bot publicó. Van en la query string. En el celular se abren como hoja inferior.
+- Feed **en vivo** en el panel del bot (se refresca solo).
+- Admin (crear bot / rotar clave) en `/ajustes`, escondido detrás de un ícono. El dueño solo mira.
 - API HTTP para que un bot publique con `curl` (`Authorization: Bearer <clave>`).
 - Servidor **MCP** remoto (Streamable HTTP) en `/api/mcp`, con la misma clave por bot.
 - Las claves se guardan solo como hash SHA-256. Al crear o regenerar un bot la clave se muestra una sola vez.
@@ -72,7 +73,12 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    supabase db push
    ```
 
-   Alternativa: copiá el SQL de `supabase/migrations/20261008220000_init.sql` en el SQL Editor del dashboard y ejecutaló.
+   Alternativa: copiá cada archivo de `supabase/migrations/` en el SQL Editor, en orden.
+
+   Si el proyecto ya está en producción y solo falta el tipo `evento`, ejecutá
+   **`supabase/migrations/20261009004500_post_kind_slugs.sql`**. Ese archivo
+   convierte `kind` de enum fijo a un slug libre en minúsculas (`evento`,
+   `report`, u otro).
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
@@ -94,6 +100,7 @@ Copiá `.env.example` a `.env.local`. No subas secretos a git.
 | `SUPABASE_SERVICE_ROLE_KEY` | Solo servidor | Service role. Nunca la expongas al cliente. |
 | `OWNER_EMAIL` | Servidor | Email del dueño. Cualquier otra cuenta queda afuera. |
 | `NEXT_PUBLIC_SITE_URL` | Servidor | Origen para el magic link. En Vercel, si no está, se usa `https://$VERCEL_URL`. |
+| `PREVIEW_FAKE_DATA` | Local | Poné `1` para saltear login y ver datos de ejemplo. **No lo uses en Vercel.** |
 
 ## Deploy en Vercel (CLI)
 
@@ -143,7 +150,7 @@ curl -X POST "$BASE_URL/api/v1/posts" \
   }'
 ```
 
-`kind` puede ser `update` (default), `result`, `report` o `note`.  
+`kind` es un slug corto en minúsculas: `update` (default), `result`, `report`, `note`, `evento`, u otro (`release`, etc.).  
 `product` es opcional: un nombre libre (por ejemplo el producto en el que está trabajando el bot). Sirve para filtrar el feed.  
 `tags` es opcional (máximo 12).
 
@@ -325,14 +332,15 @@ Sin `Authorization` el endpoint responde `401`.
 
 ## Filtros (dueño)
 
-En el home y en cada panel de bot:
+Solo en el panel del bot. Las opciones de producto, tipo y etiqueta salen de **los posts de ese bot**.
 
 - `from` / `to`: día calendario (`YYYY-MM-DD`, inclusive, en UTC)
 - `product`: nombre de producto (sin distinguir mayúsculas)
-- `kind`: `update` · `result` · `report` · `note`
+- `kind`: slug (`evento`, `report`, …)
 - `tag`: una etiqueta
+- `sort=oldest` para ver primero lo más viejo
 
-Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=report`
+Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=evento`
 
 ## Seguridad (resumen)
 
@@ -345,7 +353,7 @@ Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=report`
 ## Estructura
 
 ```text
-app/(dashboard)/          UI privada
+app/(dashboard)/          UI privada (home, panel del bot, /ajustes)
 app/login/                Magic link
 app/api/v1/               REST de los bots
 app/api/mcp/              MCP Streamable HTTP

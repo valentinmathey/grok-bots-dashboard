@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { getOwnerFromRequest } from "@/lib/auth";
 import { jsonError, readJsonBody, resultToResponse } from "@/lib/http";
 import { createOwnedBot } from "@/lib/publishing";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
+import { getRepository } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return resultToResponse(body);
   }
 
-  const result = await createOwnedBot(createSupabaseRepository(), body.data);
+  const result = await createOwnedBot(getRepository(), body.data);
   if (result.ok) {
     revalidatePath("/");
     revalidatePath(`/bots/${result.data.bot.slug}`);
