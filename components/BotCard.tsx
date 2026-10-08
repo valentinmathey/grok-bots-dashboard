@@ -20,7 +20,7 @@ export function BotCard({ bot }: { bot: BotSummary }) {
         <BotAvatar bot={bot} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="truncate text-lg font-semibold tracking-tight">
+            <h2 className="line-clamp-2 text-lg font-semibold tracking-tight">
               {bot.name}
             </h2>
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-chip px-2.5 py-1 text-[11px] font-medium text-muted">
