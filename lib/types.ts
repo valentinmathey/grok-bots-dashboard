@@ -45,6 +45,7 @@ export type Post = {
   product: string | null;
   tags: string[];
   created_at: string;
+  updated_at?: string;
   cover_image_url?: string | null;
   images?: PostImage[];
 };
@@ -67,6 +68,7 @@ export type CreatedPost = {
   product: string | null;
   tags: string[];
   created_at: string;
+  updated_at?: string;
   cover_image_url?: string | null;
   images?: PostImage[];
 };

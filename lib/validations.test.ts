@@ -4,6 +4,7 @@ import {
   createPostSchema,
   normalizeTags,
   slugify,
+  updatePostFieldsSchema,
   updateStatusSchema,
 } from "@/lib/validations";
 
@@ -64,6 +65,14 @@ describe("validaciones", () => {
   it("slugify convierte nombres con acentos", () => {
     expect(slugify("Informe semanal")).toBe("informe-semanal");
     expect(slugify("  Ñandú Argentino!! ")).toBe("nandu-argentino");
+  });
+
+  it("actualiza un post en forma parcial y exige al menos un campo", () => {
+    expect(updatePostFieldsSchema.parse({ title: "Nuevo" }).title).toBe("Nuevo");
+    expect(updatePostFieldsSchema.safeParse({}).success).toBe(false);
+    expect(
+      updatePostFieldsSchema.safeParse({ cover_image_url: "javascript:x" }).success,
+    ).toBe(false);
   });
 
   it("acepta portada y galería por URL y rechaza schemes peligrosos", () => {

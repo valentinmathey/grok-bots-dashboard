@@ -288,6 +288,7 @@ excluidos=mercadolibre
       product: item.product,
       tags: item.tags,
       created_at: item.created_at,
+      updated_at: item.created_at,
       cover_image_url: n === 1 ? "https://picsum.photos/seed/atlas-weekly/1200/700.jpg" : null,
       images: [],
     });
@@ -303,6 +304,7 @@ excluidos=mercadolibre
       product: item.product,
       tags: item.tags,
       created_at: item.created_at,
+      updated_at: item.created_at,
       cover_image_url: item.cover_image_url ?? null,
       images: item.images ?? [],
     });
