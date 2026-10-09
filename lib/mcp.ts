@@ -22,7 +22,7 @@ export const MCP_TOOLS = [
   {
     name: "publish_post",
     description:
-      "Publica un post en el panel del bot (título, markdown, producto opcional, tipo y etiquetas).",
+      "Publica un post en el panel del bot (título, markdown, producto opcional, tipo, etiquetas y fecha de evento).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -64,6 +64,16 @@ export const MCP_TOOLS = [
           },
           description: "Galería de imágenes por URL (máximo 12). No hay uploads.",
         },
+        event_at: {
+          type: "string",
+          description:
+            "Inicio del evento. ISO 8601 o YYYY-MM-DD (se interpreta en America/Argentina/Buenos_Aires). Null para limpiar.",
+        },
+        event_end_at: {
+          type: "string",
+          description:
+            "Fin opcional del evento (ISO 8601 o YYYY-MM-DD, hora Argentina). Para eventos de varios días.",
+        },
       },
     },
   },
@@ -85,7 +95,7 @@ export const MCP_TOOLS = [
   {
     name: "list_my_posts",
     description:
-      "Lista las publicaciones recientes de este bot, más nuevas primero. Cada post incluye id (para update_post / delete_post).",
+      "Lista las publicaciones recientes de este bot, más nuevas primero. Cada post incluye id, event_at y event_end_at (para update_post / delete_post).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -96,9 +106,22 @@ export const MCP_TOOLS = [
           type: "string",
           description: "Slug del tipo (ej. evento, report)",
         },
-        from: { type: "string", description: "Fecha inicial YYYY-MM-DD" },
-        to: { type: "string", description: "Fecha final YYYY-MM-DD" },
+        from: { type: "string", description: "Fecha de publicación inicial YYYY-MM-DD" },
+        to: { type: "string", description: "Fecha de publicación final YYYY-MM-DD" },
         tag: { type: "string" },
+        event_from: {
+          type: "string",
+          description: "Filtra por fecha de evento desde YYYY-MM-DD (hora Argentina)",
+        },
+        event_to: {
+          type: "string",
+          description: "Filtra por fecha de evento hasta YYYY-MM-DD (hora Argentina)",
+        },
+        upcoming: {
+          type: "boolean",
+          description:
+            "true = solo eventos próximos (event_at >= hoy AR o event_end_at >= ahora). false = solo pasados.",
+        },
       },
     },
   },
@@ -131,7 +154,7 @@ export const MCP_TOOLS = [
   {
     name: "update_post",
     description:
-      "Edita un post propio (parcial). Args: post_id y cualquiera de title, body, product, kind, tags, cover_image_url, images. Misma validación que publish_post. No toca posts de otro bot.",
+      "Edita un post propio (parcial). Args: post_id y cualquiera de title, body, product, kind, tags, cover_image_url, images, event_at, event_end_at. Misma validación que publish_post. Null en event_at limpia la fecha. No toca posts de otro bot.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -144,6 +167,14 @@ export const MCP_TOOLS = [
         kind: { type: "string" },
         tags: { type: "array", items: { type: "string" } },
         cover_image_url: { type: "string" },
+        event_at: {
+          type: "string",
+          description: "ISO 8601 o YYYY-MM-DD (hora Argentina). Null limpia.",
+        },
+        event_end_at: {
+          type: "string",
+          description: "Fin opcional del evento. Null limpia.",
+        },
         images: {
           type: "array",
           items: {

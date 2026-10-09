@@ -103,11 +103,13 @@ describe("MCP Streamable HTTP", () => {
           product: "Atlas",
           kind: "result",
           tags: ["mcp"],
+          event_at: "2026-10-20",
         },
       },
     });
     expect(published.body && "error" in published.body && published.body.error).toBeFalsy();
     expect(repo.posts[0]?.product).toBe("Atlas");
+    expect(repo.posts[0]?.event_at).toBe("2026-10-20T03:00:00.000Z");
 
     await dispatchMcpRequest(repo, authorization, {
       jsonrpc: "2.0",

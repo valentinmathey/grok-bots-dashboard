@@ -3,7 +3,7 @@ import { Clock3, Newspaper } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { TimeStamp } from "@/components/TimeStamp";
 import { resolveAvatar } from "@/lib/avatar";
-import { botCardLead, formatPublicationCount } from "@/lib/format";
+import { botCardLead, formatEventWhen, formatPublicationCount } from "@/lib/format";
 import type { BotSummary } from "@/lib/types";
 
 export function BotCard({ bot }: { bot: BotSummary }) {
@@ -45,6 +45,22 @@ export function BotCard({ bot }: { bot: BotSummary }) {
             />
             <span className="min-w-0 break-words text-foreground">{lead.text}</span>
           </p>
+        ) : lead.tone === "event" ? (
+          <div className="min-w-0">
+            {lead.label ? (
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+                {lead.label}
+              </p>
+            ) : null}
+            <p className="mt-1 line-clamp-2 text-sm leading-6 text-foreground">
+              {lead.text}
+            </p>
+            {bot.next_event_at ? (
+              <p className="mt-1 text-xs text-muted">
+                {formatEventWhen(bot.next_event_at)}
+              </p>
+            ) : null}
+          </div>
         ) : lead.tone === "latest" ? (
           <div className="min-w-0">
             {lead.label ? (

@@ -1,3 +1,4 @@
+import { BA_TIMEZONE, isDateOnlyMidnightBa } from "@/lib/event-time";
 import type { BotSummary, PostKind } from "@/lib/types";
 
 const KIND_LABELS: Record<string, string> = {
@@ -45,6 +46,39 @@ export function formatDate(iso: string): string {
   });
 }
 
+function formatEventStamp(iso: string): string {
+  const date = new Date(iso);
+  const weekday = localeText(date, {
+    weekday: "short",
+    timeZone: BA_TIMEZONE,
+  }).replace(/\.$/, "");
+  const dayMonth = localeText(date, {
+    day: "numeric",
+    month: "short",
+    timeZone: BA_TIMEZONE,
+  });
+  const head = `${weekday} ${dayMonth}`.toLowerCase();
+  if (isDateOnlyMidnightBa(iso)) {
+    return head;
+  }
+  const time = localeText(date, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: BA_TIMEZONE,
+    hourCycle: "h23",
+  });
+  return `${head} · ${time}`;
+}
+
+export function formatEventWhen(iso: string, endIso?: string | null): string {
+  const start = formatEventStamp(iso);
+  if (!endIso) {
+    return start;
+  }
+  const end = formatEventStamp(endIso);
+  return end === start ? start : `${start} – ${end}`;
+}
+
 export function formatCount(n: number, one: string, many: string): string {
   return n === 1 ? `1 ${one}` : `${n} ${many}`;
 }
@@ -54,15 +88,27 @@ export function formatPublicationCount(n: number): string {
 }
 
 export type BotCardLead = {
-  tone: "live" | "latest" | "empty";
+  tone: "live" | "event" | "latest" | "empty";
   label: string | null;
   text: string;
 };
 
-export function botCardLead(bot: Pick<BotSummary, "status" | "post_count" | "latest_title">): BotCardLead {
+export function botCardLead(
+  bot: Pick<
+    BotSummary,
+    "status" | "post_count" | "latest_title" | "next_event_title" | "next_event_at"
+  >,
+): BotCardLead {
   const status = bot.status?.trim();
   if (status) {
     return { tone: "live", label: null, text: status };
+  }
+  if (bot.next_event_title?.trim() && bot.next_event_at) {
+    return {
+      tone: "event",
+      label: "Próximo evento",
+      text: bot.next_event_title.trim(),
+    };
   }
   if (bot.post_count > 0 && bot.latest_title?.trim()) {
     return {

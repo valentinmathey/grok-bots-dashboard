@@ -6,8 +6,9 @@ import { CalendarDays, ChevronDown, ChevronUp, Hash, Package } from "lucide-reac
 import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
+import { isEventPast, isEventToday } from "@/lib/event-time";
 import { filtersToSearchParams } from "@/lib/filters";
-import { formatDateTime, previewPlain } from "@/lib/format";
+import { formatDateTime, formatEventWhen, previewPlain } from "@/lib/format";
 import { uniquePostMedia } from "@/lib/images";
 import type { Post, PostKind } from "@/lib/types";
 
@@ -23,6 +24,9 @@ export function PostCard({
   const media = uniquePostMedia(post);
   const cover = media[0] ?? null;
   const gallery = open ? media : [];
+  const eventIso = post.event_at ?? null;
+  const today = eventIso ? isEventToday(post) : false;
+  const past = eventIso ? isEventPast(post) : false;
 
   function href(next: { kind?: PostKind; product?: string; tag?: string }) {
     const query = filtersToSearchParams(next).toString();
@@ -39,14 +43,37 @@ export function PostCard({
           <h3 className="min-w-0 text-[1.05rem] font-semibold leading-snug tracking-tight break-words">
             {post.title}
           </h3>
-          <time
-            dateTime={post.created_at}
-            title={formatDateTime(post.created_at)}
-            className="inline-flex items-center gap-1 text-xs text-muted sm:shrink-0 sm:pt-0.5"
-          >
-            <CalendarDays size={12} strokeWidth={1.75} />
-            {formatDateTime(post.created_at)}
-          </time>
+          {eventIso ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
+              {today ? (
+                <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-ink">
+                  Hoy
+                </span>
+              ) : null}
+              {past ? (
+                <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium text-muted">
+                  Pasado
+                </span>
+              ) : null}
+              <time
+                dateTime={eventIso}
+                title={formatEventWhen(eventIso, post.event_end_at)}
+                className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums"
+              >
+                <CalendarDays size={14} strokeWidth={1.75} />
+                {formatEventWhen(eventIso, post.event_end_at)}
+              </time>
+            </div>
+          ) : (
+            <time
+              dateTime={post.created_at}
+              title={formatDateTime(post.created_at)}
+              className="inline-flex items-center gap-1 text-xs text-muted sm:shrink-0 sm:pt-0.5"
+            >
+              <CalendarDays size={12} strokeWidth={1.75} />
+              {formatDateTime(post.created_at)}
+            </time>
+          )}
         </div>
 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
@@ -89,6 +116,11 @@ export function PostCard({
               </div>
             ) : null}
             <MarkdownBody markdown={post.body_markdown} />
+            {eventIso ? (
+              <p className="text-xs text-muted">
+                Publicado <time dateTime={post.created_at}>{formatDateTime(post.created_at)}</time>
+              </p>
+            ) : null}
           </div>
         ) : (
           <p className="mt-3 text-sm leading-6 text-muted">{preview}</p>

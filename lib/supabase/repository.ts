@@ -1,5 +1,6 @@
 import "server-only";
 
+import { baEndOfDay, baStartOfDay, baStartOfToday, eventSortAscending } from "@/lib/event-time";
 import { dayEndIso, dayStartIso, type PostFilters } from "@/lib/filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
@@ -13,6 +14,9 @@ function applyFilters<T>(query: T, filters: PostFilters = {}): T {
     contains: (column: string, value: unknown) => T;
     gte: (column: string, value: string) => T;
     lte: (column: string, value: string) => T;
+    lt: (column: string, value: string) => T;
+    not: (column: string, op: string, value: unknown) => T;
+    or: (value: string) => T;
   };
   if (filters.kind) {
     next = next.eq("kind", filters.kind) as typeof next;
@@ -23,17 +27,92 @@ function applyFilters<T>(query: T, filters: PostFilters = {}): T {
   if (filters.tag) {
     next = next.contains("tags", [filters.tag]) as typeof next;
   }
-  if (filters.from) {
-    next = next.gte("created_at", dayStartIso(filters.from)) as typeof next;
+
+  const now = new Date();
+  const startToday = baStartOfToday(now).toISOString();
+  const wantUpcoming = filters.when === "upcoming" || filters.upcoming === true;
+  const wantPast = filters.when === "past" || filters.upcoming === false;
+
+  if (filters.eventsOnly || wantUpcoming || wantPast) {
+    next = next.not("event_at", "is", null) as typeof next;
   }
-  if (filters.to) {
-    next = next.lte("created_at", dayEndIso(filters.to)) as typeof next;
+  if (wantUpcoming) {
+    next = next.or(
+      `event_at.gte.${startToday},event_end_at.gte.${now.toISOString()}`,
+    ) as typeof next;
+  }
+  if (wantPast) {
+    next = next.lt("event_at", startToday) as typeof next;
+    next = next.or(
+      `event_end_at.is.null,event_end_at.lt.${now.toISOString()}`,
+    ) as typeof next;
+  }
+
+  const dateColumn = filters.dateBasis === "event" ? "event_at" : "created_at";
+  const fromIso =
+    filters.dateBasis === "event" && filters.from
+      ? baStartOfDay(filters.from).toISOString()
+      : filters.from
+        ? dayStartIso(filters.from)
+        : undefined;
+  const toIso =
+    filters.dateBasis === "event" && filters.to
+      ? baEndOfDay(filters.to).toISOString()
+      : filters.to
+        ? dayEndIso(filters.to)
+        : undefined;
+  if (fromIso) {
+    next = next.gte(dateColumn, fromIso) as typeof next;
+  }
+  if (toIso) {
+    next = next.lte(dateColumn, toIso) as typeof next;
+  }
+  if (filters.event_from) {
+    next = next.gte("event_at", baStartOfDay(filters.event_from).toISOString()) as typeof next;
+  }
+  if (filters.event_to) {
+    next = next.lte("event_at", baEndOfDay(filters.event_to).toISOString()) as typeof next;
   }
   return next;
 }
 
 function asBot(row: Bot): Bot {
   return row;
+}
+
+async function nextUpcomingByBotIds(
+  admin: ReturnType<typeof createAdminClient>,
+  botIds: string[],
+): Promise<Record<string, { title: string; event_at: string }>> {
+  if (botIds.length === 0) {
+    return {};
+  }
+  const now = new Date();
+  const startToday = baStartOfToday(now).toISOString();
+  const { data, error } = await admin
+    .from("posts")
+    .select("bot_id, title, event_at, event_end_at")
+    .in("bot_id", botIds)
+    .not("event_at", "is", null)
+    .or(`event_at.gte.${startToday},event_end_at.gte.${now.toISOString()}`)
+    .order("event_at", { ascending: true })
+    .limit(400);
+
+  if (error) {
+    return {};
+  }
+
+  const next: Record<string, { title: string; event_at: string }> = {};
+  for (const row of data ?? []) {
+    const botId = row.bot_id as string;
+    if (!next[botId] && row.event_at) {
+      next[botId] = {
+        title: row.title as string,
+        event_at: row.event_at as string,
+      };
+    }
+  }
+  return next;
 }
 
 export function createSupabaseRepository(): BotsRepository {
@@ -82,8 +161,10 @@ export function createSupabaseRepository(): BotsRepository {
           tags: input.tags,
           cover_image_url: input.cover_image_url,
           images: input.images ?? [],
+          event_at: input.event_at,
+          event_end_at: input.event_end_at,
         })
-        .select("id, title, kind, product, tags, created_at, updated_at, cover_image_url, images")
+        .select("id, title, kind, product, tags, created_at, updated_at, cover_image_url, images, event_at, event_end_at")
         .single();
 
       if (error) {
@@ -100,6 +181,8 @@ export function createSupabaseRepository(): BotsRepository {
         updated_at: (data.updated_at as string | null) ?? (data.created_at as string),
         cover_image_url: (data.cover_image_url as string | null) ?? null,
         images: (data.images as PostImage[] | null) ?? [],
+        event_at: (data.event_at as string | null) ?? null,
+        event_end_at: (data.event_end_at as string | null) ?? null,
       };
     },
 
@@ -127,6 +210,8 @@ export function createSupabaseRepository(): BotsRepository {
       if (patch.tags !== undefined) fields.tags = patch.tags;
       if (patch.cover_image_url !== undefined) fields.cover_image_url = patch.cover_image_url;
       if (patch.images !== undefined) fields.images = patch.images;
+      if (patch.event_at !== undefined) fields.event_at = patch.event_at;
+      if (patch.event_end_at !== undefined) fields.event_end_at = patch.event_end_at;
       const { data, error } = await admin
         .from("posts")
         .update(fields)
@@ -238,9 +323,15 @@ export function createSupabaseRepository(): BotsRepository {
       }
 
       const latest = await this.latestPostByBotIds(summaries.map((bot) => bot.id));
+      const nextEvents = await nextUpcomingByBotIds(
+        admin,
+        summaries.map((bot) => bot.id),
+      );
       return summaries.map((bot) => ({
         ...bot,
         latest_title: latest[bot.id]?.title ?? bot.latest_title,
+        next_event_at: nextEvents[bot.id]?.event_at ?? bot.next_event_at ?? null,
+        next_event_title: nextEvents[bot.id]?.title ?? bot.next_event_title ?? null,
       }));
     },
 
@@ -289,7 +380,11 @@ export function createSupabaseRepository(): BotsRepository {
     async listPostsPage(botId, filters, options) {
       const limit = options.limit ?? 12;
       const offset = options.offset ?? 0;
-      const ascending = options.sort === "oldest";
+      const scope = filters?.when;
+      const ascending = scope
+        ? eventSortAscending(options.sort ?? "newest", scope)
+        : options.sort === "oldest";
+      const sortColumn = scope ? "event_at" : "created_at";
       const filtered = applyFilters(
         admin
           .from("posts")
@@ -298,7 +393,7 @@ export function createSupabaseRepository(): BotsRepository {
         filters,
       );
       const { data, error, count } = await filtered
-        .order("created_at", { ascending })
+        .order(sortColumn, { ascending, nullsFirst: false })
         .range(offset, offset + limit - 1);
 
       if (error) {
@@ -313,7 +408,7 @@ export function createSupabaseRepository(): BotsRepository {
     async listFacets(botId) {
       const { data, error } = await admin
         .from("posts")
-        .select("kind, product, tags")
+        .select("kind, product, tags, event_at")
         .eq("bot_id", botId);
 
       if (error) {
@@ -323,6 +418,7 @@ export function createSupabaseRepository(): BotsRepository {
       const products = new Map<string, string>();
       const kinds = new Set<string>();
       const tags = new Set<string>();
+      let hasEvents = false;
       for (const row of data ?? []) {
         if (typeof row.kind === "string" && row.kind) kinds.add(row.kind);
         if (typeof row.product === "string" && row.product) {
@@ -332,11 +428,13 @@ export function createSupabaseRepository(): BotsRepository {
         for (const tag of (row.tags as string[] | null) ?? []) {
           if (tag) tags.add(tag);
         }
+        if (row.event_at) hasEvents = true;
       }
       return {
         products: [...products.values()].sort((a, b) => a.localeCompare(b, "es")),
         kinds: [...kinds].sort(),
         tags: [...tags].sort(),
+        has_events: hasEvents,
       };
     },
 

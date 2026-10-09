@@ -131,22 +131,30 @@ export function FilterSheet({
           <button
             type="button"
             onClick={() => toggleSort("newest")}
-            className={`min-h-8 rounded-full px-3 text-xs font-medium ${
+            className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
               query.sort === "newest" ? "bg-card text-foreground shadow-sm" : "text-muted"
             }`}
           >
             <ArrowDownNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
-            Nuevas
+            {facets.has_events
+              ? query.when === "past"
+                ? "Recientes"
+                : "Próximos"
+              : "Nuevas"}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("oldest")}
-            className={`min-h-8 rounded-full px-3 text-xs font-medium ${
+            className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
               query.sort === "oldest" ? "bg-card text-foreground shadow-sm" : "text-muted"
             }`}
           >
             <ArrowUpNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
-            Antiguas
+            {facets.has_events
+              ? query.when === "past"
+                ? "Antiguos"
+                : "Lejanos"
+              : "Antiguas"}
           </button>
         </div>
       </div>
@@ -267,7 +275,7 @@ export function FilterSheet({
               <label className="text-xs">
                 <span className="mb-1 flex items-center gap-1 font-medium text-muted">
                   <CalendarDays size={12} strokeWidth={1.75} />
-                  Desde
+                  {facets.has_events ? "Desde (evento)" : "Desde"}
                 </span>
                 <input
                   type="date"
@@ -282,7 +290,9 @@ export function FilterSheet({
                 />
               </label>
               <label className="text-xs">
-                <span className="mb-1 block font-medium text-muted">Hasta</span>
+                <span className="mb-1 block font-medium text-muted">
+                  {facets.has_events ? "Hasta (evento)" : "Hasta"}
+                </span>
                 <input
                   type="date"
                   value={draft.to ?? ""}
