@@ -15,6 +15,7 @@ export const AVATAR_COLORS = [
 
 export type AvatarColor = (typeof AVATAR_COLORS)[number];
 
+/** Se acepta en API/MCP por compatibilidad; el panel siempre dibuja un círculo. */
 export const AVATAR_SHAPES = [
   "blob",
   "squircle",
@@ -120,6 +121,7 @@ export function resolveAvatar(bot: {
   const color = bot.avatar_color && isAvatarColor(bot.avatar_color)
     ? bot.avatar_color
     : fallback.color;
+  // Se resuelve para no romper clientes viejos; BotAvatar lo ignora.
   const shape = bot.avatar_shape && isAvatarShape(bot.avatar_shape)
     ? bot.avatar_shape
     : fallback.shape;

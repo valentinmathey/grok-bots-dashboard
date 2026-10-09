@@ -22,4 +22,14 @@ describe("avatars", () => {
     expect(resolved.letter).toBe("P");
     expect(resolved.url).toContain("picsum");
   });
+
+  it("sigue aceptando avatar_shape por compatibilidad", () => {
+    const resolved = resolveAvatar({
+      slug: "scout",
+      avatar_shape: "star",
+    });
+    expect(resolved.shape).toBe("star");
+    expect(resolved.url).toBeNull();
+    expect(resolved.letter).toBe("S");
+  });
 });

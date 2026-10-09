@@ -181,6 +181,7 @@ describe("API de publicación", () => {
     expect(profile.ok).toBe(true);
     if (profile.ok) {
       expect(profile.data.bot.avatar_color).toBe("maroon");
+      expect(profile.data.bot.avatar_shape).toBe("blob");
       expect(profile.data.bot.description).toBe("Compara precios");
     }
   });

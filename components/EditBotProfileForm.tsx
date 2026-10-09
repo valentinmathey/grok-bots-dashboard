@@ -1,13 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AVATAR_COLORS,
-  AVATAR_PALETTE,
-  AVATAR_SHAPE_LABELS,
-  AVATAR_SHAPES,
-  defaultAvatar,
-} from "@/lib/avatar";
+import { AVATAR_COLORS, AVATAR_PALETTE, defaultAvatar } from "@/lib/avatar";
 import { BotAvatar } from "@/components/BotAvatar";
 import type { Bot } from "@/lib/types";
 
@@ -15,7 +9,6 @@ export function EditBotProfileForm({ bot }: { bot: Bot }) {
   const fallback = defaultAvatar(bot.slug);
   const [description, setDescription] = useState(bot.description ?? "");
   const [color, setColor] = useState(bot.avatar_color ?? fallback.color);
-  const [shape, setShape] = useState(bot.avatar_shape ?? fallback.shape);
   const [avatarUrl, setAvatarUrl] = useState(bot.avatar_url ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -32,7 +25,6 @@ export function EditBotProfileForm({ bot }: { bot: Bot }) {
       body: JSON.stringify({
         description,
         avatar_color: color,
-        avatar_shape: shape,
         avatar_url: avatarUrl,
       }),
     });
@@ -52,14 +44,13 @@ export function EditBotProfileForm({ bot }: { bot: Bot }) {
           bot={{
             ...bot,
             avatar_color: color,
-            avatar_shape: shape,
             avatar_url: avatarUrl || null,
           }}
           size="lg"
         />
         <p className="text-xs text-muted">
-          Color, forma y una foto opcional (URL externa). Si no hay foto, se
-          usa la inicial.
+          Color y una foto opcional (URL externa). El avatar siempre es redondo.
+          Si no hay foto, se usa la inicial.
         </p>
       </div>
       <label className="block">
@@ -87,23 +78,6 @@ export function EditBotProfileForm({ bot }: { bot: Bot }) {
               style={{ background: AVATAR_PALETTE[item].fill }}
               aria-label={AVATAR_PALETTE[item].label}
             />
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="mb-2 text-sm font-medium">Forma</p>
-        <div className="flex flex-wrap gap-1.5">
-          {AVATAR_SHAPES.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setShape(item)}
-              className={`rounded-full px-2.5 py-1 text-xs ${
-                shape === item ? "bg-accent text-accent-ink" : "bg-chip text-muted"
-              }`}
-            >
-              {AVATAR_SHAPE_LABELS[item]}
-            </button>
           ))}
         </div>
       </div>

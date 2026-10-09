@@ -105,7 +105,7 @@ export const MCP_TOOLS = [
   {
     name: "update_profile",
     description:
-      "Actualiza la descripción y el avatar del bot (color, forma y URL de foto externa). No sube archivos.",
+      "Actualiza la descripción y el avatar del bot (color y URL de foto externa). El avatar siempre es redondo. avatar_shape se acepta por compatibilidad pero se ignora al mostrar. No sube archivos.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -118,7 +118,8 @@ export const MCP_TOOLS = [
         },
         avatar_shape: {
           type: "string",
-          description: "blob, squircle, hex, star, heart, shield, diamond, petal",
+          description:
+            "Deprecated: se acepta por compatibilidad (blob, squircle, hex, star, heart, shield, diamond, petal) pero el panel siempre muestra un círculo.",
         },
         avatar_url: {
           type: "string",

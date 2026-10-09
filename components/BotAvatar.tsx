@@ -1,13 +1,13 @@
-import {
-  AVATAR_SHAPE_PATHS,
-  resolveAvatar,
-} from "@/lib/avatar";
+"use client";
+
+import { useState } from "react";
+import { resolveAvatar } from "@/lib/avatar";
 
 const SIZES = {
-  sm: "h-9 w-9",
-  md: "h-12 w-12",
-  lg: "h-[4.5rem] w-[4.5rem]",
-  xl: "h-20 w-20",
+  sm: "h-9 w-9 text-[13px]",
+  md: "h-12 w-12 text-lg",
+  lg: "h-[4.5rem] w-[4.5rem] text-2xl",
+  xl: "h-20 w-20 text-[1.75rem]",
 } as const;
 
 export function BotAvatar({
@@ -26,45 +26,30 @@ export function BotAvatar({
   className?: string;
 }) {
   const avatar = resolveAvatar(bot);
-  const clipId = `avatar-${bot.slug}-${size}`.replace(/[^a-z0-9-]/gi, "");
-  const path = AVATAR_SHAPE_PATHS[avatar.shape];
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
+  const showPhoto = Boolean(avatar.url) && avatar.url !== brokenUrl;
 
   return (
     <span
-      className={`relative inline-grid shrink-0 place-items-center ${SIZES[size]} ${className}`}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-bold leading-none shadow-sm ring-1 ring-black/10 dark:ring-white/15 ${SIZES[size]} ${className}`}
+      style={{ backgroundColor: avatar.fill, color: avatar.ink }}
       aria-hidden
     >
-      <svg viewBox="0 0 64 64" className="h-full w-full drop-shadow-sm">
-        <defs>
-          <clipPath id={clipId}>
-            <path d={path} />
-          </clipPath>
-        </defs>
-        <path d={path} fill={avatar.fill} />
-        {avatar.url ? (
-          <image
-            href={avatar.url}
-            x="4"
-            y="4"
-            width="56"
-            height="56"
-            preserveAspectRatio="xMidYMid slice"
-            clipPath={`url(#${clipId})`}
-          />
-        ) : (
-          <text
-            x="32"
-            y="40"
-            textAnchor="middle"
-            fill={avatar.ink}
-            fontSize="26"
-            fontWeight="700"
-            fontFamily="var(--font-sans), ui-sans-serif, system-ui, sans-serif"
-          >
-            {avatar.letter}
-          </text>
-        )}
-      </svg>
+      {showPhoto ? (
+        // eslint-disable-next-line @next/next/no-img-element -- URLs externas; object-cover + onError
+        <img
+          src={avatar.url ?? ""}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={() => {
+            if (avatar.url) {
+              setBrokenUrl(avatar.url);
+            }
+          }}
+        />
+      ) : (
+        <span className="select-none">{avatar.letter}</span>
+      )}
     </span>
   );
 }
