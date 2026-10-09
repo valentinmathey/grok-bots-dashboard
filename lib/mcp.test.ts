@@ -54,6 +54,38 @@ describe("MCP Streamable HTTP", () => {
       "delete_post",
     ]);
     expect(tools.map((tool) => tool.name)).not.toContain("upload_image");
+
+    const profile = tools.find((tool) => tool.name === "update_profile") as
+      | {
+          name: string;
+          description?: string;
+          inputSchema?: { properties?: { avatar_shape?: { description?: string } } };
+        }
+      | undefined;
+    expect(profile?.description).toMatch(/redondo/i);
+    expect(profile?.inputSchema?.properties?.avatar_shape?.description).toMatch(
+      /deprecated/i,
+    );
+  });
+
+  it("update_profile sigue aceptando avatar_shape", async () => {
+    const { repo, authorization } = repoWithBot();
+    const result = await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 21,
+      method: "tools/call",
+      params: {
+        name: "update_profile",
+        arguments: {
+          avatar_color: "maroon",
+          avatar_shape: "star",
+          avatar_url: "https://picsum.photos/seed/av/256.jpg",
+        },
+      },
+    });
+    expect(result.body && "error" in result.body && result.body.error).toBeFalsy();
+    expect(repo.bots[0]?.avatar_shape).toBe("star");
+    expect(repo.bots[0]?.avatar_color).toBe("maroon");
   });
 
   it("publica, actualiza estado y lista posts", async () => {
