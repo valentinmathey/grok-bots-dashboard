@@ -298,6 +298,95 @@ describe("API de publicación", () => {
     }
   });
 
+  it("publica y lista event_at (YYYY-MM-DD es medianoche AR) y upcoming", async () => {
+    const { repo, key } = repoWithBot();
+    const created = await publishPost(repo, `Bearer ${key}`, {
+      title: "Demo",
+      body: "Hoy",
+      kind: "evento",
+      event_at: "2026-10-13",
+      event_end_at: "2026-10-13T21:00",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.data.post.event_at).toBe("2026-10-13T03:00:00.000Z");
+    expect(created.data.post.event_end_at).toBe("2026-10-14T00:00:00.000Z");
+
+    const bad = await publishPost(repo, `Bearer ${key}`, {
+      title: "Mal",
+      body: "x",
+      event_at: "13/10/2026",
+    });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) {
+      expect(bad.status).toBe(400);
+    }
+
+    const past = await publishPost(repo, `Bearer ${key}`, {
+      title: "Ya fue",
+      body: "x",
+      event_at: "2020-01-01T12:00:00-03:00",
+    });
+    expect(past.ok).toBe(true);
+
+    const upcoming = await listMyPosts(repo, `Bearer ${key}`, { upcoming: true });
+    expect(upcoming.ok).toBe(true);
+    if (upcoming.ok) {
+      expect(upcoming.data.posts.map((post) => post.title)).toEqual(["Demo"]);
+    }
+
+    const range = await listMyPosts(repo, `Bearer ${key}`, {
+      event_from: "2026-10-13",
+      event_to: "2026-10-13",
+    });
+    expect(range.ok).toBe(true);
+    if (range.ok) {
+      expect(range.data.posts).toHaveLength(1);
+    }
+
+    const cleared = await updateOwnPost(repo, `Bearer ${key}`, created.data.post.id, {
+      event_at: null,
+    });
+    expect(cleared.ok).toBe(true);
+    if (cleared.ok) {
+      expect(cleared.data.post.event_at).toBeNull();
+      expect(cleared.data.post.event_end_at).toBeNull();
+    }
+  });
+
+  it("rechaza event_end_at anterior a event_at (compara instantes, no strings)", async () => {
+    const { repo, key } = repoWithBot();
+    const bad = await publishPost(repo, `Bearer ${key}`, {
+      title: "Al revés",
+      body: "x",
+      event_at: "2026-10-13T19:00:00-03:00",
+      event_end_at: "2026-10-13T21:30:00Z",
+    });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) {
+      expect(bad.status).toBe(400);
+    }
+
+    const created = await publishPost(repo, `Bearer ${key}`, {
+      title: "Ok",
+      body: "x",
+      event_at: "2026-10-13T19:00:00-03:00",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    // Postgres devuelve timestamptz con +00:00, no con Z.
+    const stored = repo.posts.find((post) => post.id === created.data.post.id);
+    if (stored) stored.event_at = "2026-10-13T22:00:00+00:00";
+    const sameInstant = await updateOwnPost(repo, `Bearer ${key}`, created.data.post.id, {
+      event_end_at: "2026-10-13T19:00:00-03:00",
+    });
+    expect(sameInstant.ok).toBe(true);
+    const earlier = await updateOwnPost(repo, `Bearer ${key}`, created.data.post.id, {
+      event_end_at: "2026-10-13T18:59:00-03:00",
+    });
+    expect(earlier.ok).toBe(false);
+  });
+
   it("no permite slugs duplicados", async () => {
     const repo = new MemoryRepository();
     await createOwnedBot(repo, { name: "Uno", slug: "scout" });

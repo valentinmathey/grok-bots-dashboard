@@ -29,6 +29,8 @@ export type BotSummary = Bot & {
   post_count: number;
   last_activity_at: string | null;
   latest_title: string | null;
+  next_event_at?: string | null;
+  next_event_title?: string | null;
 };
 
 export type PostImage = {
@@ -48,6 +50,8 @@ export type Post = {
   updated_at?: string;
   cover_image_url?: string | null;
   images?: PostImage[];
+  event_at?: string | null;
+  event_end_at?: string | null;
 };
 
 export type PostWithBot = Post & {
@@ -71,6 +75,8 @@ export type CreatedPost = {
   updated_at?: string;
   cover_image_url?: string | null;
   images?: PostImage[];
+  event_at?: string | null;
+  event_end_at?: string | null;
 };
 
 export type BotProfile = {
@@ -84,6 +90,7 @@ export type PostFacets = {
   products: string[];
   kinds: string[];
   tags: string[];
+  has_events: boolean;
 };
 
 export type PageOptions = {

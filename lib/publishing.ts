@@ -1,5 +1,6 @@
 import { generateApiKey, hashApiKey, parseBearerToken } from "@/lib/api-keys";
 import { fail } from "@/lib/http";
+import { normalizeEventInstant } from "@/lib/event-time";
 import type { PostFilters } from "@/lib/filters";
 import { normalizeProduct } from "@/lib/filters";
 import { normalizeHttpUrl, normalizePostImages } from "@/lib/images";
@@ -39,6 +40,8 @@ export type BotsRepository = {
     tags: string[];
     cover_image_url: string | null;
     images: CreatedPost["images"];
+    event_at: string | null;
+    event_end_at: string | null;
   }): Promise<CreatedPost>;
   getPostById(id: string): Promise<Post | null>;
   updatePost(
@@ -51,6 +54,8 @@ export type BotsRepository = {
       tags?: string[];
       cover_image_url?: string | null;
       images?: CreatedPost["images"];
+      event_at?: string | null;
+      event_end_at?: string | null;
     },
   ): Promise<Post>;
   deletePost(id: string): Promise<void>;
@@ -134,6 +139,11 @@ export async function publishPost(
     );
   }
 
+  const eventTimes = resolveEventTimes(parsed.data.event_at, parsed.data.event_end_at);
+  if (!eventTimes.ok) {
+    return eventTimes;
+  }
+
   const post = await repo.insertPost({
     botId: auth.data.botId,
     title: parsed.data.title,
@@ -143,6 +153,8 @@ export async function publishPost(
     tags: normalizeTags(parsed.data.tags),
     cover_image_url: normalizeHttpUrl(parsed.data.cover_image_url),
     images: normalizePostImages(parsed.data.images),
+    event_at: eventTimes.data.event_at,
+    event_end_at: eventTimes.data.event_end_at,
   });
 
   return { ok: true, status: 201, data: { post, bot: auth.data } };
@@ -159,7 +171,56 @@ function toCreatedPost(post: Post): CreatedPost {
     updated_at: post.updated_at,
     cover_image_url: post.cover_image_url ?? null,
     images: post.images ?? [],
+    event_at: post.event_at ?? null,
+    event_end_at: post.event_end_at ?? null,
   };
+}
+
+function resolveEventTimes(
+  rawStart: string | null | undefined,
+  rawEnd: string | null | undefined,
+  current?: { event_at?: string | null; event_end_at?: string | null },
+): Result<{ event_at: string | null; event_end_at: string | null }> {
+  const start = normalizeEventInstant(rawStart);
+  const end = normalizeEventInstant(rawEnd);
+  if (start === "invalid" || end === "invalid") {
+    return fail(
+      400,
+      "invalid_input",
+      "event_at y event_end_at tienen que ser ISO 8601 o YYYY-MM-DD (hora Argentina)",
+    );
+  }
+
+  let event_at = start === undefined ? (current?.event_at ?? null) : start;
+  let event_end_at = end === undefined ? (current?.event_end_at ?? null) : end;
+
+  if (start === null) {
+    event_at = null;
+    if (end === undefined) {
+      event_end_at = null;
+    }
+  }
+
+  if (event_end_at && !event_at) {
+    return fail(
+      400,
+      "invalid_input",
+      "event_end_at necesita un event_at",
+    );
+  }
+  if (
+    event_at &&
+    event_end_at &&
+    new Date(event_end_at).getTime() < new Date(event_at).getTime()
+  ) {
+    return fail(
+      400,
+      "invalid_input",
+      "event_end_at no puede ser anterior a event_at",
+    );
+  }
+
+  return { ok: true, data: { event_at, event_end_at } };
 }
 
 async function requireOwnPost(
@@ -178,15 +239,20 @@ async function requireOwnPost(
   return { ok: true, data: post };
 }
 
-function patchFromUpdateFields(parsed: {
-  title?: string;
-  body?: string;
-  kind?: string;
-  product?: string;
-  tags?: string[];
-  cover_image_url?: string;
-  images?: Array<{ url: string; alt: string }>;
-}) {
+function patchFromUpdateFields(
+  parsed: {
+    title?: string;
+    body?: string;
+    kind?: string;
+    product?: string;
+    tags?: string[];
+    cover_image_url?: string;
+    images?: Array<{ url: string; alt: string }>;
+    event_at?: string | null;
+    event_end_at?: string | null;
+  },
+  eventTimes?: { event_at: string | null; event_end_at: string | null },
+) {
   const patch: Parameters<BotsRepository["updatePost"]>[1] = {};
   if (parsed.title !== undefined) patch.title = parsed.title;
   if (parsed.body !== undefined) patch.body = parsed.body;
@@ -197,6 +263,12 @@ function patchFromUpdateFields(parsed: {
     patch.cover_image_url = normalizeHttpUrl(parsed.cover_image_url);
   }
   if (parsed.images !== undefined) patch.images = normalizePostImages(parsed.images);
+  if (eventTimes) {
+    if (parsed.event_at !== undefined) patch.event_at = eventTimes.event_at;
+    if (parsed.event_end_at !== undefined || parsed.event_at === null) {
+      patch.event_end_at = eventTimes.event_end_at;
+    }
+  }
   return patch;
 }
 
@@ -226,7 +298,19 @@ export async function updateOwnPost(
     return owned;
   }
 
-  const post = await repo.updatePost(owned.data.id, patchFromUpdateFields(parsed.data));
+  const eventTimes = resolveEventTimes(
+    parsed.data.event_at,
+    parsed.data.event_end_at,
+    owned.data,
+  );
+  if (!eventTimes.ok) {
+    return eventTimes;
+  }
+
+  const post = await repo.updatePost(
+    owned.data.id,
+    patchFromUpdateFields(parsed.data, eventTimes.data),
+  );
   return { ok: true, data: { post: toCreatedPost(post), bot: auth.data } };
 }
 
@@ -380,6 +464,9 @@ export async function listMyPosts(
     tag: parsed.data.tag
       ? parsed.data.tag.replace(/^#/, "").toLowerCase()
       : undefined,
+    event_from: parsed.data.event_from,
+    event_to: parsed.data.event_to,
+    upcoming: parsed.data.upcoming,
   });
 
   return {

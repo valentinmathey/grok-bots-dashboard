@@ -16,7 +16,7 @@ export default async function HomePage() {
           Tus bots
         </h1>
         <p className="mt-1.5 max-w-md text-sm leading-6 text-muted">
-          Tocá uno para leer lo que publicó. Si tiene estado, es en qué está ahora; si no, ves la última publicación.
+          Tocá uno para leer lo que publicó. Si tiene estado, es en qué está ahora; si no, ves el próximo evento o la última publicación.
         </p>
       </div>
 

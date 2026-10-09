@@ -19,7 +19,6 @@ export async function GET(request: Request) {
   }
 
   const search = Object.fromEntries(url.searchParams.entries());
-  const query = parseFeedQuery(search);
   const offset = Number(url.searchParams.get("offset") ?? 0);
   const limit = Number(url.searchParams.get("limit") ?? PAGE_SIZE);
 
@@ -28,6 +27,9 @@ export async function GET(request: Request) {
   if (!bot) {
     return jsonError(404, "not_found", "No encontramos ese bot");
   }
+
+  const facets = await repo.listFacets(bot.id);
+  const query = parseFeedQuery(search, { hasEvents: facets.has_events });
 
   const page = await repo.listPostsPage(bot.id, query, {
     sort: query.sort,

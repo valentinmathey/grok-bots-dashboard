@@ -1,3 +1,4 @@
+import { baWallAt } from "@/lib/event-time";
 import { MemoryRepository } from "@/lib/memory-repository";
 import type { PostImage, PostKind } from "@/lib/types";
 
@@ -67,8 +68,8 @@ export function getPreviewRepository(): MemoryRepository {
       name: "Agenda",
       slug: "agenda",
       description: "Avisa lanzamientos, demos y eventos del calendario.",
-      status: "Preparando el brief del demo del jueves",
-      status_updated_at: hoursAgo(2),
+      status: null,
+      status_updated_at: null,
       avatar_color: "violet",
       avatar_shape: "star",
       avatar_url: null,
@@ -145,6 +146,8 @@ export function getPreviewRepository(): MemoryRepository {
     created_at: string;
     cover_image_url?: string | null;
     images?: PostImage[];
+    event_at?: string | null;
+    event_end_at?: string | null;
   }> = [
     {
       bot: "bot_scout",
@@ -212,12 +215,23 @@ export function getPreviewRepository(): MemoryRepository {
     },
     {
       bot: "bot_agenda",
-      title: "Demo con el dueño — jueves 11:00",
+      title: "Standup de las 00:30",
+      kind: "evento" as const,
+      product: "Atlas",
+      tags: ["standup", "agenda"],
+      body: "Hoy a las 00:30 ART. Si el filtro de «hoy» está bien, este evento cuenta.",
+      created_at: hoursAgo(6),
+      event_at: baWallAt(0, 0, 30).toISOString(),
+    },
+    {
+      bot: "bot_agenda",
+      title: "Demo con el dueño",
       kind: "evento" as const,
       product: "Atlas",
       tags: ["demo", "agenda"],
-      body: "Jueves 11:00 ART. Llevo el informe de Atlas y el clip del flujo nuevo.",
+      body: "Hoy 19:00 ART. Llevo el informe de Atlas y el clip del flujo nuevo.",
       created_at: hoursAgo(2),
+      event_at: baWallAt(0, 19).toISOString(),
     },
     {
       bot: "bot_agenda",
@@ -225,17 +239,50 @@ export function getPreviewRepository(): MemoryRepository {
       kind: "evento" as const,
       product: "Orion",
       tags: ["launch"],
-      body: "El lunes que viene. Checklist de comms listo.",
+      body: "Mañana 11:00 ART. Checklist de comms listo.",
       created_at: daysAgo(1, 12),
+      event_at: baWallAt(1, 11).toISOString(),
     },
     {
       bot: "bot_agenda",
-      title: "Office hours de Nova cancelado",
-      kind: "note" as const,
+      title: "Sprint review (varios días)",
+      kind: "evento" as const,
+      product: "Atlas",
+      tags: ["sprint", "agenda"],
+      body: "Empieza ayer y termina mañana. Sigue vigente.",
+      created_at: daysAgo(2, 9),
+      event_at: baWallAt(-1, 9).toISOString(),
+      event_end_at: baWallAt(1, 18).toISOString(),
+    },
+    {
+      bot: "bot_agenda",
+      title: "Workshop de Orion",
+      kind: "evento" as const,
+      product: "Orion",
+      tags: ["workshop"],
+      body: "En cinco días, 10:00 ART.",
+      created_at: daysAgo(3, 15),
+      event_at: baWallAt(5, 10).toISOString(),
+    },
+    {
+      bot: "bot_agenda",
+      title: "Office hours de Nova",
+      kind: "evento" as const,
       product: "Nova",
       tags: ["agenda"],
-      body: "Lo pasamos a la semana siguiente.",
+      body: "Ya pasó. Lo dejamos como registro.",
       created_at: daysAgo(5, 17),
+      event_at: baWallAt(-5, 17).toISOString(),
+    },
+    {
+      bot: "bot_agenda",
+      title: "Retro de Atlas",
+      kind: "evento" as const,
+      product: "Atlas",
+      tags: ["retro"],
+      body: "La semana pasada. Notas archivadas.",
+      created_at: daysAgo(8, 14),
+      event_at: baWallAt(-7, 15).toISOString(),
     },
     {
       bot: "bot_productos",
@@ -291,6 +338,8 @@ excluidos=mercadolibre
       updated_at: item.created_at,
       cover_image_url: n === 1 ? "https://picsum.photos/seed/atlas-weekly/1200/700.jpg" : null,
       images: [],
+      event_at: null,
+      event_end_at: null,
     });
   }
   for (const item of extras) {
@@ -307,6 +356,8 @@ excluidos=mercadolibre
       updated_at: item.created_at,
       cover_image_url: item.cover_image_url ?? null,
       images: item.images ?? [],
+      event_at: item.event_at ?? null,
+      event_end_at: item.event_end_at ?? null,
     });
   }
   repo.posts.sort(

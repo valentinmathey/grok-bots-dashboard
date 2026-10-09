@@ -17,21 +17,20 @@ export default async function BotPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const query = parseFeedQuery(await searchParams);
+  const search = await searchParams;
   const repo = getRepository();
   const bot = await repo.getBotBySlug(slug);
   if (!bot) {
     notFound();
   }
 
-  const [page, facets] = await Promise.all([
-    repo.listPostsPage(bot.id, query, {
-      sort: query.sort,
-      limit: PAGE_SIZE,
-      offset: 0,
-    }),
-    repo.listFacets(bot.id),
-  ]);
+  const facets = await repo.listFacets(bot.id);
+  const query = parseFeedQuery(search, { hasEvents: facets.has_events });
+  const page = await repo.listPostsPage(bot.id, query, {
+    sort: query.sort,
+    limit: PAGE_SIZE,
+    offset: 0,
+  });
 
   const busy = Boolean(bot.status?.trim());
   const avatar = resolveAvatar(bot);

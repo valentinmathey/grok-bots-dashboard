@@ -1,3 +1,4 @@
+import { eventSortAscending, isEventUpcoming } from "@/lib/event-time";
 import { matchesFilters, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
@@ -40,6 +41,8 @@ export class MemoryRepository implements BotsRepository {
     tags: string[];
     cover_image_url: string | null;
     images: Post["images"];
+    event_at: string | null;
+    event_end_at: string | null;
   }) {
     const post: Post = {
       id: crypto.randomUUID(),
@@ -53,6 +56,8 @@ export class MemoryRepository implements BotsRepository {
       updated_at: new Date().toISOString(),
       cover_image_url: input.cover_image_url,
       images: input.images ?? [],
+      event_at: input.event_at,
+      event_end_at: input.event_end_at,
     };
     this.posts.unshift(post);
     return {
@@ -65,6 +70,8 @@ export class MemoryRepository implements BotsRepository {
       updated_at: post.updated_at,
       cover_image_url: post.cover_image_url,
       images: post.images,
+      event_at: post.event_at,
+      event_end_at: post.event_end_at,
     };
   }
 
@@ -82,6 +89,8 @@ export class MemoryRepository implements BotsRepository {
       tags?: string[];
       cover_image_url?: string | null;
       images?: Post["images"];
+      event_at?: string | null;
+      event_end_at?: string | null;
     },
   ) {
     const post = this.posts.find((item) => item.id === id);
@@ -95,6 +104,8 @@ export class MemoryRepository implements BotsRepository {
     if (patch.tags !== undefined) post.tags = patch.tags;
     if (patch.cover_image_url !== undefined) post.cover_image_url = patch.cover_image_url;
     if (patch.images !== undefined) post.images = patch.images;
+    if (patch.event_at !== undefined) post.event_at = patch.event_at;
+    if (patch.event_end_at !== undefined) post.event_end_at = patch.event_end_at;
     post.updated_at = new Date().toISOString();
     return post;
   }
@@ -137,11 +148,19 @@ export class MemoryRepository implements BotsRepository {
           if (!best) return post;
           return new Date(post.created_at) > new Date(best.created_at) ? post : best;
         }, null);
+        const nextEvent = posts
+          .filter((post) => isEventUpcoming(post))
+          .sort(
+            (a, b) =>
+              new Date(a.event_at ?? 0).getTime() - new Date(b.event_at ?? 0).getTime(),
+          )[0];
         return {
           ...bot,
           post_count: posts.length,
           last_activity_at: last?.created_at ?? bot.status_updated_at,
           latest_title: last?.title ?? null,
+          next_event_at: nextEvent?.event_at ?? null,
+          next_event_title: nextEvent?.title ?? null,
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
@@ -169,8 +188,17 @@ export class MemoryRepository implements BotsRepository {
     const matched = this.posts.filter(
       (post) => post.bot_id === botId && matchesFilters(post, filters ?? {}),
     );
-    const ordered =
-      options.sort === "oldest" ? [...matched].reverse() : matched;
+    const scope = filters?.when;
+    const ordered = [...matched].sort((a, b) => {
+      if (scope && a.event_at && b.event_at) {
+        const delta =
+          new Date(a.event_at).getTime() - new Date(b.event_at).getTime();
+        return eventSortAscending(options.sort ?? "newest", scope) ? delta : -delta;
+      }
+      const delta =
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      return options.sort === "oldest" ? delta : -delta;
+    });
     const offset = options.offset ?? 0;
     const limit = options.limit ?? ordered.length;
     return {
@@ -196,6 +224,7 @@ export class MemoryRepository implements BotsRepository {
       products: [...products.values()].sort((a, b) => a.localeCompare(b, "es")),
       kinds: [...kinds].sort(),
       tags: [...tags].sort(),
+      has_events: this.posts.some((post) => post.bot_id === botId && Boolean(post.event_at)),
     };
   }
 

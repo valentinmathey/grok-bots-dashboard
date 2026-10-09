@@ -20,6 +20,19 @@ describe("validaciones", () => {
     expect(parsed.tags).toEqual([]);
   });
 
+  it("acepta event_at y event_end_at opcionales", () => {
+    const parsed = createPostSchema.parse({
+      title: "Meetup",
+      body: "Hoy",
+      kind: "evento",
+      event_at: "2026-10-13T19:00:00-03:00",
+      event_end_at: null,
+    });
+    expect(parsed.event_at).toBe("2026-10-13T19:00:00-03:00");
+    expect(parsed.event_end_at).toBeNull();
+    expect(updatePostFieldsSchema.parse({ event_at: null }).event_at).toBeNull();
+  });
+
   it("acepta kind evento y slugs libres en minúsculas", () => {
     expect(createPostSchema.parse({
       title: "Meetup",

@@ -57,6 +57,8 @@ export const createPostSchema = z.object({
     .default([]),
   cover_image_url: httpUrlSchema.optional().default(""),
   images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional().default([]),
+  event_at: z.union([z.string(), z.null()]).optional(),
+  event_end_at: z.union([z.string(), z.null()]).optional(),
 });
 
 export const listPostsQuerySchema = z.object({
@@ -77,6 +79,21 @@ export const listPostsQuerySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Usá el formato YYYY-MM-DD")
     .optional(),
   tag: z.string().trim().max(32).optional(),
+  event_from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Usá el formato YYYY-MM-DD")
+    .optional(),
+  event_to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Usá el formato YYYY-MM-DD")
+    .optional(),
+  upcoming: z
+    .union([z.boolean(), z.enum(["true", "false", "1", "0"])])
+    .optional()
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      return value === true || value === "true" || value === "1";
+    }),
 });
 
 export const updateStatusSchema = z.object({
@@ -113,6 +130,8 @@ export const updatePostFieldsSchema = z
       .optional(),
     cover_image_url: httpUrlSchema.optional(),
     images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional(),
+    event_at: z.union([z.string(), z.null()]).optional(),
+    event_end_at: z.union([z.string(), z.null()]).optional(),
   })
   .refine(
     (value) =>
@@ -122,7 +141,9 @@ export const updatePostFieldsSchema = z
       value.product !== undefined ||
       value.tags !== undefined ||
       value.cover_image_url !== undefined ||
-      value.images !== undefined,
+      value.images !== undefined ||
+      value.event_at !== undefined ||
+      value.event_end_at !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 
@@ -148,6 +169,8 @@ export const updatePostMcpSchema = z
       .optional(),
     cover_image_url: httpUrlSchema.optional(),
     images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional(),
+    event_at: z.union([z.string(), z.null()]).optional(),
+    event_end_at: z.union([z.string(), z.null()]).optional(),
   })
   .refine(
     (value) =>
@@ -157,7 +180,9 @@ export const updatePostMcpSchema = z
       value.product !== undefined ||
       value.tags !== undefined ||
       value.cover_image_url !== undefined ||
-      value.images !== undefined,
+      value.images !== undefined ||
+      value.event_at !== undefined ||
+      value.event_end_at !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 

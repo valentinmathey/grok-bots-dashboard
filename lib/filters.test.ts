@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { baWallAt } from "@/lib/event-time";
 import {
   filtersToSearchParams,
   hasActiveFilters,
   matchesFilters,
+  parseFeedQuery,
   parsePostFilters,
 } from "@/lib/filters";
 import type { Post } from "@/lib/types";
@@ -70,5 +72,39 @@ describe("filtros", () => {
     expect(matchesFilters(post({ kind: "evento" }), { kind: "evento" })).toBe(
       true,
     );
+  });
+
+  it("separa próximos y pasados por event_at (00:30 AR es hoy)", () => {
+    const todayEarly = post({
+      event_at: baWallAt(0, 0, 30).toISOString(),
+    });
+    const yesterday = post({
+      event_at: baWallAt(-1, 19).toISOString(),
+    });
+    expect(matchesFilters(todayEarly, { when: "upcoming" })).toBe(true);
+    expect(matchesFilters(yesterday, { when: "upcoming" })).toBe(false);
+    expect(matchesFilters(yesterday, { when: "past" })).toBe(true);
+    expect(matchesFilters(todayEarly, { when: "past" })).toBe(false);
+  });
+
+  it("filtra event_from / event_to sobre la fecha del evento", () => {
+    const event = post({ event_at: "2026-10-13T22:00:00.000Z" });
+    expect(matchesFilters(event, { event_from: "2026-10-13", event_to: "2026-10-13" })).toBe(
+      true,
+    );
+    expect(matchesFilters(event, { event_from: "2026-10-14" })).toBe(false);
+    expect(matchesFilters(post(), { event_from: "2026-10-01" })).toBe(false);
+  });
+
+  it("en un bot con eventos, from/to y when=upcoming van a la query", () => {
+    const query = parseFeedQuery(
+      { from: "2026-10-01", when: "past", sort: "oldest" },
+      { hasEvents: true },
+    );
+    expect(query.when).toBe("past");
+    expect(query.dateBasis).toBe("event");
+    expect(query.eventsOnly).toBe(true);
+    expect(query.sort).toBe("oldest");
+    expect(filtersToSearchParams(query).get("when")).toBe("past");
   });
 });

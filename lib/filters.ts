@@ -1,7 +1,14 @@
 import { isKindSlug } from "@/lib/validations";
+import {
+  baEndOfDay,
+  baStartOfDay,
+  isEventPast,
+  isEventUpcoming,
+} from "@/lib/event-time";
 import type { Post, PostKind } from "@/lib/types";
 
 export type SortOrder = "newest" | "oldest";
+export type EventWhen = "upcoming" | "past";
 
 export type PostFilters = {
   from?: string;
@@ -9,6 +16,12 @@ export type PostFilters = {
   product?: string;
   kind?: PostKind;
   tag?: string;
+  event_from?: string;
+  event_to?: string;
+  upcoming?: boolean;
+  when?: EventWhen;
+  dateBasis?: "created" | "event";
+  eventsOnly?: boolean;
 };
 
 export type FeedQuery = PostFilters & {
@@ -44,6 +57,8 @@ export function parsePostFilters(
     product: product || undefined,
     kind: kindRaw && isKindSlug(kindRaw) ? kindRaw : undefined,
     tag: tag || undefined,
+    event_from: asDate(firstString(searchParams.event_from)),
+    event_to: asDate(firstString(searchParams.event_to)),
   };
 }
 
@@ -53,10 +68,30 @@ export function parseSort(
   return firstString(searchParams.sort) === "oldest" ? "oldest" : "newest";
 }
 
+export function parseWhen(
+  searchParams: Record<string, string | string[] | undefined>,
+  hasEvents = false,
+): EventWhen | undefined {
+  const raw = firstString(searchParams.when);
+  if (raw === "past" || raw === "upcoming") {
+    return raw;
+  }
+  return hasEvents ? "upcoming" : undefined;
+}
+
 export function parseFeedQuery(
   searchParams: Record<string, string | string[] | undefined>,
+  options: { hasEvents?: boolean } = {},
 ): FeedQuery {
-  return { ...parsePostFilters(searchParams), sort: parseSort(searchParams) };
+  const hasEvents = Boolean(options.hasEvents);
+  const when = parseWhen(searchParams, hasEvents);
+  return {
+    ...parsePostFilters(searchParams),
+    sort: parseSort(searchParams),
+    when,
+    dateBasis: hasEvents ? "event" : "created",
+    eventsOnly: hasEvents,
+  };
 }
 
 export function filtersToSearchParams(
@@ -68,6 +103,9 @@ export function filtersToSearchParams(
   if (filters.product) params.set("product", filters.product);
   if (filters.kind) params.set("kind", filters.kind);
   if (filters.tag) params.set("tag", filters.tag);
+  if (filters.event_from) params.set("event_from", filters.event_from);
+  if (filters.event_to) params.set("event_to", filters.event_to);
+  if (filters.when) params.set("when", filters.when);
   if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
   return params;
 }
@@ -92,6 +130,14 @@ export function dayEndIso(date: string): string {
   return `${date}T23:59:59.999Z`;
 }
 
+function eventRangeStart(ymd: string): number {
+  return baStartOfDay(ymd).getTime();
+}
+
+function eventRangeEnd(ymd: string): number {
+  return baEndOfDay(ymd).getTime();
+}
+
 export function matchesFilters(post: Post, filters: PostFilters): boolean {
   if (filters.kind && post.kind !== filters.kind) {
     return false;
@@ -105,13 +151,58 @@ export function matchesFilters(post: Post, filters: PostFilters): boolean {
   if (filters.tag && !post.tags.includes(filters.tag)) {
     return false;
   }
+
+  if (filters.eventsOnly && !post.event_at) {
+    return false;
+  }
+  if (filters.when === "upcoming" && !isEventUpcoming(post)) {
+    return false;
+  }
+  if (filters.when === "past" && !isEventPast(post)) {
+    return false;
+  }
+  if (filters.upcoming === true && !isEventUpcoming(post)) {
+    return false;
+  }
+  if (filters.upcoming === false && !isEventPast(post)) {
+    return false;
+  }
+
   const created = new Date(post.created_at).getTime();
-  if (filters.from && created < new Date(dayStartIso(filters.from)).getTime()) {
-    return false;
+  const useEventDates = filters.dateBasis === "event";
+  if (useEventDates) {
+    if (!post.event_at) {
+      return false;
+    }
+    const eventStart = new Date(post.event_at).getTime();
+    if (filters.from && eventStart < eventRangeStart(filters.from)) {
+      return false;
+    }
+    if (filters.to && eventStart > eventRangeEnd(filters.to)) {
+      return false;
+    }
+  } else {
+    if (filters.from && created < new Date(dayStartIso(filters.from)).getTime()) {
+      return false;
+    }
+    if (filters.to && created > new Date(dayEndIso(filters.to)).getTime()) {
+      return false;
+    }
   }
-  if (filters.to && created > new Date(dayEndIso(filters.to)).getTime()) {
-    return false;
+
+  if (filters.event_from || filters.event_to) {
+    if (!post.event_at) {
+      return false;
+    }
+    const eventStart = new Date(post.event_at).getTime();
+    if (filters.event_from && eventStart < eventRangeStart(filters.event_from)) {
+      return false;
+    }
+    if (filters.event_to && eventStart > eventRangeEnd(filters.event_to)) {
+      return false;
+    }
   }
+
   return true;
 }
 
