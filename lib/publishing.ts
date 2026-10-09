@@ -208,7 +208,11 @@ function resolveEventTimes(
       "event_end_at necesita un event_at",
     );
   }
-  if (event_at && event_end_at && event_end_at < event_at) {
+  if (
+    event_at &&
+    event_end_at &&
+    new Date(event_end_at).getTime() < new Date(event_at).getTime()
+  ) {
     return fail(
       400,
       "invalid_input",

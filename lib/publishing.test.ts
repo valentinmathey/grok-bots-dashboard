@@ -354,6 +354,39 @@ describe("API de publicación", () => {
     }
   });
 
+  it("rechaza event_end_at anterior a event_at (compara instantes, no strings)", async () => {
+    const { repo, key } = repoWithBot();
+    const bad = await publishPost(repo, `Bearer ${key}`, {
+      title: "Al revés",
+      body: "x",
+      event_at: "2026-10-13T19:00:00-03:00",
+      event_end_at: "2026-10-13T21:30:00Z",
+    });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) {
+      expect(bad.status).toBe(400);
+    }
+
+    const created = await publishPost(repo, `Bearer ${key}`, {
+      title: "Ok",
+      body: "x",
+      event_at: "2026-10-13T19:00:00-03:00",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    // Postgres devuelve timestamptz con +00:00, no con Z.
+    const stored = repo.posts.find((post) => post.id === created.data.post.id);
+    if (stored) stored.event_at = "2026-10-13T22:00:00+00:00";
+    const sameInstant = await updateOwnPost(repo, `Bearer ${key}`, created.data.post.id, {
+      event_end_at: "2026-10-13T19:00:00-03:00",
+    });
+    expect(sameInstant.ok).toBe(true);
+    const earlier = await updateOwnPost(repo, `Bearer ${key}`, created.data.post.id, {
+      event_end_at: "2026-10-13T18:59:00-03:00",
+    });
+    expect(earlier.ok).toBe(false);
+  });
+
   it("no permite slugs duplicados", async () => {
     const repo = new MemoryRepository();
     await createOwnedBot(repo, { name: "Uno", slug: "scout" });
