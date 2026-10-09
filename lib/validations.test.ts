@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createBotSchema,
   createPostSchema,
+  isPostId,
   normalizeTags,
   slugify,
   updatePostFieldsSchema,
@@ -65,6 +66,14 @@ describe("validaciones", () => {
   it("slugify convierte nombres con acentos", () => {
     expect(slugify("Informe semanal")).toBe("informe-semanal");
     expect(slugify("  Ñandú Argentino!! ")).toBe("nandu-argentino");
+  });
+
+  it("solo acepta UUID como id de post", () => {
+    expect(isPostId("6fc7b0c0-0000-4000-8000-000000000001")).toBe(true);
+    expect(isPostId(" 6fc7b0c0-0000-4000-8000-000000000001 ")).toBe(true);
+    expect(isPostId("no-es-uuid")).toBe(false);
+    expect(isPostId("post_1")).toBe(false);
+    expect(isPostId("")).toBe(false);
   });
 
   it("actualiza un post en forma parcial y exige al menos un campo", () => {

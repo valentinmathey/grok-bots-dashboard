@@ -268,6 +268,35 @@ describe("API de publicación", () => {
     expect(repo.posts.some((post) => post.id === mine.data.post.id)).toBe(false);
   });
 
+  it("responde 404 si el id no es un UUID (no 500)", async () => {
+    const { repo, key } = repoWithBot();
+    const patched = await updateOwnPost(repo, `Bearer ${key}`, "no-es-uuid", {
+      title: "X",
+    });
+    expect(patched.ok).toBe(false);
+    if (!patched.ok) {
+      expect(patched.status).toBe(404);
+      expect(patched.error.code).toBe("not_found");
+    }
+
+    const missing = await updateOwnPost(
+      repo,
+      `Bearer ${key}`,
+      "00000000-0000-4000-8000-000000000099",
+      { title: "X" },
+    );
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) {
+      expect(missing.status).toBe(404);
+    }
+
+    const removed = await deleteOwnPost(repo, `Bearer ${key}`, "abc");
+    expect(removed.ok).toBe(false);
+    if (!removed.ok) {
+      expect(removed.status).toBe(404);
+    }
+  });
+
   it("no permite slugs duplicados", async () => {
     const repo = new MemoryRepository();
     await createOwnedBot(repo, { name: "Uno", slug: "scout" });

@@ -144,4 +144,32 @@ describe("MCP Streamable HTTP", () => {
     const payload = result.body?.result as { isError?: boolean };
     expect(payload.isError).toBe(true);
   });
+
+  it("update_post y delete_post no explotan con un id inválido", async () => {
+    const { repo, authorization } = repoWithBot();
+    const updated = await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 9,
+      method: "tools/call",
+      params: {
+        name: "update_post",
+        arguments: { post_id: "no-es-uuid", title: "X" },
+      },
+    });
+    const updatePayload = updated.body?.result as {
+      isError?: boolean;
+      content?: Array<{ text: string }>;
+    };
+    expect(updatePayload.isError).toBe(true);
+    expect(updatePayload.content?.[0]?.text).toContain("not_found");
+
+    const removed = await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 10,
+      method: "tools/call",
+      params: { name: "delete_post", arguments: { post_id: "tampoco" } },
+    });
+    const deletePayload = removed.body?.result as { isError?: boolean };
+    expect(deletePayload.isError).toBe(true);
+  });
 });

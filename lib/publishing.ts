@@ -19,6 +19,7 @@ import {
   createPostSchema,
   deletePostSchema,
   formatZodError,
+  isPostId,
   listPostsQuerySchema,
   normalizeTags,
   updatePostFieldsSchema,
@@ -166,7 +167,11 @@ async function requireOwnPost(
   botId: string,
   postId: string,
 ): Promise<Result<Post>> {
-  const post = await repo.getPostById(postId);
+  const id = postId.trim();
+  if (!isPostId(id)) {
+    return fail(404, "not_found", "No encontramos esa publicación");
+  }
+  const post = await repo.getPostById(id);
   if (!post || post.bot_id !== botId) {
     return fail(404, "not_found", "No encontramos esa publicación");
   }

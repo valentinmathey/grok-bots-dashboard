@@ -4,6 +4,7 @@ import { dayEndIso, dayStartIso, type PostFilters } from "@/lib/filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotSummary, Post, PostImage, PostKind } from "@/lib/types";
+import { isPostId } from "@/lib/validations";
 
 function applyFilters<T>(query: T, filters: PostFilters = {}): T {
   let next = query as T & {
@@ -103,6 +104,9 @@ export function createSupabaseRepository(): BotsRepository {
     },
 
     async getPostById(id) {
+      if (!isPostId(id)) {
+        return null;
+      }
       const { data, error } = await admin
         .from("posts")
         .select("*")
