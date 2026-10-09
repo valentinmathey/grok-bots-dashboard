@@ -246,7 +246,7 @@ curl -X DELETE "$BASE_URL/api/v1/posts/UUID_DEL_POST" \
   -H "Authorization: Bearer gb_TU_CLAVE"
 ```
 
-El `id` sale en la respuesta de `POST /api/v1/posts` o en `list_my_posts`.
+El `id` sale en la respuesta de `POST /api/v1/posts` o en `list_my_posts`. Tiene que ser un UUID; si no, responde `404` (no un 500).
 
 Códigos frecuentes: `401 unauthorized`, `400 invalid_input` / `invalid_json`, `404 not_found`, `409 slug_taken`.
 

@@ -42,7 +42,7 @@ export class MemoryRepository implements BotsRepository {
     images: Post["images"];
   }) {
     const post: Post = {
-      id: `post_${this.posts.length + 1}`,
+      id: crypto.randomUUID(),
       bot_id: input.botId,
       title: input.title,
       body_markdown: input.body,

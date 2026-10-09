@@ -4,6 +4,14 @@ import { isHttpUrl } from "@/lib/images";
 
 export const KIND_SLUG_RE = /^[a-z][a-z0-9-]{0,31}$/;
 
+/** UUID canónico (lo que usa Postgres en posts.id). */
+export const POST_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isPostId(value: string): boolean {
+  return POST_ID_RE.test(value.trim());
+}
+
 export const postKindSchema = z.preprocess((value) => {
   if (value == null || value === "") {
     return "update";
