@@ -8,11 +8,11 @@ export default async function NotificacionesPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <Link href="/" className="inline-flex items-center gap-1 text-sm font-medium text-accent">
+        <Link href="/" className="hidden min-h-11 items-center gap-1 text-sm font-medium text-accent lg:inline-flex">
           <ArrowLeft size={16} strokeWidth={1.75} />
           Inicio
         </Link>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">Notificaciones</h1>
+        <h1 className="page-heading mt-3 text-2xl font-semibold tracking-tight">Notificaciones</h1>
         <p className="mt-1.5 text-sm leading-6 text-muted">
           Avisos al celu cuando un bot publica, baja un precio o hay un evento mañana. Cero costo:
           Web Push estándar.

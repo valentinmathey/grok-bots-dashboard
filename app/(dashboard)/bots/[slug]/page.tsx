@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
+import { NavTitle } from "@/components/nav-context";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { PostFeed } from "@/components/PostFeed";
 import { TimeStamp } from "@/components/TimeStamp";
@@ -44,8 +45,9 @@ export default async function BotPage({
       className="bot-skin mx-auto min-w-0 max-w-2xl space-y-5 sm:space-y-6"
       style={{ "--bot-fill": avatar.fill } as React.CSSProperties}
     >
+      <NavTitle title={bot.name} />
       <div className="min-w-0">
-        <Link href="/" className="inline-flex items-center gap-1 text-sm font-medium text-accent">
+        <Link href="/" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent">
           <ArrowLeft size={16} strokeWidth={1.75} />
           Bots
         </Link>
@@ -53,7 +55,7 @@ export default async function BotPage({
           <BotAvatar bot={bot} size="xl" />
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-3">
-              <h1 className="break-words text-[1.65rem] font-semibold tracking-tight sm:text-[1.75rem]">
+              <h1 className="page-heading break-words text-[1.65rem] font-semibold tracking-tight sm:text-[1.75rem]">
                 {bot.name}
               </h1>
               <LiveRefresh />

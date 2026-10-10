@@ -38,7 +38,7 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-9 rounded-full px-3 text-sm ${
+      className={`min-h-11 shrink-0 rounded-full px-3 text-sm ${
         active
           ? "bg-accent text-accent-ink"
           : "bg-chip text-foreground/80 hover:bg-line"
@@ -147,7 +147,7 @@ export function FilterSheet({
             setDraft(query);
             setOpen(true);
           }}
-          className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:w-auto sm:px-4"
+          className="inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:w-auto sm:px-4"
         >
           <SlidersHorizontal size={16} strokeWidth={1.75} />
           Filtros
@@ -235,7 +235,7 @@ export function FilterSheet({
       </div>
 
       {oportunidades ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="chip-row">
           <Chip
             active={Boolean(query.recommended)}
             onClick={() => push({ ...query, recommended: query.recommended ? undefined : true })}
@@ -267,13 +267,13 @@ export function FilterSheet({
       ) : null}
 
       {chipFilters.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="chip-row">
           {chipFilters.map((chip) => (
             <button
               key={chip.key}
               type="button"
               onClick={() => removeChip(chip.key)}
-              className="inline-flex min-h-8 items-center gap-1 rounded-full bg-chip px-2.5 text-xs"
+              className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-chip px-2.5 text-xs"
             >
               {chip.label}
               <span aria-hidden>×</span>
@@ -290,7 +290,7 @@ export function FilterSheet({
             aria-label="Cerrar filtros"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-3xl bg-card p-5 pb-8 shadow-2xl sm:inset-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl">
+          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-3xl bg-card p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:inset-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:pb-8">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line sm:hidden" />
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold tracking-tight">Filtros</h2>

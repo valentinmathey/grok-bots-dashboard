@@ -51,7 +51,7 @@ export default async function BuscarPage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Buscar</h1>
+        <h1 className="page-heading text-2xl font-semibold tracking-tight">Buscar</h1>
         <form className="mt-3">
           <input
             name="q"
@@ -62,10 +62,10 @@ export default async function BuscarPage({
         </form>
       </div>
       {bots.length ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="chip-row">
           <Link
             href={href({ bot: undefined })}
-            className={`rounded-full px-3 py-1 text-xs font-medium ${!params.bot ? "bg-accent text-accent-ink" : "bg-chip"}`}
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${!params.bot ? "bg-accent text-accent-ink" : "bg-chip"}`}
           >
             Todos
           </Link>
@@ -73,14 +73,14 @@ export default async function BuscarPage({
             <Link
               key={bot.id}
               href={href({ bot: bot.slug })}
-              className={`rounded-full px-3 py-1 text-xs font-medium ${params.bot === bot.slug ? "bg-accent text-accent-ink" : "bg-chip"}`}
+              className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.bot === bot.slug ? "bg-accent text-accent-ink" : "bg-chip"}`}
             >
               {bot.name}
             </Link>
           ))}
           <Link
             href={href({ favorites: params.favorites === "1" ? undefined : "1" })}
-            className={`rounded-full px-3 py-1 text-xs font-medium ${params.favorites === "1" ? "bg-accent text-accent-ink" : "bg-chip"}`}
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.favorites === "1" ? "bg-accent text-accent-ink" : "bg-chip"}`}
           >
             Solo favoritos
           </Link>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { KindBadge } from "@/components/KindBadge";
+import { useOptionalNav } from "@/components/nav-context";
 import type { SearchHit } from "@/lib/search";
 
 const RECENT_KEY = "gb-recent-searches";
@@ -25,7 +26,10 @@ function saveRecent(q: string) {
 }
 
 export function SearchOverlay() {
-  const [open, setOpen] = useState(false);
+  const nav = useOptionalNav();
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = nav?.searchOpen ?? localOpen;
+  const setOpen = nav?.setSearchOpen ?? setLocalOpen;
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
@@ -78,17 +82,8 @@ export function SearchOverlay() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Buscar"
-        title="Buscar"
-        className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
-      >
-        <Search size={18} strokeWidth={1.75} />
-      </button>
       {open ? (
-        <div className="fixed inset-0 z-50 bg-black/40 px-0 sm:px-6 sm:py-16">
+        <div className="fixed inset-0 z-50 bg-black/40 px-0 pt-[env(safe-area-inset-top)] sm:px-6 sm:py-16">
           <div
             role="dialog"
             aria-modal
@@ -108,7 +103,7 @@ export function SearchOverlay() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="grid h-10 w-10 place-items-center rounded-full text-muted hover:bg-chip"
+                className="grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-chip"
                 aria-label="Cerrar"
               >
                 <X size={18} strokeWidth={1.75} />

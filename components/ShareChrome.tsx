@@ -17,7 +17,7 @@ export function ShareChrome({
       className="bot-skin flex min-h-full flex-1 flex-col"
       style={{ "--bot-fill": avatar.fill } as React.CSSProperties}
     >
-      <header className="sticky top-0 z-30 border-b border-line/80 bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-line/80 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex h-14 min-w-0 max-w-2xl items-center justify-between gap-3 overflow-x-clip px-3.5 sm:h-16 sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <BotAvatar bot={bot} size="sm" />
@@ -33,7 +33,7 @@ export function ShareChrome({
           <ThemeToggle />
         </div>
       </header>
-      <main className="mx-auto w-full min-w-0 max-w-2xl flex-1 overflow-x-clip px-3.5 pb-16 pt-5 sm:px-4 sm:pt-6">
+      <main className="mx-auto w-full min-w-0 max-w-2xl flex-1 overflow-x-clip px-3.5 pb-[max(4rem,calc(2rem+env(safe-area-inset-bottom)))] pt-5 sm:px-4 sm:pt-6">
         {children}
       </main>
     </div>

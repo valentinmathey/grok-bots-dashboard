@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function OfflinePage() {
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-md flex-1 flex-col justify-center px-4 py-16">
+    <div className="mx-auto flex min-h-full min-h-dvh w-full max-w-md flex-1 flex-col justify-center px-4 py-16 pt-[max(3rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]">
       <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-lg font-bold text-accent-ink">
         G
       </span>

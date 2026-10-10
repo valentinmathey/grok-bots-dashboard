@@ -13,7 +13,56 @@ export function AlojamientoTable({
 }) {
   return (
     <div className="surface overflow-hidden rounded-3xl">
-      <div className="overflow-x-auto">
+      <ul className="divide-y divide-line lg:hidden">
+        {posts.map((post) => {
+          const details = asAlojamiento(post.details);
+          const currency = details?.currency || "BRL";
+          const drop = hasPriceDrop(details);
+          const zona = [details?.neighborhood, details?.city].filter(Boolean).join(" · ") || "—";
+          const title = postHref ? (
+            <Link href={postHref(post)} className="font-medium leading-snug hover:underline">
+              {post.title}
+            </Link>
+          ) : (
+            <span className="font-medium leading-snug">{post.title}</span>
+          );
+          return (
+            <li key={post.id} className="px-3.5 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="line-clamp-2">{title}</p>
+                  <p className="mt-1 text-xs text-muted">{zona}</p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold tabular-nums">
+                  {details?.price_per_person != null
+                    ? formatMoney(details.price_per_person, currency)
+                    : "—"}
+                  <span className="block text-[11px] font-normal text-muted">/ pers.</span>
+                </p>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                {details?.score != null ? <span>Score {details.score.toFixed(1)}</span> : null}
+                {details?.rating != null ? (
+                  <span className="inline-flex items-center gap-0.5">
+                    <Star size={11} strokeWidth={1.75} className="text-amber-500" />
+                    {details.rating.toFixed(2)}
+                  </span>
+                ) : null}
+                <span>
+                  {details?.bedrooms ?? "—"}/{details?.beds ?? "—"}/{details?.bathrooms ?? "—"}
+                </span>
+                {drop ? (
+                  <span className="inline-flex items-center gap-0.5 font-semibold text-emerald-700 dark:text-emerald-300">
+                    <TrendingDown size={10} strokeWidth={1.75} />
+                    Bajó
+                  </span>
+                ) : null}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-max min-w-full text-left text-[13px]">
           <thead className="bg-raised text-[11px] uppercase tracking-[0.08em] text-muted">
             <tr>

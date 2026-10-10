@@ -2,36 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { Share, X } from "lucide-react";
-
-const STORAGE_KEY = "gb-install-dismissed";
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-
-function isStandalone() {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.matchMedia("(display-mode: minimal-ui)").matches ||
-    ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
-  );
-}
-
-function isIos() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
+import {
+  captureInstallPrompt,
+  dismissInstall,
+  isIosDevice,
+  isStandaloneDisplay,
+  promptNativeInstall,
+  type BeforeInstallPromptEvent,
+  wasInstallDismissed,
+} from "@/lib/pwa-install";
 
 export function InstallPrompt() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [iosSheet, setIosSheet] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY) === "1") return;
-    if (isStandalone()) return;
+    if (wasInstallDismissed()) return;
+    if (isStandaloneDisplay()) return;
 
-    if (isIos()) {
+    if (isIosDevice()) {
       setIosSheet(true);
       setVisible(true);
       return;
@@ -39,33 +28,30 @@ export function InstallPrompt() {
 
     function onPrompt(event: Event) {
       event.preventDefault();
-      setDeferred(event as BeforeInstallPromptEvent);
+      captureInstallPrompt(event as BeforeInstallPromptEvent);
       setVisible(true);
     }
     window.addEventListener("beforeinstallprompt", onPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
-  function dismiss() {
-    localStorage.setItem(STORAGE_KEY, "1");
+  function close() {
+    dismissInstall();
     setVisible(false);
-    setDeferred(null);
   }
 
   async function install() {
-    if (!deferred) {
-      setIosSheet(true);
+    if (await promptNativeInstall()) {
+      setVisible(false);
       return;
     }
-    await deferred.prompt();
-    await deferred.userChoice;
-    dismiss();
+    setIosSheet(true);
   }
 
   if (!visible) return null;
 
   return (
-    <div className="safe-px fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 flex justify-center px-3.5">
+    <div className="safe-px fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 flex justify-center px-3.5 lg:bottom-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <div className="surface flex w-full max-w-md items-start gap-3 rounded-3xl p-3.5 shadow-lg">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent text-sm font-bold text-accent-ink">
           G
@@ -87,16 +73,16 @@ export function InstallPrompt() {
             {!iosSheet ? (
               <button
                 type="button"
-                onClick={install}
-                className="inline-flex min-h-9 items-center rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink"
+                onClick={() => void install()}
+                className="inline-flex min-h-11 items-center rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink"
               >
                 Instalar
               </button>
             ) : null}
             <button
               type="button"
-              onClick={dismiss}
-              className="inline-flex min-h-9 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-chip"
+              onClick={close}
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-chip"
             >
               Ahora no
             </button>
@@ -104,9 +90,9 @@ export function InstallPrompt() {
         </div>
         <button
           type="button"
-          onClick={dismiss}
+          onClick={close}
           aria-label="Cerrar"
-          className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-chip"
+          className="grid h-11 w-11 place-items-center rounded-full text-muted hover:bg-chip"
         >
           <X size={16} strokeWidth={1.75} />
         </button>

@@ -105,7 +105,7 @@ export function BotBoard({ initialBots }: { initialBots: BotSummary[] }) {
         <button
           type="button"
           onClick={() => setSorting((value) => !value)}
-          className={`inline-flex min-h-10 items-center rounded-full px-3 text-sm font-medium ${
+          className={`inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium ${
             sorting ? "bg-accent text-accent-ink" : "bg-chip text-foreground"
           }`}
           aria-pressed={sorting}
