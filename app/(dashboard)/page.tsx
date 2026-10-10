@@ -1,17 +1,28 @@
-import Link from "next/link";
 import { BotCard } from "@/components/BotCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ResumenCard } from "@/components/ResumenCard";
 import { getRepository } from "@/lib/data";
 import { SUMMARY_BOT_SLUG } from "@/lib/details";
+import {
+  buildResumenDetails,
+  groupPostsByBot,
+  latestActivityAt,
+} from "@/lib/summary";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
   const repo = getRepository();
-  const [bots, resumenes] = await Promise.all([
+  const [bots, posts] = await Promise.all([
     repo.listBotSummaries(),
-    repo.listRecentPosts(1, { kind: "resumen", bot: SUMMARY_BOT_SLUG }),
+    repo.listPostsForSummary(),
   ]);
-  const latestResumen = resumenes[0] ?? null;
+  const details = buildResumenDetails({
+    bots,
+    postsByBot: groupPostsByBot(posts),
+  });
+  const updatedAt = latestActivityAt(posts) ?? details.generated_at;
 
   return (
     <div>
@@ -27,14 +38,14 @@ export default async function HomePage() {
         </p>
       </div>
 
-      {latestResumen ? (
+      {bots.length > 0 ? (
         <div className="mb-6">
-          <ResumenCard post={latestResumen} compact />
-          <p className="mt-2 text-right text-xs">
-            <Link href={`/bots/${latestResumen.bot.slug}`} className="font-medium text-accent">
-              Ver en {latestResumen.bot.name}
-            </Link>
-          </p>
+          <ResumenCard
+            details={details}
+            live
+            updatedAt={updatedAt}
+            archiveHref={`/bots/${SUMMARY_BOT_SLUG}?kind=resumen`}
+          />
         </div>
       ) : null}
 

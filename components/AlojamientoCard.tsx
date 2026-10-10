@@ -53,7 +53,10 @@ export function AlojamientoCard({
   const maps = details.maps_url;
 
   return (
-    <article className="surface group min-w-0 overflow-hidden rounded-3xl transition-transform duration-200">
+    <article
+      id={`post-${post.id}`}
+      className="surface group min-w-0 scroll-mt-20 overflow-hidden rounded-3xl transition-transform duration-200"
+    >
       <div className="relative">
         {cover ? (
           <MediaImage
