@@ -1,10 +1,11 @@
 import { generateApiKey, hashApiKey, parseBearerToken } from "@/lib/api-keys";
-import { emptyDetails, parsePostDetails } from "@/lib/details";
+import { emptyDetails, parsePostDetails, SUMMARY_BOT_SLUG } from "@/lib/details";
 import { fail } from "@/lib/http";
 import { normalizeEventInstant } from "@/lib/event-time";
 import type { PostFilters } from "@/lib/filters";
 import { normalizeProduct } from "@/lib/filters";
 import { normalizeHttpUrl, normalizePostImages } from "@/lib/images";
+import { canWrite, normalizeScopes } from "@/lib/scopes";
 import type {
   AuthenticatedBot,
   Bot,
@@ -79,6 +80,13 @@ export type BotsRepository = {
     limit: number,
     filters?: PostFilters,
   ): Promise<Array<Post & { bot: Pick<Bot, "id" | "name" | "slug"> }>>;
+  listCatalogPosts(
+    filters: PostFilters,
+    options: { limit: number; offset: number; sortEvents: boolean },
+  ): Promise<{
+    posts: Array<Post & { bot: Pick<Bot, "id" | "name" | "slug"> }>;
+    total: number;
+  }>;
   listProducts(botId?: string): Promise<string[]>;
   latestPostByBotIds(
     botIds: string[],
@@ -119,7 +127,33 @@ export async function authenticateBot(
     return fail(401, "unauthorized", "Clave de API inválida o revocada");
   }
 
+  return {
+    ok: true,
+    data: { ...bot, scopes: normalizeScopes(bot.scopes) },
+  };
+}
+
+export function requireWrite(
+  bot: AuthenticatedBot,
+): Result<AuthenticatedBot> {
+  if (!canWrite(bot.scopes)) {
+    return fail(403, "forbidden", "Esta clave es de solo lectura");
+  }
   return { ok: true, data: bot };
+}
+
+function assertResumenAllowed(
+  bot: AuthenticatedBot,
+  kind: string | undefined,
+): Result<true> {
+  if (kind === "resumen" && bot.slug !== SUMMARY_BOT_SLUG) {
+    return fail(
+      403,
+      "forbidden",
+      `Solo ${SUMMARY_BOT_SLUG} puede publicar kind "resumen"`,
+    );
+  }
+  return { ok: true, data: true };
 }
 
 export async function publishPost(
@@ -131,6 +165,10 @@ export async function publishPost(
   if (!auth.ok) {
     return auth;
   }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
+  }
 
   const parsed = createPostSchema.safeParse(payload);
   if (!parsed.success) {
@@ -140,6 +178,11 @@ export async function publishPost(
       "Los datos de la publicación no son válidos",
       formatZodError(parsed.error),
     );
+  }
+
+  const resumen = assertResumenAllowed(auth.data, parsed.data.kind);
+  if (!resumen.ok) {
+    return resumen;
   }
 
   const eventTimes = resolveEventTimes(parsed.data.event_at, parsed.data.event_end_at);
@@ -309,6 +352,10 @@ export async function updateOwnPost(
   if (!auth.ok) {
     return auth;
   }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
+  }
 
   const parsed = updatePostFieldsSchema.safeParse(payload);
   if (!parsed.success) {
@@ -323,6 +370,14 @@ export async function updateOwnPost(
   const owned = await requireOwnPost(repo, auth.data.botId, postId);
   if (!owned.ok) {
     return owned;
+  }
+
+  const resumen = assertResumenAllowed(
+    auth.data,
+    parsed.data.kind ?? owned.data.kind,
+  );
+  if (!resumen.ok) {
+    return resumen;
   }
 
   const eventTimes = resolveEventTimes(
@@ -380,6 +435,10 @@ export async function deleteOwnPost(
   if (!auth.ok) {
     return auth;
   }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
+  }
   const owned = await requireOwnPost(repo, auth.data.botId, postId);
   if (!owned.ok) {
     return owned;
@@ -413,6 +472,10 @@ export async function publishStatus(
   const auth = await authenticateBot(repo, authorization);
   if (!auth.ok) {
     return auth;
+  }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
   }
 
   const parsed = updateStatusSchema.safeParse(payload);
@@ -483,6 +546,10 @@ export async function listMyPosts(
   const auth = await authenticateBot(repo, authorization);
   if (!auth.ok) {
     return auth;
+  }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
   }
 
   const parsed = listPostsQuerySchema.safeParse(payload ?? {});
@@ -564,6 +631,10 @@ export async function updateBotProfile(
   const auth = await authenticateBot(repo, authorization);
   if (!auth.ok) {
     return auth;
+  }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
   }
   const parsed = updateProfileSchema.safeParse(payload);
   if (!parsed.success) {

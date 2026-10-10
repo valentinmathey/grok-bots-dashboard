@@ -1,3 +1,4 @@
+import { listCatalogEvents, listCatalogPosts } from "@/lib/catalog";
 import {
   authenticateBot,
   deleteOwnPostFromMcp,
@@ -8,6 +9,7 @@ import {
   updateOwnPostFromMcp,
   type BotsRepository,
 } from "@/lib/publishing";
+import { canReadAll, canWrite } from "@/lib/scopes";
 import { publishWeeklySummaryForBot } from "@/lib/summary";
 export const MCP_PROTOCOL_VERSIONS = [
   "2024-11-05",
@@ -225,6 +227,79 @@ export const MCP_TOOLS = [
   },
 ] as const;
 
+export const MCP_READ_TOOLS = [
+  {
+    name: "list_posts",
+    description:
+      "Lista publicaciones de TODOS los bots (solo claves con scope read:all). Filtros: kind, bot (slug), event_from/event_to, upcoming, from/to (fecha de publicación), q (título/cuerpo), limit (default 50, máx. 200), cursor/offset. Orden: event_at asc si hay filtros de evento; si no, created_at desc. Cada post incluye bot {slug,name}, url del panel, details.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        kind: { type: "string" },
+        bot: { type: "string", description: "Slug del bot" },
+        event_from: {
+          type: "string",
+          description: "Fecha de evento desde YYYY-MM-DD (hora Argentina)",
+        },
+        event_to: {
+          type: "string",
+          description: "Fecha de evento hasta YYYY-MM-DD (hora Argentina)",
+        },
+        upcoming: {
+          type: "boolean",
+          description:
+            "true = solo eventos próximos. false = solo pasados.",
+        },
+        from: { type: "string", description: "Publicados desde YYYY-MM-DD" },
+        to: { type: "string", description: "Publicados hasta YYYY-MM-DD" },
+        q: { type: "string", description: "Busca en título y cuerpo" },
+        limit: { type: "integer", minimum: 1, maximum: 200 },
+        offset: { type: "integer", minimum: 0 },
+        cursor: { type: "string", description: "Alias numérico de offset" },
+      },
+    },
+  },
+  {
+    name: "list_events",
+    description:
+      "Atajo para eventos (kind=evento) de todos los bots. date=YYYY-MM-DD (default hoy ART) y days=N (ventana inclusiva). Solo claves read:all. Útil para «qué eventos hay hoy».",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        date: {
+          type: "string",
+          description: "Día inicial YYYY-MM-DD (hora Argentina). Default: hoy.",
+        },
+        days: {
+          type: "integer",
+          minimum: 1,
+          maximum: 31,
+          description: "Cantidad de días inclusive desde date. Default 1.",
+        },
+        bot: { type: "string", description: "Slug del bot" },
+        q: { type: "string" },
+        limit: { type: "integer", minimum: 1, maximum: 200 },
+        offset: { type: "integer", minimum: 0 },
+        cursor: { type: "string" },
+      },
+    },
+  },
+] as const;
+
+export function toolsForScopes(scopes?: string[] | null) {
+  const write = canWrite(scopes);
+  const read = canReadAll(scopes);
+  if (write && read) {
+    return [...MCP_TOOLS, ...MCP_READ_TOOLS];
+  }
+  if (read) {
+    return [...MCP_READ_TOOLS];
+  }
+  return [...MCP_TOOLS];
+}
+
 type JsonRpcId = string | number | null;
 
 export type JsonRpcRequest = {
@@ -291,6 +366,10 @@ async function callTool(
       return deleteOwnPostFromMcp(repo, authorization, args ?? {});
     case "publish_weekly_summary":
       return publishWeeklySummaryForBot(repo, authorization);
+    case "list_posts":
+      return listCatalogPosts(repo, authorization, args ?? {});
+    case "list_events":
+      return listCatalogEvents(repo, authorization, args ?? {});
     default:
       return {
         ok: false as const,
@@ -345,8 +424,11 @@ export async function dispatchMcpRequest(
     }
     case "ping":
       return { status: 200, body: ok(id, {}) };
-    case "tools/list":
-      return { status: 200, body: ok(id, { tools: MCP_TOOLS }) };
+    case "tools/list": {
+      const auth = await authenticateBot(repo, authorization);
+      const tools = auth.ok ? toolsForScopes(auth.data.scopes) : [...MCP_TOOLS];
+      return { status: 200, body: ok(id, { tools }) };
+    }
     case "tools/call": {
       const params = (request.params ?? {}) as {
         name?: string;
@@ -364,6 +446,25 @@ export async function dispatchMcpRequest(
         return {
           status: 200,
           body: ok(id, toolText(auth.error, true)),
+        };
+      }
+
+      const allowed = toolsForScopes(auth.data.scopes).some(
+        (tool) => tool.name === params.name,
+      );
+      if (!allowed) {
+        return {
+          status: 200,
+          body: ok(
+            id,
+            toolText(
+              {
+                code: "forbidden",
+                message: "Esta clave no tiene permiso para esa herramienta",
+              },
+              true,
+            ),
+          ),
         };
       }
 

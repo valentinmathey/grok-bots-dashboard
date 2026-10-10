@@ -23,6 +23,7 @@ export async function GET(request: Request) {
         name: result.data.name,
         slug: result.data.slug,
         status: result.data.status,
+        scopes: result.data.scopes,
       },
     },
   });
