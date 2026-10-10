@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { CalendarDays, Home, Newspaper, Sparkles, Target } from "lucide-react";
+import { Sparkles, Target } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import {
   cardCollapseProps,
@@ -19,32 +19,167 @@ import {
   oportunidadCategoryLabel,
   type ResumenDetails,
 } from "@/lib/details";
-import { formatDate, formatEventWhen, formatMoney, kindLabel } from "@/lib/format";
+import { formatDate, formatEventWhen, kindLabel } from "@/lib/format";
 import { persistResumenOpen } from "@/lib/resumen-collapse";
 import type { Post } from "@/lib/types";
 
-function Stat({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl bg-raised px-3 py-2.5">
-      <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">{value}</p>
-    </div>
-  );
-}
-
 function postHref(slug: string, postId?: string | null) {
   return postId ? `/bots/${slug}#post-${postId}` : `/bots/${slug}`;
+}
+
+function botLead(bot: ResumenDetails["bots"][number]): string {
+  const bits = [
+    bot.new_posts ? `${bot.new_posts} ${bot.new_posts === 1 ? "nuevo" : "nuevos"}` : null,
+    bot.upcoming_events?.length
+      ? `${bot.upcoming_events.length} ${bot.upcoming_events.length === 1 ? "evento" : "eventos"}`
+      : null,
+    bot.alojamientos?.new_count
+      ? `${bot.alojamientos.new_count} aloj.`
+      : null,
+    bot.oportunidades?.open_count
+      ? `${bot.oportunidades.open_count} abiertas`
+      : null,
+  ].filter(Boolean);
+  return bits.slice(0, 2).join(" · ") || "Sin novedades";
+}
+
+function BotResumenRow({ bot }: { bot: ResumenDetails["bots"][number] }) {
+  const { open, toggle, headerRef } = useExpandable(false);
+  const bodyId = useId();
+  const events = bot.upcoming_events?.slice(0, 3) ?? [];
+  const moreEvents = (bot.upcoming_events?.length ?? 0) - events.length;
+  const kinds = bot.kinds?.slice(0, 3) ?? [];
+
+  return (
+    <section className="rounded-2xl border border-line/80">
+      <ExpandableHeader
+        open={open}
+        onToggle={toggle}
+        headerRef={headerRef}
+        controlsId={bodyId}
+        className="px-3 py-2.5"
+      >
+        <div className="flex items-center gap-2.5">
+          <BotAvatar
+            bot={{
+              slug: bot.slug,
+              name: bot.name,
+              avatar_color: bot.avatar_color,
+              avatar_url: bot.avatar_url,
+            }}
+            size="sm"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold tracking-tight">{bot.name}</p>
+            <p className="truncate text-[11px] text-muted">{botLead(bot)}</p>
+          </div>
+          <ExpandChevron open={open} compact />
+        </div>
+      </ExpandableHeader>
+      <ExpandableBody open={open} id={bodyId} className="space-y-2 px-3 pb-3">
+        {bot.status ? (
+          <p className="line-clamp-2 text-xs text-muted">{bot.status}</p>
+        ) : null}
+        {events.length ? (
+          <ul className="space-y-1 text-sm">
+            {events.map((event) => (
+              <li key={`${event.title}-${event.event_at}`} className="flex justify-between gap-3">
+                <Link
+                  href={postHref(bot.slug, event.post_id)}
+                  className="min-w-0 truncate font-medium hover:underline"
+                >
+                  {event.title}
+                </Link>
+                <span className="shrink-0 text-[11px] text-muted">
+                  {formatEventWhen(event.event_at, event.event_end_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {moreEvents > 0 ? (
+          <Link href={`/bots/${bot.slug}`} className="text-xs font-medium text-accent">
+            Ver más ({moreEvents})
+          </Link>
+        ) : null}
+        {bot.alojamientos?.best ? (
+          <p className="text-sm">
+            <Sparkles size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+            <Link
+              href={postHref(bot.slug, bot.alojamientos.best.post_id)}
+              className="font-medium hover:underline"
+            >
+              {bot.alojamientos.best.title}
+            </Link>
+            {bot.alojamientos.best.score != null
+              ? ` · ${bot.alojamientos.best.score.toFixed(1)}`
+              : ""}
+          </p>
+        ) : null}
+        {bot.oportunidades ? (
+          <div className="space-y-1 text-sm">
+            <p>
+              <Target size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+              {bot.oportunidades.open_count} abiertas
+              {bot.oportunidades.recommended_count
+                ? ` · ${bot.oportunidades.recommended_count} recomendadas`
+                : ""}
+            </p>
+            {bot.oportunidades.next_deadlines?.slice(0, 3).map((item) => (
+              <p key={`${item.name}-${item.deadline}`} className="flex justify-between gap-3 text-xs">
+                <Link
+                  href={postHref(bot.slug, item.post_id)}
+                  className="min-w-0 truncate hover:underline"
+                >
+                  {item.name}
+                </Link>
+                <span className="shrink-0 text-muted">
+                  {item.category ? `${oportunidadCategoryLabel(item.category)} · ` : ""}
+                  {deadlineChipLabel(item.deadline)}
+                </span>
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {kinds.length ? (
+          <p className="text-xs text-muted">
+            {kinds.map((item, index) => (
+              <span key={item.kind}>
+                {index > 0 ? " · " : null}
+                <Link
+                  href={`/bots/${bot.slug}?kind=${encodeURIComponent(item.kind)}`}
+                  className="hover:underline"
+                >
+                  {kindLabel(item.kind)}
+                </Link>
+                {` (${item.count})`}
+              </span>
+            ))}
+          </p>
+        ) : null}
+        {bot.products?.length ? (
+          <p className="text-xs text-muted">
+            {bot.products.slice(0, 3).map((item, index) => (
+              <span key={item.name}>
+                {index > 0 ? " · " : null}
+                <Link
+                  href={`/bots/${bot.slug}?product=${encodeURIComponent(item.name)}`}
+                  className="hover:underline"
+                >
+                  {item.name}
+                </Link>
+              </span>
+            ))}
+          </p>
+        ) : null}
+        <p>
+          <Link href={`/bots/${bot.slug}`} className="text-xs font-medium text-accent">
+            Ver bot
+          </Link>
+        </p>
+      </ExpandableBody>
+    </section>
+  );
 }
 
 export function ResumenCard({
@@ -126,198 +261,9 @@ export function ResumenCard({
 
       <ExpandableBody open={Boolean(details) && open} id={bodyId}>
         {details ? (
-        <div className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
+        <div className="space-y-2 p-3 pt-0 sm:p-4 sm:pt-0">
           {details.bots.map((bot) => (
-            <section key={bot.bot_id} className="rounded-2xl border border-line/80 p-3 sm:p-4">
-              <div className="flex items-start gap-3">
-                <Link href={`/bots/${bot.slug}`} className="shrink-0">
-                  <BotAvatar
-                    bot={{
-                      slug: bot.slug,
-                      name: bot.name,
-                      avatar_color: bot.avatar_color,
-                      avatar_url: bot.avatar_url,
-                    }}
-                    size="md"
-                  />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold tracking-tight">
-                    <Link href={`/bots/${bot.slug}`} className="hover:underline">
-                      {bot.name}
-                    </Link>
-                  </h3>
-                  {bot.status ? (
-                    <p className="mt-0.5 line-clamp-2 text-sm text-muted">{bot.status}</p>
-                  ) : (
-                    <p className="mt-0.5 text-sm text-muted">Sin estado esta semana</p>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <Stat
-                  label="Nuevos"
-                  value={bot.new_posts}
-                  icon={<Newspaper size={11} strokeWidth={1.75} />}
-                />
-                <Stat
-                  label="Eventos"
-                  value={bot.upcoming_events?.length ?? 0}
-                  icon={<CalendarDays size={11} strokeWidth={1.75} />}
-                />
-                <Stat
-                  label="Alojamientos"
-                  value={bot.alojamientos?.new_count ?? 0}
-                  icon={<Home size={11} strokeWidth={1.75} />}
-                />
-                {bot.oportunidades ? (
-                  <Stat
-                    label="Oportunidades"
-                    value={bot.oportunidades.open_count}
-                    icon={<Target size={11} strokeWidth={1.75} />}
-                  />
-                ) : null}
-              </div>
-              {bot.upcoming_events?.length ? (
-                <ul className="mt-3 space-y-1.5 text-sm">
-                  {bot.upcoming_events.slice(0, 4).map((event) => (
-                    <li key={`${event.title}-${event.event_at}`} className="flex justify-between gap-3">
-                      <Link
-                        href={postHref(bot.slug, event.post_id)}
-                        className="min-w-0 truncate font-medium hover:underline"
-                      >
-                        {event.title}
-                      </Link>
-                      <span className="shrink-0 text-xs text-muted">
-                        {formatEventWhen(event.event_at, event.event_end_at)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {bot.alojamientos?.best || bot.alojamientos?.cheapest ? (
-                <div className="mt-3 space-y-1 text-sm">
-                  {bot.alojamientos.best ? (
-                    <p>
-                      <Sparkles size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
-                      Mejor score:{" "}
-                      <Link
-                        href={postHref(bot.slug, bot.alojamientos.best.post_id)}
-                        className="font-medium hover:underline"
-                      >
-                        {bot.alojamientos.best.title}
-                      </Link>
-                      {bot.alojamientos.best.score != null
-                        ? ` (${bot.alojamientos.best.score.toFixed(1)})`
-                        : ""}
-                    </p>
-                  ) : null}
-                  {bot.alojamientos.cheapest ? (
-                    <p className="text-muted">
-                      Más barato:{" "}
-                      <Link
-                        href={postHref(bot.slug, bot.alojamientos.cheapest.post_id)}
-                        className="hover:underline"
-                      >
-                        {bot.alojamientos.cheapest.title}
-                      </Link>
-                      {bot.alojamientos.cheapest.price_per_person != null
-                        ? ` · ${formatMoney(bot.alojamientos.cheapest.price_per_person, bot.alojamientos.cheapest.currency || "BRL")} / pers.`
-                        : ""}
-                    </p>
-                  ) : null}
-                  {bot.alojamientos.price_drops?.length ? (
-                    <p className="text-emerald-700 dark:text-emerald-300">
-                      {bot.alojamientos.price_drops.length} bajaron de precio
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-              {bot.oportunidades ? (
-                <div className="mt-3 space-y-1.5 text-sm">
-                  <p className="font-medium">
-                    <Target size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
-                    {bot.oportunidades.open_count}{" "}
-                    {bot.oportunidades.open_count === 1 ? "abierta" : "abiertas"}
-                    {bot.oportunidades.recommended_count
-                      ? ` · ${bot.oportunidades.recommended_count} recomendadas`
-                      : ""}
-                  </p>
-                  {bot.oportunidades.next_deadlines?.length ? (
-                    <ul className="space-y-1">
-                      {bot.oportunidades.next_deadlines.slice(0, 4).map((item) => (
-                        <li
-                          key={`${item.name}-${item.deadline}`}
-                          className="flex justify-between gap-3"
-                        >
-                          <Link
-                            href={postHref(bot.slug, item.post_id)}
-                            className="min-w-0 truncate hover:underline"
-                          >
-                            {item.name}
-                          </Link>
-                          <span className="shrink-0 text-xs text-muted">
-                            {item.category
-                              ? `${oportunidadCategoryLabel(item.category)} · `
-                              : ""}
-                            {deadlineChipLabel(item.deadline)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
-              {bot.kinds?.length ? (
-                <div className="mt-3 space-y-2">
-                  {bot.kinds.map((item) => (
-                    <div key={item.kind}>
-                      <p className="text-xs font-medium text-muted">
-                        <Link
-                          href={`/bots/${bot.slug}?kind=${encodeURIComponent(item.kind)}`}
-                          className="hover:underline"
-                        >
-                          {kindLabel(item.kind)}
-                        </Link>
-                        {" · "}
-                        {item.count}
-                      </p>
-                      {item.latest?.length ? (
-                        <ul className="mt-1 space-y-0.5 text-sm">
-                          {item.latest.map((entry) => (
-                            <li key={entry.post_id} className="truncate">
-                              <Link
-                                href={postHref(bot.slug, entry.post_id)}
-                                className="hover:underline"
-                              >
-                                {entry.title}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              {bot.products?.length ? (
-                <p className="mt-3 text-sm text-muted">
-                  Productos:{" "}
-                  {bot.products.map((item, index) => (
-                    <span key={item.name}>
-                      {index > 0 ? ", " : null}
-                      <Link
-                        href={`/bots/${bot.slug}?product=${encodeURIComponent(item.name)}`}
-                        className="hover:underline"
-                      >
-                        {item.name}
-                      </Link>
-                      {` (${item.posts})`}
-                    </span>
-                  ))}
-                </p>
-              ) : null}
-            </section>
+            <BotResumenRow key={bot.bot_id} bot={bot} />
           ))}
           {post?.body_markdown?.trim() && !live ? (
             <details className="text-sm text-muted">

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { BotCard } from "@/components/BotCard";
+import { BotBoard } from "@/components/BotBoard";
 import { EmptyState } from "@/components/EmptyState";
 import { ResumenCard } from "@/components/ResumenCard";
 import { getRepository } from "@/lib/data";
@@ -59,11 +59,7 @@ export default async function HomePage() {
           body="Cuando el asistente cree un bot, aparece acá para que lo leas."
         />
       ) : (
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-          {bots.map((bot) => (
-            <BotCard key={bot.id} bot={bot} />
-          ))}
-        </div>
+        <BotBoard initialBots={bots} />
       )}
     </div>
   );

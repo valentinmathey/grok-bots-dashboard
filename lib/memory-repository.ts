@@ -1,3 +1,4 @@
+import { compareBotOrder, nextSortOrder } from "@/lib/bot-order";
 import {
   collectAlojamientoFacets,
   collectOportunidadesFacets,
@@ -153,7 +154,16 @@ export class MemoryRepository implements BotsRepository {
   }
 
   async listBots() {
-    return [...this.bots];
+    return [...this.bots].sort(compareBotOrder);
+  }
+
+  async reorderBots(ids: string[]) {
+    const unique = [...new Set(ids.filter(Boolean))];
+    this.bots = this.bots.map((bot) => {
+      const index = unique.indexOf(bot.id);
+      return index === -1 ? bot : { ...bot, sort_order: index };
+    });
+    return this.listBots();
   }
 
   async listBotSummaries(): Promise<BotSummary[]> {
@@ -179,7 +189,7 @@ export class MemoryRepository implements BotsRepository {
           next_event_title: nextEvent?.title ?? null,
         };
       })
-      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+      .sort(compareBotOrder);
   }
 
   async getBotBySlug(slug: string) {
@@ -370,6 +380,7 @@ export class MemoryRepository implements BotsRepository {
       avatar_color: input.avatar_color,
       avatar_shape: input.avatar_shape,
       avatar_url: input.avatar_url,
+      sort_order: nextSortOrder(this.bots),
       created_at: now,
       updated_at: now,
     };

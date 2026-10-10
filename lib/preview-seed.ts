@@ -134,6 +134,9 @@ export function getPreviewRepository(): MemoryRepository {
       updated_at: hoursAgo(0.4),
     },
   ];
+  repo.bots.forEach((bot, index) => {
+    bot.sort_order = index;
+  });
 
   const reporteroPosts: Array<{
     title: string;

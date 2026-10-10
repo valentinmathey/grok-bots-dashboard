@@ -93,7 +93,7 @@ function applyFilters<T>(query: T, filters: PostFilters = {}): T {
 }
 
 function asBot(row: Bot): Bot {
-  return row;
+  return { ...row, sort_order: row.sort_order ?? 0 };
 }
 
 async function nextUpcomingByBotIds(
@@ -285,10 +285,14 @@ export function createSupabaseRepository(): BotsRepository {
     },
 
     async listBots() {
-      const { data, error } = await admin
+      const ordered = await admin
         .from("bots")
         .select("*")
+        .order("sort_order", { ascending: true })
         .order("name", { ascending: true });
+      const { data, error } = ordered.error
+        ? await admin.from("bots").select("*").order("name", { ascending: true })
+        : ordered;
 
       if (error) {
         throw error;
@@ -300,6 +304,7 @@ export function createSupabaseRepository(): BotsRepository {
       const { data, error } = await admin
         .from("bot_home")
         .select("*")
+        .order("sort_order", { ascending: true })
         .order("name", { ascending: true });
 
       let summaries: BotSummary[];
@@ -640,7 +645,23 @@ export function createSupabaseRepository(): BotsRepository {
       return latest;
     },
 
+    async reorderBots(ids) {
+      const unique = [...new Set(ids.filter(Boolean))];
+      await Promise.all(
+        unique.map((id, index) =>
+          admin.from("bots").update({ sort_order: index, updated_at: new Date().toISOString() }).eq("id", id),
+        ),
+      );
+      return this.listBots();
+    },
+
     async createBot(input) {
+      const { data: last } = await admin
+        .from("bots")
+        .select("sort_order")
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       const { data, error } = await admin
         .from("bots")
         .insert({
@@ -650,6 +671,7 @@ export function createSupabaseRepository(): BotsRepository {
           avatar_color: input.avatar_color,
           avatar_shape: input.avatar_shape,
           avatar_url: input.avatar_url,
+          sort_order: (typeof last?.sort_order === "number" ? last.sort_order : -1) + 1,
         })
         .select("*")
         .single();

@@ -68,6 +68,7 @@ export type BotsRepository = {
   updateBotProfile(botId: string, profile: BotProfile): Promise<Bot>;
   listBots(): Promise<Bot[]>;
   listBotSummaries(): Promise<BotSummary[]>;
+  reorderBots(ids: string[]): Promise<Bot[]>;
   getBotBySlug(slug: string): Promise<Bot | null>;
   getBotById(id: string): Promise<Bot | null>;
   listPostsByBot(botId: string, filters?: PostFilters): Promise<Post[]>;

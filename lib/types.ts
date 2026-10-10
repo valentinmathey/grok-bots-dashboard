@@ -26,6 +26,7 @@ export type Bot = {
   avatar_color?: string | null;
   avatar_shape?: string | null;
   avatar_url?: string | null;
+  sort_order?: number;
 };
 
 export type BotSummary = Bot & {
