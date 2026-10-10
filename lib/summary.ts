@@ -8,7 +8,7 @@ import {
 } from "@/lib/details";
 import { baCalendarDate, baStartOfDay } from "@/lib/event-time";
 import { fail } from "@/lib/http";
-import { authenticateBot, type BotsRepository } from "@/lib/publishing";
+import { authenticateBot, requireWrite, type BotsRepository } from "@/lib/publishing";
 import type { Bot, Post, Result } from "@/lib/types";
 
 const MS_DAY = 86_400_000;
@@ -87,6 +87,7 @@ export function buildResumenDetails(input: {
     bots: input.bots.map((bot) => {
       const posts = input.postsByBot[bot.id] ?? [];
       const recent = posts.filter((post) => {
+        if (post.kind === "resumen") return false;
         const created = new Date(post.created_at).getTime();
         return (
           created >= new Date(`${period.from}T00:00:00.000Z`).getTime() &&
@@ -286,6 +287,10 @@ export async function publishWeeklySummaryForBot(
   const auth = await authenticateBot(repo, authorization);
   if (!auth.ok) {
     return auth;
+  }
+  const write = requireWrite(auth.data);
+  if (!write.ok) {
+    return write;
   }
   if (auth.data.slug !== SUMMARY_BOT_SLUG) {
     return fail(

@@ -11,6 +11,7 @@ import {
   sortPosts,
   type PostFilters,
 } from "@/lib/filters";
+import { canWrite, normalizeScopes } from "@/lib/scopes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotSummary, Post, PostImage, PostKind } from "@/lib/types";
@@ -131,7 +132,7 @@ export function createSupabaseRepository(): BotsRepository {
     async findBotByApiKeyHash(hash) {
       const { data, error } = await admin
         .from("bot_api_keys")
-        .select("bot_id, bots!inner(id, name, slug, status)")
+        .select("bot_id, scopes, bots!inner(id, name, slug, status)")
         .eq("key_hash", hash)
         .is("revoked_at", null)
         .maybeSingle();
@@ -155,6 +156,7 @@ export function createSupabaseRepository(): BotsRepository {
         name: bot.name,
         slug: bot.slug,
         status: bot.status,
+        scopes: normalizeScopes(data.scopes as string[] | null),
       };
     },
 
@@ -476,14 +478,15 @@ export function createSupabaseRepository(): BotsRepository {
     },
 
     async listRecentPosts(limit, filters) {
-      const { data, error } = await applyFilters(
-        admin
-          .from("posts")
-          .select("*, bots!inner(id, name, slug)")
-          .order("created_at", { ascending: false })
-          .limit(limit),
-        filters,
-      );
+      let query = admin
+        .from("posts")
+        .select("*, bots!inner(id, name, slug)")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (filters?.bot) {
+        query = query.eq("bots.slug", filters.bot);
+      }
+      const { data, error } = await applyFilters(query, filters);
 
       if (error) {
         throw error;
@@ -495,6 +498,45 @@ export function createSupabaseRepository(): BotsRepository {
         };
         return { ...(post as Post), bot: bots };
       });
+    },
+
+    async listCatalogPosts(filters, options) {
+      let query = admin
+        .from("posts")
+        .select("*, bots!inner(id, name, slug)", { count: "exact" });
+      if (filters.bot) {
+        query = query.eq("bots.slug", filters.bot);
+      }
+      if (filters.q) {
+        const needle = filters.q.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
+        if (needle) {
+          query = query.or(
+            `title.ilike.%${needle}%,body_markdown.ilike.%${needle}%`,
+          );
+        }
+      }
+      const filtered = applyFilters(query, filters);
+      const ordered = options.sortEvents
+        ? filtered.order("event_at", { ascending: true, nullsFirst: false })
+        : filtered.order("created_at", { ascending: false });
+      const { data, error, count } = await ordered.range(
+        options.offset,
+        options.offset + options.limit - 1,
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        posts: (data ?? []).map((row) => {
+          const { bots, ...post } = row as Post & {
+            bots: Pick<Bot, "id" | "name" | "slug">;
+          };
+          return { ...(post as Post), bot: bots };
+        }),
+        total: count ?? 0,
+      };
     },
 
     async listProducts(botId) {
@@ -597,7 +639,8 @@ export function createSupabaseRepository(): BotsRepository {
         .from("bot_api_keys")
         .update({ revoked_at: new Date().toISOString() })
         .eq("bot_id", botId)
-        .is("revoked_at", null);
+        .is("revoked_at", null)
+        .contains("scopes", ["publish"]);
 
       if (revokeError) {
         throw revokeError;
@@ -607,6 +650,7 @@ export function createSupabaseRepository(): BotsRepository {
         bot_id: botId,
         key_hash: keyHash,
         key_prefix: keyPrefix,
+        scopes: ["publish"],
       });
 
       if (error) {
@@ -617,15 +661,16 @@ export function createSupabaseRepository(): BotsRepository {
     async getActiveKeyPrefix(botId) {
       const { data, error } = await admin
         .from("bot_api_keys")
-        .select("key_prefix")
+        .select("key_prefix, scopes")
         .eq("bot_id", botId)
-        .is("revoked_at", null)
-        .maybeSingle();
+        .is("revoked_at", null);
 
       if (error) {
         throw error;
       }
-      return data?.key_prefix ?? null;
+      const rows = (data ?? []) as Array<{ key_prefix: string; scopes?: string[] }>;
+      const publish = rows.find((row) => canWrite(row.scopes));
+      return (publish ?? rows[0])?.key_prefix ?? null;
     },
   };
 }

@@ -2,6 +2,7 @@ import { collectAlojamientoFacets, emptyDetails } from "@/lib/details";
 import { isEventUpcoming } from "@/lib/event-time";
 import { matchesFilters, sortPosts, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
+import { canWrite, normalizeScopes } from "@/lib/scopes";
 import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
 
 type StoredKey = {
@@ -9,6 +10,7 @@ type StoredKey = {
   hash: string;
   prefix: string;
   revokedAt: string | null;
+  scopes?: string[];
 };
 
 export class MemoryRepository implements BotsRepository {
@@ -30,6 +32,7 @@ export class MemoryRepository implements BotsRepository {
       name: bot.name,
       slug: bot.slug,
       status: bot.status,
+      scopes: normalizeScopes(key.scopes),
     };
   }
 
@@ -229,8 +232,17 @@ export class MemoryRepository implements BotsRepository {
   }
 
   async listRecentPosts(limit: number, filters: PostFilters = {}) {
+    const botId = filters.bot
+      ? this.bots.find((item) => item.slug === filters.bot)?.id
+      : undefined;
+    if (filters.bot && !botId) {
+      return [];
+    }
     return this.posts
-      .filter((post) => matchesFilters(post, filters))
+      .filter(
+        (post) =>
+          (!botId || post.bot_id === botId) && matchesFilters(post, filters),
+      )
       .slice(0, limit)
       .flatMap((post) => {
         const bot = this.bots.find((item) => item.id === post.bot_id);
@@ -239,6 +251,34 @@ export class MemoryRepository implements BotsRepository {
         }
         return [{ ...post, bot: { id: bot.id, name: bot.name, slug: bot.slug } }];
       });
+  }
+
+  async listCatalogPosts(
+    filters: PostFilters,
+    options: { limit: number; offset: number; sortEvents: boolean },
+  ) {
+    const botId = filters.bot
+      ? this.bots.find((item) => item.slug === filters.bot)?.id
+      : undefined;
+    if (filters.bot && !botId) {
+      return { posts: [], total: 0 };
+    }
+    const matched = this.posts.filter(
+      (post) =>
+        (!botId || post.bot_id === botId) && matchesFilters(post, filters),
+    );
+    const sorted = options.sortEvents
+      ? sortPosts(matched, "newest", filters.upcoming === false ? "past" : "upcoming")
+      : sortPosts(matched, "newest");
+    const page = sorted.slice(options.offset, options.offset + options.limit);
+    return {
+      posts: page.flatMap((post) => {
+        const bot = this.bots.find((item) => item.id === post.bot_id);
+        if (!bot) return [];
+        return [{ ...post, bot: { id: bot.id, name: bot.name, slug: bot.slug } }];
+      }),
+      total: matched.length,
+    };
   }
 
   async listProducts(botId?: string) {
@@ -306,6 +346,7 @@ export class MemoryRepository implements BotsRepository {
       hash: input.keyHash,
       prefix: input.keyPrefix,
       revokedAt: null,
+      scopes: ["publish"],
     });
     return bot;
   }
@@ -313,7 +354,7 @@ export class MemoryRepository implements BotsRepository {
   async revokeAndReplaceKey(botId: string, keyHash: string, keyPrefix: string) {
     const now = new Date().toISOString();
     this.keys.forEach((key) => {
-      if (key.botId === botId && !key.revokedAt) {
+      if (key.botId === botId && !key.revokedAt && canWrite(key.scopes)) {
         key.revokedAt = now;
       }
     });
@@ -322,13 +363,13 @@ export class MemoryRepository implements BotsRepository {
       hash: keyHash,
       prefix: keyPrefix,
       revokedAt: null,
+      scopes: ["publish"],
     });
   }
 
   async getActiveKeyPrefix(botId: string) {
-    return (
-      this.keys.find((key) => key.botId === botId && !key.revokedAt)?.prefix ??
-      null
-    );
+    const active = this.keys.filter((key) => key.botId === botId && !key.revokedAt);
+    const publish = active.find((key) => canWrite(key.scopes));
+    return (publish ?? active[0])?.prefix ?? null;
   }
 }

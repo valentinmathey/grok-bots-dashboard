@@ -66,6 +66,7 @@ export type AuthenticatedBot = {
   name: string;
   slug: string;
   status: string | null;
+  scopes: string[];
 };
 
 export type CreatedPost = {

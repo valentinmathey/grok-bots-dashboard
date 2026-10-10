@@ -3,12 +3,13 @@ import { BotCard } from "@/components/BotCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ResumenCard } from "@/components/ResumenCard";
 import { getRepository } from "@/lib/data";
+import { SUMMARY_BOT_SLUG } from "@/lib/details";
 
 export default async function HomePage() {
   const repo = getRepository();
   const [bots, resumenes] = await Promise.all([
     repo.listBotSummaries(),
-    repo.listRecentPosts(1, { kind: "resumen" }),
+    repo.listRecentPosts(1, { kind: "resumen", bot: SUMMARY_BOT_SLUG }),
   ]);
   const latestResumen = resumenes[0] ?? null;
 

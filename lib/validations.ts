@@ -62,6 +62,53 @@ export const createPostSchema = z.object({
   details: z.unknown().optional(),
 });
 
+const ymdField = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Usá el formato YYYY-MM-DD")
+  .optional();
+
+const upcomingField = z
+  .union([z.boolean(), z.enum(["true", "false", "1", "0"])])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) return undefined;
+    return value === true || value === "true" || value === "1";
+  });
+
+const optionalSlug = z.preprocess((value) => {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+  return value;
+}, slugSchema.optional());
+
+export const catalogPostsQuerySchema = z.object({
+  kind: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(KIND_SLUG_RE)
+    .optional(),
+  bot: optionalSlug,
+  event_from: ymdField,
+  event_to: ymdField,
+  from: ymdField,
+  to: ymdField,
+  upcoming: upcomingField,
+  q: z.string().trim().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(50),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+  cursor: z.string().trim().optional(),
+});
+
+export const catalogEventsQuerySchema = z.object({
+  date: ymdField,
+  days: z.coerce.number().int().min(1).max(31).optional().default(1),
+  bot: optionalSlug,
+  q: z.string().trim().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(50),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+  cursor: z.string().trim().optional(),
+});
+
 export const listPostsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional().default(20),
   product: z.string().trim().max(80).optional(),

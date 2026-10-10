@@ -151,3 +151,13 @@ export function eventSortAscending(
   }
   return sort === "oldest";
 }
+
+/** Suma días a un YYYY-MM-DD de calendario (sin DST). */
+export function addCalendarDays(ymd: string, days: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}

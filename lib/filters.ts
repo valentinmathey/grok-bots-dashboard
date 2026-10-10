@@ -32,6 +32,8 @@ export type PostFilters = {
   max_price_pp?: number;
   amenities?: string[];
   view?: FeedView;
+  bot?: string;
+  q?: string;
 };
 
 export type FeedQuery = PostFilters & {
@@ -232,6 +234,13 @@ export function matchesFilters(post: Post, filters: PostFilters): boolean {
   }
   if (filters.tag && !post.tags.includes(filters.tag)) {
     return false;
+  }
+  if (filters.q) {
+    const needle = filters.q.trim().toLowerCase();
+    const hay = `${post.title}\n${post.body_markdown}`.toLowerCase();
+    if (!needle || !hay.includes(needle)) {
+      return false;
+    }
   }
 
   if (filters.eventsOnly && !post.event_at) {
