@@ -50,7 +50,7 @@ export function PwaProvider() {
     <>
       <InstallPrompt />
       {updateReady ? (
-        <div className="safe-px fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 flex justify-center px-3.5 lg:bottom-6">
+        <div className="safe-px fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom)+var(--vv-bottom,0px))] left-0 right-0 z-40 flex justify-center px-3.5 lg:bottom-6">
           <button
             type="button"
             onClick={applyUpdate}

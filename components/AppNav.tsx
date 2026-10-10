@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   Bell,
@@ -21,9 +21,11 @@ import {
   Sun,
 } from "lucide-react";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { Sheet } from "@/components/Sheet";
 import { ThemeColorSync } from "@/components/ThemeColorSync";
 import { useNav } from "@/components/nav-context";
 import { primaryTabFromPathname, titleFromPathname } from "@/lib/nav";
+import { shouldAutoHideTabBar, syncVisualViewportInset } from "@/lib/viewport";
 import {
   canNativeInstall,
   isIosDevice,
@@ -73,16 +75,16 @@ export function AppNav({ email }: { email: string }) {
   const activeTab = primaryTabFromPathname(pathname);
 
   function closeMore() {
-    document.getElementById("more-menu")?.hidePopover();
     setMoreOpen(false);
   }
 
   useEffect(() => {
+    const hideOnScroll = shouldAutoHideTabBar(isIosDevice(), isStandaloneDisplay());
     let last = window.scrollY;
     function onScroll() {
       const y = window.scrollY;
       setCompact(y > 24);
-      if (moreOpen || searchOpen) {
+      if (!hideOnScroll || moreOpen || searchOpen) {
         setHideBar(false);
         last = y;
         return;
@@ -100,13 +102,21 @@ export function AppNav({ email }: { email: string }) {
   }, [pathname, setSearchOpen]);
 
   useEffect(() => {
-    const sheet = document.getElementById("more-menu");
-    if (!sheet) return;
-    function onToggle(event: Event) {
-      setMoreOpen((event as ToggleEvent).newState === "open");
+    syncVisualViewportInset();
+    const visual = window.visualViewport;
+    function update() {
+      syncVisualViewportInset();
     }
-    sheet.addEventListener("toggle", onToggle);
-    return () => sheet.removeEventListener("toggle", onToggle);
+    visual?.addEventListener("resize", update);
+    visual?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      visual?.removeEventListener("resize", update);
+      visual?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
   }, []);
 
   return (
@@ -120,8 +130,10 @@ export function AppNav({ email }: { email: string }) {
         hidden={hideBar}
         unread={unreadPedidos}
         moreOpen={moreOpen}
+        onMore={() => setMoreOpen(true)}
       />
       <MoreSheet
+        open={moreOpen}
         email={email}
         unread={unreadPedidos}
         pathname={pathname}
@@ -226,11 +238,13 @@ function MobileTabBar({
   hidden,
   unread,
   moreOpen,
+  onMore,
 }: {
   activeTab: ReturnType<typeof primaryTabFromPathname>;
   hidden: boolean;
   unread: number;
   moreOpen: boolean;
+  onMore: () => void;
 }) {
   const homeActive = activeTab === "inicio";
   const moreActive = moreOpen || activeTab === "mas";
@@ -261,7 +275,7 @@ function MobileTabBar({
           ))}
           <button
             type="button"
-            popoverTarget="more-menu"
+            onClick={onMore}
             className={`tab-item ${moreActive ? "tab-item-active" : ""}`}
             aria-current={activeTab === "mas" ? "page" : undefined}
             aria-expanded={moreOpen}
@@ -347,17 +361,18 @@ function TabLink({
 }
 
 function MoreSheet({
+  open,
   email,
   unread,
   pathname,
   onClose,
 }: {
+  open: boolean;
   email: string;
   unread: number;
   pathname: string;
   onClose: () => void;
 }) {
-  const titleId = useId();
   const [iosHelp, setIosHelp] = useState(false);
   const [installable, setInstallable] = useState(false);
 
@@ -374,18 +389,9 @@ function MoreSheet({
   const showInstall = !isStandaloneDisplay() && (installable || isIosDevice()) && !wasInstallDismissed();
 
   return (
-    <div
-      id="more-menu"
-      popover="auto"
-      aria-labelledby={titleId}
-      className="more-sheet lg:hidden"
-    >
-      <div className="mx-auto max-h-[88vh] overflow-y-auto rounded-t-3xl bg-card px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-        <h2 id={titleId} className="px-1 text-lg font-semibold tracking-tight">
-          Más
-        </h2>
-        <ul className="mt-3 space-y-1">
+    <Sheet open={open} onClose={onClose} title="Más" mobileOnly>
+      <div>
+        <ul className="space-y-1">
           {MORE_LINKS.map((item) => {
             const Icon = item.icon;
             const active = pathname.startsWith(item.href);
@@ -437,7 +443,7 @@ function MoreSheet({
           </button>
         </form>
       </div>
-    </div>
+    </Sheet>
   );
 }
 
