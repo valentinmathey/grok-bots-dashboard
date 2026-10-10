@@ -28,6 +28,7 @@ import {
   ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
+import { FavoriteStar } from "@/components/FavoriteStar";
 import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import {
@@ -87,9 +88,11 @@ function DeadlineChip({ deadline }: { deadline?: string }) {
 function OpportunityItemCard({
   item,
   highlight = false,
+  postId,
 }: {
   item: OportunidadItem;
   highlight?: boolean;
+  postId: string;
 }) {
   const closed = deadlineTone(item.deadline) === "closed";
   const Icon = CATEGORY_ICONS[item.category];
@@ -118,6 +121,12 @@ function OpportunityItemCard({
             <h4 className="min-w-0 text-[0.98rem] font-semibold leading-snug tracking-tight">
               {item.name}
             </h4>
+            <FavoriteStar
+              postId={postId}
+              itemKey={`opp:${item.url}`}
+              label={item.name}
+              url={item.url}
+            />
             {item.prize_text ? (
               <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
                 <Award size={11} strokeWidth={1.75} />
@@ -279,6 +288,7 @@ export function OportunidadesCard({
                     key={`${item.name}-${item.url}`}
                     item={item}
                     highlight
+                    postId={post.id}
                   />
                 ))}
               </div>
@@ -293,6 +303,7 @@ export function OportunidadesCard({
                       key={`${item.name}-${item.url}`}
                       item={item}
                       highlight
+                      postId={post.id}
                     />
                   ))}
                 </div>
@@ -308,7 +319,11 @@ export function OportunidadesCard({
                     </h4>
                     <div className="space-y-2.5">
                       {group.items.map((item) => (
-                        <OpportunityItemCard key={`${item.name}-${item.url}`} item={item} />
+                        <OpportunityItemCard
+                          key={`${item.name}-${item.url}`}
+                          item={item}
+                          postId={post.id}
+                        />
                       ))}
                     </div>
                   </section>

@@ -22,6 +22,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - **PWA**: en producción se puede “Agregar a inicio”. Manifest en `/manifest.webmanifest`, service worker `/sw.js`, página offline `/offline`. En Android/desktop aparece “Instalar app”; en iOS un tip (Compartir → Agregar a inicio). Atajos: Inicio, Agenda, Buscar, Favoritos.
 - **Notificaciones** (`/notificaciones`): Web Push con VAPID. Se activan con un gesto, hay toggles por bot y por tipo, prueba y lista de dispositivos.
 - **Buscar**: ícono en el header (atajo `/` o Cmd/Ctrl+K) y página `/buscar?q=`. También `GET /api/v1/search?q=` y MCP `search_posts` (clave `read:all`).
+- **Guardados** (`/favoritos`): estrella en cada card (y en ítems de oportunidades/ranking). Se persiste en el server.
 
 ## Requisitos
 
@@ -111,6 +112,9 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    Para búsqueda full-text ejecutá
    **`supabase/migrations/20261010210000_posts_search.sql`**
    (`search_tsv`, GIN, `pg_trgm`).
+
+   Para favoritos ejecutá
+   **`supabase/migrations/20261010220000_favorites.sql`**.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 

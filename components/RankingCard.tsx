@@ -10,6 +10,7 @@ import {
   ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
+import { FavoriteStar } from "@/components/FavoriteStar";
 import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
@@ -56,10 +57,12 @@ function OfferCard({
   offer,
   currency,
   best,
+  postId,
 }: {
   offer: RankingOffer;
   currency: string;
   best?: boolean;
+  postId: string;
 }) {
   return (
     <article className={`rounded-2xl border p-3 ${best ? "border-accent/40 bg-accent/5" : "border-line"}`}>
@@ -70,6 +73,13 @@ function OfferCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="font-semibold">{offer.store}</p>
+            <FavoriteStar
+              postId={postId}
+              itemKey={`offer:${offer.store}`}
+              label={offer.store}
+              url={offer.url}
+              price={offer.price}
+            />
             <p className="text-sm font-semibold tabular-nums">
               {formatMoney(offer.price, currency)}
             </p>
@@ -212,6 +222,7 @@ export function RankingCard({
               offer={offer}
               currency={currency}
               best={offer === best || offer.url === best?.url}
+              postId={post.id}
             />
           ))}
         </div>

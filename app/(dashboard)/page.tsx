@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { BotBoard } from "@/components/BotBoard";
+import { GuardadosHome } from "@/components/GuardadosHome";
 import { EmptyState } from "@/components/EmptyState";
 import { ResumenCard } from "@/components/ResumenCard";
 import { getRepository } from "@/lib/data";
@@ -43,6 +44,7 @@ export default async function HomePage() {
 
       {bots.length > 0 ? (
         <div className="mb-6">
+          <GuardadosHome />
           <ResumenCard
             details={details}
             live

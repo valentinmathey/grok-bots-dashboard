@@ -3,6 +3,7 @@
 import { useId } from "react";
 import Link from "next/link";
 import { CalendarDays, Hash, Package } from "lucide-react";
+import { FavoriteStar } from "@/components/FavoriteStar";
 import { AlojamientoCard } from "@/components/AlojamientoCard";
 import {
   cardCollapseProps,
@@ -46,14 +47,20 @@ export function PostCard({
   defaultOpen?: boolean;
   query?: FeedQuery;
 }) {
+  let card = (
+    <StandardPostCard
+      post={post}
+      filterBasePath={filterBasePath}
+      href={href}
+      defaultOpen={defaultOpen}
+    />
+  );
   if (post.kind === "alojamiento") {
-    return <AlojamientoCard post={post} href={href} defaultOpen={defaultOpen} />;
-  }
-  if (post.kind === "resumen") {
-    return <ResumenCard post={post} />;
-  }
-  if (post.kind === "oportunidades") {
-    return (
+    card = <AlojamientoCard post={post} href={href} defaultOpen={defaultOpen} />;
+  } else if (post.kind === "resumen") {
+    card = <ResumenCard post={post} />;
+  } else if (post.kind === "oportunidades") {
+    card = (
       <OportunidadesCard
         post={post}
         href={href}
@@ -61,29 +68,25 @@ export function PostCard({
         query={query}
       />
     );
-  }
-  if (
+  } else if (
     (post.kind === "ranking" || (post.kind === "report" && looksLikeRanking(post.details))) &&
     asRanking(post.details)
   ) {
-    return <RankingCard post={post} href={href} defaultOpen={defaultOpen} />;
-  }
-  if (post.kind === "newsletter" && asNewsletter(post.details)) {
-    return <NewsletterCard post={post} href={href} defaultOpen={defaultOpen} />;
-  }
-  if (post.kind === "informe" && asInforme(post.details)) {
-    return <InformeCard post={post} href={href} defaultOpen={defaultOpen} />;
-  }
-  if (post.kind === "workflow" && asWorkflow(post.details)) {
-    return <WorkflowCard post={post} href={href} defaultOpen={defaultOpen} />;
+    card = <RankingCard post={post} href={href} defaultOpen={defaultOpen} />;
+  } else if (post.kind === "newsletter" && asNewsletter(post.details)) {
+    card = <NewsletterCard post={post} href={href} defaultOpen={defaultOpen} />;
+  } else if (post.kind === "informe" && asInforme(post.details)) {
+    card = <InformeCard post={post} href={href} defaultOpen={defaultOpen} />;
+  } else if (post.kind === "workflow" && asWorkflow(post.details)) {
+    card = <WorkflowCard post={post} href={href} defaultOpen={defaultOpen} />;
   }
   return (
-    <StandardPostCard
-      post={post}
-      filterBasePath={filterBasePath}
-      href={href}
-      defaultOpen={defaultOpen}
-    />
+    <div className="relative">
+      <div className="absolute right-12 top-3.5 z-10 sm:right-14">
+        <FavoriteStar postId={post.id} />
+      </div>
+      {card}
+    </div>
   );
 }
 
