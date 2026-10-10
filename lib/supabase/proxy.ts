@@ -14,6 +14,7 @@ function isSharePath(pathname: string): boolean {
 
 function isPublicPath(pathname: string): boolean {
   return (
+    pathname === "/robots.txt" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/v1") ||

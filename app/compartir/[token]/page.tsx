@@ -83,7 +83,7 @@ export default async function ShareBotPage({
         facets={facets}
         basePath={basePath}
         postsApi={`/api/compartir/${token}/posts`}
-        postHref={(post) => `${basePath}/${post.id}`}
+        postHrefBase={basePath}
       />
     </ShareChrome>
   );
