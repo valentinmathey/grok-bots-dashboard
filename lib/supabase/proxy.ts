@@ -2,27 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getPublicSupabaseEnv, getOwnerEmail, isPreviewMode } from "@/lib/env";
 import { isOwnerEmail } from "@/lib/owner";
-
-function isSharePath(pathname: string): boolean {
-  return (
-    pathname === "/compartir" ||
-    pathname.startsWith("/compartir/") ||
-    pathname === "/api/compartir" ||
-    pathname.startsWith("/api/compartir/")
-  );
-}
-
-function isPublicPath(pathname: string): boolean {
-  return (
-    pathname === "/robots.txt" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/api/v1") ||
-    pathname.startsWith("/api/mcp") ||
-    pathname.startsWith("/api/cron") ||
-    isSharePath(pathname)
-  );
-}
+import { isPublicPath, isSharePath } from "@/lib/public-paths";
 
 function applyShareRobots(response: NextResponse, pathname: string): NextResponse {
   if (isSharePath(pathname)) {

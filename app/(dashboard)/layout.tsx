@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <Header email={email} />
-      <main className="mx-auto w-full min-w-0 max-w-5xl flex-1 overflow-x-clip px-3.5 pb-16 pt-5 sm:px-6 sm:pt-8">
+      <main className="safe-px safe-pb mx-auto w-full min-w-0 max-w-5xl flex-1 overflow-x-clip pt-5 sm:pt-8">
         {children}
       </main>
     </div>

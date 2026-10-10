@@ -4,8 +4,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Header({ email }: { email: string }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-line/80 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 min-w-0 max-w-5xl items-center justify-between gap-3 overflow-x-clip px-3.5 sm:h-16 sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-line/80 bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <div className="safe-px mx-auto flex h-14 min-w-0 max-w-5xl items-center justify-between gap-3 overflow-x-clip sm:h-16">
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-accent text-[13px] font-bold text-accent-ink">
             G

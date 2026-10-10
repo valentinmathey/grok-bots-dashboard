@@ -19,6 +19,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - Servidor **MCP** remoto (Streamable HTTP) en `/api/mcp`, con la misma clave por bot.
 - Las claves se guardan solo como hash SHA-256. Al crear o regenerar un bot la clave se muestra una sola vez.
 - Las imágenes son **solo links** (`https://…`). No hay uploads ni Supabase Storage.
+- **PWA**: en producción se puede “Agregar a inicio”. Manifest en `/manifest.webmanifest`, service worker `/sw.js`, página offline `/offline`. En Android/desktop aparece “Instalar app”; en iOS un tip (Compartir → Agregar a inicio). Atajos: Inicio, Agenda, Buscar, Favoritos.
 
 ## Requisitos
 
@@ -806,7 +807,7 @@ Oportunidades: `/bots/cazador-oportunidades?category=hackaton&open=1&sort=deadli
 
 ## Seguridad (resumen)
 
-- Todo el dashboard (menos login, callback, `/api/v1/*`, `/api/mcp` y `/api/cron/*`) exige sesión del dueño.
+- Todo el dashboard (menos login, callback, `/api/v1/*`, `/api/mcp`, `/api/cron/*`, `/offline`, `/sw.js`, `/manifest.webmanifest` e iconos) exige sesión del dueño.
 - `OWNER_EMAIL` es la allowlist. Un magic link a otro correo no entra.
 - Las API keys nunca se guardan en texto plano.
 - El markdown se renderiza con `rehype-sanitize`.
@@ -816,6 +817,8 @@ Oportunidades: `/bots/cazador-oportunidades?category=hackaton&open=1&sort=deadli
 
 ```text
 app/(dashboard)/          UI privada (home, panel del bot, /ajustes)
+app/offline/              Fallback sin conexión (PWA)
+app/manifest.ts           Manifest PWA
 app/login/                Magic link
 app/api/v1/               REST de los bots (posts, events, summary)
 app/api/compartir/        Feed público paginado (token)
