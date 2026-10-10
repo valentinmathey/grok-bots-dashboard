@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { getRepository } from "@/lib/data";
-import { kindLabel } from "@/lib/format";
+import { formatRelative, kindLabel } from "@/lib/format";
 import { listRequests } from "@/lib/requests";
 import { buildStats } from "@/lib/stats";
 
@@ -70,6 +70,10 @@ export default async function EstadisticasPage({
                     <BotAvatar bot={row.bot} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{row.bot.name}</p>
+                      <p className="text-[11px] text-muted">
+                        {row.lastAt ? `último ${formatRelative(row.lastAt)}` : "sin posts"}
+                        {row.streak > 0 ? ` · racha ${row.streak}d` : ""}
+                      </p>
                       <div className="mt-1 h-2 rounded-full bg-chip">
                         <div
                           className="h-2 rounded-full bg-accent"
