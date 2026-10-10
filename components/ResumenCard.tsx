@@ -1,12 +1,24 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId } from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronDown, ChevronUp, Home, Newspaper, Sparkles } from "lucide-react";
+import { CalendarDays, Home, Newspaper, Sparkles, Target } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
+import {
+  cardCollapseProps,
+  ExpandableBody,
+  ExpandableHeader,
+  ExpandChevron,
+  useExpandable,
+} from "@/components/ExpandableCard";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { TimeStamp } from "@/components/TimeStamp";
-import { asResumen, type ResumenDetails } from "@/lib/details";
+import {
+  asResumen,
+  deadlineChipLabel,
+  oportunidadCategoryLabel,
+  type ResumenDetails,
+} from "@/lib/details";
 import { formatDate, formatEventWhen, formatMoney, kindLabel } from "@/lib/format";
 import { persistResumenOpen } from "@/lib/resumen-collapse";
 import type { Post } from "@/lib/types";
@@ -53,30 +65,34 @@ export function ResumenCard({
   archiveHref?: string;
 }) {
   const bodyId = useId();
-  const [open, setOpen] = useState(() =>
-    live ? (initialOpen ?? true) : live || !compact,
+  const { open, setOpen, headerRef } = useExpandable(
+    live ? (initialOpen ?? true) : !compact,
   );
   const details = detailsProp ?? (post ? asResumen(post.details) : null);
   const updated = updatedAt ?? details?.generated_at;
   const totalNew = details?.bots.reduce((sum, bot) => sum + bot.new_posts, 0) ?? 0;
   const totalEvents =
     details?.bots.reduce((sum, bot) => sum + (bot.upcoming_events?.length ?? 0), 0) ?? 0;
-  const showHeaderToggle = live;
 
   function toggle() {
-    setOpen((current) => {
-      const next = !current;
-      if (live) persistResumenOpen(next);
-      return next;
-    });
+    const next = !open;
+    setOpen(next);
+    if (live) persistResumenOpen(next);
   }
 
   return (
     <article
       id={post ? `post-${post.id}` : undefined}
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
+      {...cardCollapseProps(open, toggle)}
     >
-      <div className="bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_70%)] p-4 sm:p-5">
+      <ExpandableHeader
+        open={open}
+        onToggle={toggle}
+        headerRef={headerRef}
+        controlsId={bodyId}
+        className="bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_70%)] p-4 sm:p-5"
+      >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
@@ -104,33 +120,11 @@ export function ResumenCard({
               </p>
             ) : null}
           </div>
-          {showHeaderToggle ? (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={open}
-              aria-controls={bodyId}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
-              title={open ? "Cerrar resumen" : "Ver el resumen"}
-            >
-              <ChevronDown
-                size={20}
-                strokeWidth={1.75}
-                className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-              />
-              <span className="sr-only">{open ? "Cerrar resumen" : "Ver el resumen"}</span>
-            </button>
-          ) : null}
+          <ExpandChevron open={open} />
         </div>
-      </div>
+      </ExpandableHeader>
 
-      <div
-        id={bodyId}
-        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
-          details && open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-        }`}
-      >
-        <div className="min-w-0 overflow-hidden">
+      <ExpandableBody open={Boolean(details) && open} id={bodyId}>
         {details ? (
         <div className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
           {details.bots.map((bot) => (
@@ -176,6 +170,13 @@ export function ResumenCard({
                   value={bot.alojamientos?.new_count ?? 0}
                   icon={<Home size={11} strokeWidth={1.75} />}
                 />
+                {bot.oportunidades ? (
+                  <Stat
+                    label="Oportunidades"
+                    value={bot.oportunidades.open_count}
+                    icon={<Target size={11} strokeWidth={1.75} />}
+                  />
+                ) : null}
               </div>
               {bot.upcoming_events?.length ? (
                 <ul className="mt-3 space-y-1.5 text-sm">
@@ -229,6 +230,41 @@ export function ResumenCard({
                     <p className="text-emerald-700 dark:text-emerald-300">
                       {bot.alojamientos.price_drops.length} bajaron de precio
                     </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {bot.oportunidades ? (
+                <div className="mt-3 space-y-1.5 text-sm">
+                  <p className="font-medium">
+                    <Target size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+                    {bot.oportunidades.open_count}{" "}
+                    {bot.oportunidades.open_count === 1 ? "abierta" : "abiertas"}
+                    {bot.oportunidades.recommended_count
+                      ? ` · ${bot.oportunidades.recommended_count} recomendadas`
+                      : ""}
+                  </p>
+                  {bot.oportunidades.next_deadlines?.length ? (
+                    <ul className="space-y-1">
+                      {bot.oportunidades.next_deadlines.slice(0, 4).map((item) => (
+                        <li
+                          key={`${item.name}-${item.deadline}`}
+                          className="flex justify-between gap-3"
+                        >
+                          <Link
+                            href={postHref(bot.slug, item.post_id)}
+                            className="min-w-0 truncate hover:underline"
+                          >
+                            {item.name}
+                          </Link>
+                          <span className="shrink-0 text-xs text-muted">
+                            {item.category
+                              ? `${oportunidadCategoryLabel(item.category)} · `
+                              : ""}
+                            {deadlineChipLabel(item.deadline)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                 </div>
               ) : null}
@@ -302,21 +338,7 @@ export function ResumenCard({
           ) : null}
         </div>
         ) : null}
-        </div>
-      </div>
-
-      {compact && !live ? (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={open}
-          aria-controls={bodyId}
-          className="flex w-full items-center justify-center gap-1 border-t border-line px-4 py-3 text-sm font-medium text-accent"
-        >
-          {open ? <ChevronUp size={16} strokeWidth={1.75} /> : <ChevronDown size={16} strokeWidth={1.75} />}
-          {open ? "Cerrar resumen" : "Ver el resumen"}
-        </button>
-      ) : null}
+      </ExpandableBody>
     </article>
   );
 }

@@ -11,9 +11,10 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Trophy,
   Wallet,
 } from "lucide-react";
-import { amenityLabel } from "@/lib/details";
+import { amenityLabel, oportunidadCategoryLabel } from "@/lib/details";
 import {
   countActiveFilters,
   filtersToSearchParams,
@@ -63,6 +64,8 @@ export function FilterSheet({
   const active = countActiveFilters(query);
 
   const alojamiento = facets.has_alojamientos && !facets.has_events;
+  const oportunidades =
+    facets.has_oportunidades && !facets.has_events && !alojamiento;
   const chipFilters = useMemo(
     () =>
       [
@@ -84,6 +87,11 @@ export function FilterSheet({
         query.amenities?.length
           ? { key: "amenities", label: query.amenities.map(amenityLabel).join(" + ") }
           : null,
+        query.category
+          ? { key: "category", label: oportunidadCategoryLabel(query.category) }
+          : null,
+        query.recommended ? { key: "recommended", label: "Solo recomendadas" } : null,
+        query.openOnly ? { key: "open", label: "Abiertas" } : null,
       ].filter(Boolean) as Array<{ key: string; label: string }>,
     [query],
   );
@@ -124,6 +132,9 @@ export function FilterSheet({
     if (key === "neighborhood") next.neighborhood = undefined;
     if (key === "max_price_pp") next.max_price_pp = undefined;
     if (key === "amenities") next.amenities = undefined;
+    if (key === "category") next.category = undefined;
+    if (key === "recommended") next.recommended = undefined;
+    if (key === "open") next.openOnly = undefined;
     push(next);
   }
 
@@ -154,6 +165,27 @@ export function FilterSheet({
                 ["price_pp", "$/pers."],
                 ["price_total", "Total"],
                 ["rating", "Nota"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleSort(value)}
+                className={`min-h-8 flex-1 rounded-full px-1.5 text-[11px] font-medium sm:px-2.5 sm:text-xs ${
+                  query.sort === value ? "bg-card text-foreground shadow-sm" : "text-muted"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : oportunidades ? (
+          <div className="flex w-full min-w-0 rounded-full bg-chip p-1 sm:flex-1">
+            {(
+              [
+                ["newest", "Nuevas"],
+                ["deadline", "Cierre"],
+                ["prize", "Premio"],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -201,6 +233,38 @@ export function FilterSheet({
           </div>
         )}
       </div>
+
+      {oportunidades ? (
+        <div className="flex flex-wrap gap-1.5">
+          <Chip
+            active={Boolean(query.recommended)}
+            onClick={() => push({ ...query, recommended: query.recommended ? undefined : true })}
+          >
+            <Star size={12} strokeWidth={1.75} className="mr-1 inline" />
+            Solo recomendadas
+          </Chip>
+          <Chip
+            active={Boolean(query.openOnly)}
+            onClick={() => push({ ...query, openOnly: query.openOnly ? undefined : true })}
+          >
+            Abiertas
+          </Chip>
+          {facets.categories.map((category) => (
+            <Chip
+              key={category}
+              active={query.category === category}
+              onClick={() =>
+                push({
+                  ...query,
+                  category: query.category === category ? undefined : category,
+                })
+              }
+            >
+              {oportunidadCategoryLabel(category)}
+            </Chip>
+          ))}
+        </div>
+      ) : null}
 
       {chipFilters.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
@@ -399,6 +463,63 @@ export function FilterSheet({
                   }
                   className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-sm"
                 />
+              </section>
+            ) : null}
+
+            {oportunidades && facets.categories.length > 0 ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  <Trophy size={12} strokeWidth={1.75} className="mr-1 inline" />
+                  Categoría
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {facets.categories.map((category) => (
+                    <Chip
+                      key={category}
+                      active={draft.category === category}
+                      onClick={() =>
+                        setDraft((current) => ({
+                          ...current,
+                          category: current.category === category ? undefined : category,
+                        }))
+                      }
+                    >
+                      {oportunidadCategoryLabel(category)}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {oportunidades ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  Estado
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Chip
+                    active={Boolean(draft.recommended)}
+                    onClick={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        recommended: current.recommended ? undefined : true,
+                      }))
+                    }
+                  >
+                    Solo recomendadas
+                  </Chip>
+                  <Chip
+                    active={Boolean(draft.openOnly)}
+                    onClick={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        openOnly: current.openOnly ? undefined : true,
+                      }))
+                    }
+                  >
+                    Abiertas
+                  </Chip>
+                </div>
               </section>
             ) : null}
 

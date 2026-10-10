@@ -45,6 +45,7 @@ export function PostFeed({
   const lock = useRef(false);
   const path = basePath ?? `/bots/${slug}`;
   const alojamiento = facets.has_alojamientos && !facets.has_events;
+  const oportunidades = facets.has_oportunidades && !facets.has_events && !alojamiento;
   const view = query.view === "table" && alojamiento ? "table" : "cards";
 
   const loadMore = useCallback(async () => {
@@ -149,18 +150,24 @@ export function PostFeed({
                   ? "Todavía no hay eventos pasados"
                   : alojamiento
                     ? "Sin alojamientos"
-                    : "Sin publicaciones"
+                    : oportunidades
+                      ? "Sin oportunidades"
+                      : "Sin publicaciones"
           }
           body={
             hasActiveFilters(query)
-              ? "Probá otra ciudad, precio o amenity."
+              ? oportunidades
+                ? "Probá otra categoría o sacá los filtros."
+                : "Probá otra ciudad, precio o amenity."
               : when === "upcoming"
                 ? "Cuando haya un evento con fecha, aparece acá."
                 : when === "past"
                   ? "Los eventos que ya ocurrieron se listan acá."
                   : alojamiento
                     ? "Cuando este bot publique un alojamiento, aparece acá."
-                    : "Cuando este bot publique, los posts aparecen acá."
+                    : oportunidades
+                      ? "Cuando este bot publique un lote, aparece acá."
+                      : "Cuando este bot publique, los posts aparecen acá."
           }
         />
       ) : view === "table" ? (
@@ -176,6 +183,7 @@ export function PostFeed({
               post={post}
               filterBasePath={path}
               href={postHref?.(post)}
+              query={query}
             />
           ))}
         </div>

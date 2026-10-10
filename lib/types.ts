@@ -6,6 +6,7 @@ export const KNOWN_KINDS = [
   "evento",
   "alojamiento",
   "resumen",
+  "oportunidades",
 ] as const;
 
 export type KnownKind = (typeof KNOWN_KINDS)[number];
@@ -106,10 +107,12 @@ export type PostFacets = {
   tags: string[];
   has_events: boolean;
   has_alojamientos: boolean;
+  has_oportunidades: boolean;
   cities: string[];
   neighborhoods: string[];
   search_areas: string[];
   amenities: string[];
+  categories: string[];
 };
 
 export type FeedSort =
@@ -118,7 +121,9 @@ export type FeedSort =
   | "score"
   | "price_pp"
   | "price_total"
-  | "rating";
+  | "rating"
+  | "deadline"
+  | "prize";
 
 export type PageOptions = {
   sort?: FeedSort;

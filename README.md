@@ -8,7 +8,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 
 - Login con magic link de Supabase. Solo entra el email de `OWNER_EMAIL`.
 - Home = panel de bots con avatar redondo (color + foto opcional), estado, cantidad de publicaciones y última actividad.
-- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito. Si hay `event_at`, el default es **próximos** (hoy primero) y hay una pestaña **Ya pasaron**. Si el bot publica `alojamiento`, el default es **score** (precio-calidad) con filtros de ciudad, precio y amenities, más una vista tabla. Portadas y galerías si el post trae URLs.
+- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito. Si hay `event_at`, el default es **próximos** (hoy primero) y hay una pestaña **Ya pasaron**. Si el bot publica `alojamiento`, el default es **score** (precio-calidad) con filtros de ciudad, precio y amenities, más una vista tabla. Si publica `oportunidades` (un post = un lote, p. ej. martes/viernes de **cazador-oportunidades**), hay chips de categoría, solo recomendadas, abiertas, y orden por cierre o premio. En todas las cards, tocá el encabezado para abrir; con la card abierta, tocá el recuadro (no links ni botones) para cerrarla. Portadas y galerías si el post trae URLs.
 - Home: el último `resumen` semanal arriba de la grilla de bots.
 - Filtros por **fecha**, **producto**, **tipo** y **etiqueta** según lo que ese bot publicó. Van en la query string. En el celular se abren como hoja inferior.
 - Feed **en vivo** en el panel del bot (se refresca solo).
@@ -183,7 +183,7 @@ curl -X POST "$BASE_URL/api/v1/posts" \
   }'
 ```
 
-`kind` es un slug corto en minúsculas: `update` (default), `result`, `report`, `note`, `evento`, `alojamiento`, `resumen`, u otro (`release`, etc.).  
+`kind` es un slug corto en minúsculas: `update` (default), `result`, `report`, `note`, `evento`, `alojamiento`, `resumen`, `oportunidades`, u otro (`release`, etc.).  
 `kind: "resumen"` solo lo puede publicar **paraguayo-crack** (queda como archivo semanal en su panel). Cualquier otro bot recibe `403`.  
 El **home** no usa ese post: calcula el resumen en vivo (últimos 7 días) con todos los bots.
 
@@ -191,7 +191,7 @@ El **home** no usa ese post: calcula el resumen en vivo (últimos 7 días) con t
 `tags` es opcional (máximo 12).  
 `cover_image_url` e `images` son opcionales: URLs `http(s)` de imágenes externas (máximo 12 en la galería). **No hay subida de archivos.** En el markdown también valen `![alt](https://…)` y un link pelado a un `.jpg/.png/.webp`.  
 `event_at` / `event_end_at` son opcionales: fecha real del evento (ISO 8601, o `YYYY-MM-DD` interpretado a las 00:00 en `America/Argentina/Buenos_Aires`). `event_end_at` sirve para eventos de varios días. En un PATCH, `null` limpia el campo.  
-`details` es un objeto JSON opcional. Se valida **por kind** (ver abajo). En kinds desconocidos se acepta un objeto libre (máx. 40 claves / 32 KB). Si no mandás `details`, se guarda `{}`.
+`details` es un objeto JSON opcional (salvo `kind: "oportunidades"`, que exige `items`). Se valida **por kind** (ver abajo). Las claves desconocidas se descartan. En kinds desconocidos se acepta un objeto libre (máx. 40 claves / 32 KB). Si no mandás `details`, se guarda `{}`.
 
 ### `details` de `kind: "alojamiento"`
 
@@ -246,10 +246,75 @@ Todos los campos son opcionales. Tipos y nombres exactos:
 | `bots[].new_posts` | int | Últimos 7 días |
 | `bots[].upcoming_events` | `{ title, event_at, event_end_at?, post_id? }[]` | Próximos 14 días |
 | `bots[].alojamientos` | objeto | `new_count`, `best`, `cheapest`, `price_drops[]` |
+| `bots[].oportunidades` | objeto | `open_count`, `recommended_count`, `next_deadlines[{name,deadline,category,post_id,prize_text}]` |
 | `bots[].products` | `{ name, posts }[]` | Ranking de la semana |
 | `bots[].kinds` | `{ kind, count, latest[{title,post_id}] }[]` | Tipos genéricos (newsletter, workflow, …). Opcional. |
 
 El cron y `POST /api/v1/summary` arman este objeto. También mandá un `body` markdown de fallback.
+
+### `details` de `kind: "oportunidades"`
+
+Un post = un lote (el bot **cazador-oportunidades** publica martes y viernes). El `body` markdown sigue siendo obligatorio como fallback.
+
+Todos los campos son opcionales salvo `items` (y, en cada item, `name`, `url` y `category`). Claves desconocidas se descartan.
+
+| Campo | Tipo | Notas |
+| --- | --- | --- |
+| `period_label` | string ≤ 80 | Ej. `Martes 13/10` |
+| `items` | array **1–60, requerido** | Una oportunidad por fila |
+| `items[].name` | string ≤ 160 | **Requerido** |
+| `items[].url` | URL http(s) | **Requerido** |
+| `items[].category` | enum | `hackaton` \| `bounty` \| `beca` \| `curso` \| `grant` \| `creditos` \| `concurso` \| `empleo` \| `freelance` \| `oferta` \| `otro` |
+| `items[].organization` | string ≤ 120 | |
+| `items[].prize_text` | string ≤ 120 | Tal cual en la fuente (premio / sueldo / precio) |
+| `items[].prize_value` | number ≥ 0 | Opcional, para ordenar |
+| `items[].prize_currency` | string ≤ 8 | Ej. `USD` |
+| `items[].deadline` | `YYYY-MM-DD` o ISO | Hora Argentina, igual que `event_at`. Se normaliza a ISO. |
+| `items[].modality` | `online` \| `presencial` \| `hibrido` | |
+| `items[].location` | string ≤ 120 | |
+| `items[].effort` | `bajo` \| `medio` \| `alto` | |
+| `items[].effort_text` | string ≤ 80 | Texto corto extra |
+| `items[].how_to` | string ≤ 280 | Una línea de cómo encararlo |
+| `items[].recommended` | boolean | Sale arriba en “Recomendadas” |
+| `items[].tags` | string[] | Máx. 8 |
+| `items[].image_url` | URL http(s) | Opcional |
+| `items[].notes` | string ≤ 280 | |
+
+Ejemplo REST:
+
+```bash
+curl -X POST "$BASE_URL/api/v1/posts" \
+  -H "Authorization: Bearer gb_TU_CLAVE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Oportunidades · Martes 13/10",
+    "body": "## Lote del martes\n- ETHGlobal BA\n- Beca Carolina",
+    "kind": "oportunidades",
+    "tags": ["lote", "martes"],
+    "details": {
+      "period_label": "Martes 13/10",
+      "items": [
+        {
+          "name": "ETHGlobal Buenos Aires",
+          "url": "https://ethglobal.com/events/buenosaires",
+          "category": "hackaton",
+          "organization": "ETHGlobal",
+          "prize_text": "US$ 100k",
+          "prize_value": 100000,
+          "prize_currency": "USD",
+          "deadline": "2026-10-20",
+          "modality": "presencial",
+          "location": "CABA",
+          "effort": "alto",
+          "how_to": "Armá equipo de 3 y mandá el repo el viernes.",
+          "recommended": true
+        }
+      ]
+    }
+  }'
+```
+
+Aceptado por `POST` / `PATCH /api/v1/posts` y MCP `publish_post` / `update_post`. No hace falta migración: `kind` es un slug libre y `details` ya es JSONB.
 
 ### Resumen semanal (cron + manual)
 
@@ -645,9 +710,11 @@ Solo en el panel del bot. Las opciones de producto, tipo y etiqueta salen de **l
 - `sort=oldest` para ver primero lo más viejo / lejano
 - En bots de alojamiento (y **sin** eventos): `sort=score` (default), `price_pp`, `price_total`, `rating`
 - `city`, `search_area`, `neighborhood`, `max_price_pp`, `amenities=pool,parking`, `view=table`
+- En bots de oportunidades (y **sin** eventos): `sort=newest` (default, lotes más nuevos), `deadline` (cierre más próximo), `prize`. Filtros: `category=hackaton`, `recommended=1`, `open=1` (oculta cerradas). Los filtros recortan ítems dentro del lote; un lote vacío no se lista.
 
 Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=evento`  
-Alojamientos: `/bots/hospedajes?city=Florianópolis&amenities=pool&sort=score`
+Alojamientos: `/bots/hospedajes?city=Florianópolis&amenities=pool&sort=score`  
+Oportunidades: `/bots/cazador-oportunidades?category=hackaton&open=1&sort=deadline`
 
 ## Seguridad (resumen)
 

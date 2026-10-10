@@ -1,12 +1,14 @@
 import "server-only";
 
-import { collectAlojamientoFacets } from "@/lib/details";
+import { collectAlojamientoFacets, collectOportunidadesFacets } from "@/lib/details";
 import { baEndOfDay, baStartOfDay, baStartOfToday, eventSortAscending } from "@/lib/event-time";
 import {
   dayEndIso,
   dayStartIso,
   hasAlojamientoFilters,
+  hasOportunidadesFilters,
   isAlojamientoSort,
+  isOportunidadesSort,
   matchesFilters,
   sortPosts,
   type PostFilters,
@@ -399,7 +401,10 @@ export function createSupabaseRepository(): BotsRepository {
       const limit = options.limit ?? 12;
       const offset = options.offset ?? 0;
       const needsJs =
-        isAlojamientoSort(options.sort) || hasAlojamientoFilters(filters);
+        isAlojamientoSort(options.sort) ||
+        hasAlojamientoFilters(filters) ||
+        isOportunidadesSort(options.sort) ||
+        hasOportunidadesFilters(filters);
       if (needsJs) {
         const { data, error } = await applyFilters(
           admin.from("posts").select("*").eq("bot_id", botId),
@@ -411,7 +416,12 @@ export function createSupabaseRepository(): BotsRepository {
         const matched = ((data ?? []) as Post[]).filter((post) =>
           matchesFilters(post, filters ?? {}),
         );
-        const ordered = sortPosts(matched, options.sort ?? "newest", filters?.when);
+        const ordered = sortPosts(
+          matched,
+          options.sort ?? "newest",
+          filters?.when,
+          filters,
+        );
         return {
           posts: ordered.slice(offset, offset + limit),
           total: ordered.length,
@@ -477,7 +487,9 @@ export function createSupabaseRepository(): BotsRepository {
         tags: [...tags].sort(),
         has_events: hasEvents,
         has_alojamientos: rows.some((row) => row.kind === "alojamiento"),
+        has_oportunidades: rows.some((row) => row.kind === "oportunidades"),
         ...collectAlojamientoFacets(rows),
+        ...collectOportunidadesFacets(rows),
       };
     },
 

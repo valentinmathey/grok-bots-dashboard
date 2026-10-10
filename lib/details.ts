@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  baCalendarDate,
+  parseEventInstant,
+} from "@/lib/event-time";
 import { isHttpUrl } from "@/lib/images";
 
 export const ALOJAMIENTO_PLATFORMS = ["airbnb", "booking", "otro"] as const;
@@ -174,6 +178,25 @@ export const resumenBotSchema = z.object({
     )
     .max(24)
     .optional(),
+  oportunidades: z
+    .object({
+      open_count: z.coerce.number().int().min(0).max(10_000),
+      recommended_count: z.coerce.number().int().min(0).max(10_000),
+      next_deadlines: z
+        .array(
+          z.object({
+            name: z.string().trim().min(1).max(160),
+            deadline: z.string().trim().min(1).max(40),
+            category: z.string().trim().max(32).optional(),
+            post_id: z.string().trim().max(64).optional(),
+            prize_text: z.string().trim().max(120).optional(),
+          }),
+        )
+        .max(8)
+        .optional()
+        .default([]),
+    })
+    .optional(),
 });
 
 export const resumenDetailsSchema = z.object({
@@ -182,6 +205,103 @@ export const resumenDetailsSchema = z.object({
   period_to: ymd,
   generated_at: z.string().trim().min(1).max(40),
   bots: z.array(resumenBotSchema).max(40),
+});
+
+export const OPORTUNIDAD_CATEGORIES = [
+  "hackaton",
+  "bounty",
+  "beca",
+  "curso",
+  "grant",
+  "creditos",
+  "concurso",
+  "empleo",
+  "freelance",
+  "oferta",
+  "otro",
+] as const;
+export type OportunidadCategory = (typeof OPORTUNIDAD_CATEGORIES)[number];
+
+export const OPORTUNIDAD_CATEGORY_LABELS: Record<OportunidadCategory, string> = {
+  hackaton: "Hackatón",
+  bounty: "Bounty",
+  beca: "Beca",
+  curso: "Curso",
+  grant: "Grant",
+  creditos: "Créditos",
+  concurso: "Concurso",
+  empleo: "Empleo",
+  freelance: "Freelance",
+  oferta: "Oferta",
+  otro: "Otro",
+};
+
+export const OPORTUNIDAD_MODALITIES = ["online", "presencial", "hibrido"] as const;
+export type OportunidadModality = (typeof OPORTUNIDAD_MODALITIES)[number];
+
+export const OPORTUNIDAD_MODALITY_LABELS: Record<OportunidadModality, string> = {
+  online: "En línea",
+  presencial: "Presencial",
+  hibrido: "Híbrido",
+};
+
+export const OPORTUNIDAD_EFFORTS = ["bajo", "medio", "alto"] as const;
+export type OportunidadEffort = (typeof OPORTUNIDAD_EFFORTS)[number];
+
+export const OPORTUNIDAD_EFFORT_LABELS: Record<OportunidadEffort, string> = {
+  bajo: "Esfuerzo bajo",
+  medio: "Esfuerzo medio",
+  alto: "Esfuerzo alto",
+};
+
+const requiredHttpUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((value) => isHttpUrl(value), {
+    message: "La URL tiene que ser http o https",
+  });
+
+const deadlineField = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .transform((value, ctx) => {
+    const parsed = parseEventInstant(value);
+    if (!parsed.ok) {
+      ctx.addIssue({
+        code: "custom",
+        message: "deadline: usá ISO 8601 o YYYY-MM-DD (hora Argentina)",
+      });
+      return z.NEVER;
+    }
+    return parsed.iso;
+  });
+
+export const oportunidadItemSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  url: requiredHttpUrl,
+  category: z.enum(OPORTUNIDAD_CATEGORIES),
+  organization: z.string().trim().max(120).optional(),
+  prize_text: z.string().trim().max(120).optional(),
+  prize_value: z.coerce.number().finite().min(0).max(1_000_000_000).optional(),
+  prize_currency: z.string().trim().max(8).optional(),
+  deadline: deadlineField.optional(),
+  modality: z.enum(OPORTUNIDAD_MODALITIES).optional(),
+  location: z.string().trim().max(120).optional(),
+  effort: z.enum(OPORTUNIDAD_EFFORTS).optional(),
+  effort_text: z.string().trim().max(80).optional(),
+  how_to: z.string().trim().max(280).optional(),
+  recommended: z.boolean().optional(),
+  tags: z.array(z.string().trim().min(1).max(40)).max(8).optional(),
+  image_url: httpUrl.optional().or(z.literal("")),
+  notes: z.string().trim().max(280).optional(),
+});
+
+export const oportunidadesDetailsSchema = z.object({
+  period_label: z.string().trim().max(80).optional(),
+  items: z.array(oportunidadItemSchema).min(1).max(60),
 });
 
 export const looseDetailsSchema = z
@@ -196,7 +316,21 @@ export const looseDetailsSchema = z
 export type AlojamientoDetails = z.infer<typeof alojamientoDetailsSchema>;
 export type ResumenDetails = z.infer<typeof resumenDetailsSchema>;
 export type ResumenHighlight = z.infer<typeof resumenHighlightSchema>;
-export type PostDetails = AlojamientoDetails | ResumenDetails | Record<string, unknown>;
+export type OportunidadItem = z.infer<typeof oportunidadItemSchema>;
+export type OportunidadesDetails = z.infer<typeof oportunidadesDetailsSchema>;
+export type PostDetails =
+  | AlojamientoDetails
+  | ResumenDetails
+  | OportunidadesDetails
+  | Record<string, unknown>;
+
+export type OportunidadItemFilters = {
+  category?: string;
+  recommended?: boolean;
+  openOnly?: boolean;
+};
+
+export type DeadlineTone = "ok" | "soon" | "urgent" | "closed" | "none";
 
 export function parsePostDetails(
   kind: string,
@@ -205,6 +339,12 @@ export function parsePostDetails(
   | { ok: true; details: PostDetails | null }
   | { ok: false; message: string; issues?: unknown } {
   if (raw === undefined || raw === null || raw === "") {
+    if (kind === "oportunidades") {
+      return {
+        ok: false,
+        message: "kind oportunidades requiere details.items (1 a 60)",
+      };
+    }
     return { ok: true, details: null };
   }
   if (typeof raw !== "object" || Array.isArray(raw)) {
@@ -233,6 +373,18 @@ export function parsePostDetails(
       };
     }
     return { ok: true, details: parsed.data };
+  }
+
+  if (kind === "oportunidades") {
+    const parsed = oportunidadesDetailsSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: "Los details de oportunidades no son válidos",
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: normalizeOportunidades(parsed.data) };
   }
 
   const parsed = looseDetailsSchema.safeParse(raw);
@@ -267,6 +419,120 @@ export function asAlojamiento(details: unknown): AlojamientoDetails | null {
 export function asResumen(details: unknown): ResumenDetails | null {
   const parsed = resumenDetailsSchema.safeParse(details ?? {});
   return parsed.success ? parsed.data : null;
+}
+
+export function normalizeOportunidades(details: OportunidadesDetails): OportunidadesDetails {
+  return {
+    period_label: details.period_label?.trim() || undefined,
+    items: details.items.map((item) => ({
+      ...item,
+      organization: item.organization?.trim() || undefined,
+      prize_text: item.prize_text?.trim() || undefined,
+      prize_currency: item.prize_currency?.trim() || undefined,
+      location: item.location?.trim() || undefined,
+      effort_text: item.effort_text?.trim() || undefined,
+      how_to: item.how_to?.trim() || undefined,
+      notes: item.notes?.trim() || undefined,
+      image_url: item.image_url ? item.image_url : undefined,
+      tags: item.tags?.length ? item.tags : undefined,
+    })),
+  };
+}
+
+export function asOportunidades(details: unknown): OportunidadesDetails | null {
+  const parsed = oportunidadesDetailsSchema.safeParse(details ?? {});
+  return parsed.success ? normalizeOportunidades(parsed.data) : null;
+}
+
+export function isOportunidadCategory(value: string): value is OportunidadCategory {
+  return (OPORTUNIDAD_CATEGORIES as readonly string[]).includes(value);
+}
+
+export function oportunidadCategoryLabel(value: string): string {
+  return OPORTUNIDAD_CATEGORY_LABELS[value as OportunidadCategory] ?? value;
+}
+
+export function isOpportunityClosed(deadline?: string, now = new Date()): boolean {
+  if (!deadline) return false;
+  return baCalendarDate(now) > baCalendarDate(deadline);
+}
+
+export function daysUntilDeadline(deadline: string, now = new Date()): number {
+  const from = baCalendarDate(now);
+  const to = baCalendarDate(deadline);
+  const [y1, m1, d1] = from.split("-").map(Number);
+  const [y2, m2, d2] = to.split("-").map(Number);
+  const start = Date.UTC(y1, m1 - 1, d1);
+  const end = Date.UTC(y2, m2 - 1, d2);
+  return Math.round((end - start) / 86_400_000);
+}
+
+export function deadlineTone(deadline?: string, now = new Date()): DeadlineTone {
+  if (!deadline) return "none";
+  const days = daysUntilDeadline(deadline, now);
+  if (days < 0) return "closed";
+  if (days <= 2) return "urgent";
+  if (days <= 7) return "soon";
+  return "ok";
+}
+
+export function deadlineChipLabel(deadline?: string, now = new Date()): string {
+  if (!deadline) return "Sin fecha";
+  const days = daysUntilDeadline(deadline, now);
+  if (days < 0) return "Cerrada";
+  if (days === 0) return "Cierra hoy";
+  if (days === 1) return "Cierra en 1 día";
+  return `Cierra en ${days} días`;
+}
+
+export function filterOportunidadItems(
+  items: OportunidadItem[],
+  filters: OportunidadItemFilters = {},
+  now = new Date(),
+): OportunidadItem[] {
+  return items.filter((item) => {
+    if (filters.category && item.category !== filters.category) return false;
+    if (filters.recommended && !item.recommended) return false;
+    if (filters.openOnly && isOpportunityClosed(item.deadline, now)) return false;
+    return true;
+  });
+}
+
+export function sortOportunidadItems(
+  items: OportunidadItem[],
+  sort?: string,
+): OportunidadItem[] {
+  const copy = [...items];
+  if (sort === "deadline") {
+    copy.sort((a, b) => {
+      const da = a.deadline ? new Date(a.deadline).getTime() : Number.POSITIVE_INFINITY;
+      const db = b.deadline ? new Date(b.deadline).getTime() : Number.POSITIVE_INFINITY;
+      return da - db;
+    });
+    return copy;
+  }
+  if (sort === "prize") {
+    copy.sort((a, b) => (b.prize_value ?? -1) - (a.prize_value ?? -1));
+    return copy;
+  }
+  return copy;
+}
+
+export function collectOportunidadesFacets(
+  posts: Array<{ kind?: string; details?: unknown }>,
+) {
+  const categories = new Set<OportunidadCategory>();
+  for (const post of posts) {
+    if (post.kind !== "oportunidades") continue;
+    const details = asOportunidades(post.details);
+    if (!details) continue;
+    for (const item of details.items) {
+      categories.add(item.category);
+    }
+  }
+  return {
+    categories: OPORTUNIDAD_CATEGORIES.filter((category) => categories.has(category)),
+  };
 }
 
 export function hasPriceDrop(details: AlojamientoDetails | null | undefined): boolean {

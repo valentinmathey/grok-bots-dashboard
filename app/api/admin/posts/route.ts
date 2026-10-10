@@ -32,6 +32,7 @@ export async function GET(request: Request) {
   const query = parseFeedQuery(search, {
     hasEvents: facets.has_events,
     hasAlojamientos: facets.has_alojamientos,
+    hasOportunidades: facets.has_oportunidades,
   });
 
   const page = await repo.listPostsPage(bot.id, query, {
