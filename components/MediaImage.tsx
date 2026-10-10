@@ -32,7 +32,7 @@ export function MediaImage({
           alt={alt}
           loading="lazy"
           decoding="async"
-          className={`h-auto w-full object-cover ${className}`}
+          className={`aspect-[16/10] h-auto w-full object-cover ${className}`}
         />
       </button>
       {open ? (

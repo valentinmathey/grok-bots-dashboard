@@ -63,38 +63,38 @@ export default async function AgendaPage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
+        <h1 className="page-heading text-2xl font-semibold tracking-tight">Agenda</h1>
         <p className="mt-1.5 text-sm text-muted">
           Eventos, cierres de oportunidades y viajes, en hora Argentina.
         </p>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        <Link href={href({ view: "lista" })} className={`rounded-full px-3 py-1 text-xs font-medium ${view === "lista" ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+      <div className="chip-row">
+        <Link href={href({ view: "lista" })} className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${view === "lista" ? "bg-accent text-accent-ink" : "bg-chip"}`}>
           Lista
         </Link>
-        <Link href={href({ view: "mes" })} className={`rounded-full px-3 py-1 text-xs font-medium ${view === "mes" ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+        <Link href={href({ view: "mes" })} className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${view === "mes" ? "bg-accent text-accent-ink" : "bg-chip"}`}>
           Mes
         </Link>
-        <Link href={href({ type: undefined })} className={`rounded-full px-3 py-1 text-xs font-medium ${!params.type ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+        <Link href={href({ type: undefined })} className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${!params.type ? "bg-accent text-accent-ink" : "bg-chip"}`}>
           Todo
         </Link>
         {(["evento", "cierre", "viaje"] as const).map((type) => (
           <Link
             key={type}
             href={href({ type })}
-            className={`rounded-full px-3 py-1 text-xs font-medium ${params.type === type ? "bg-accent text-accent-ink" : "bg-chip"}`}
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.type === type ? "bg-accent text-accent-ink" : "bg-chip"}`}
           >
             {TYPE_LABEL[type]}
           </Link>
         ))}
-        <Link href={href({ fav: params.fav === "1" ? undefined : "1" })} className={`rounded-full px-3 py-1 text-xs font-medium ${params.fav === "1" ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+        <Link href={href({ fav: params.fav === "1" ? undefined : "1" })} className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.fav === "1" ? "bg-accent text-accent-ink" : "bg-chip"}`}>
           Solo favoritos
         </Link>
         {bots.map((bot) => (
           <Link
             key={bot.slug}
             href={href({ bot: params.bot === bot.slug ? undefined : bot.slug })}
-            className={`rounded-full px-3 py-1 text-xs font-medium ${params.bot === bot.slug ? "bg-accent text-accent-ink" : "bg-chip"}`}
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.bot === bot.slug ? "bg-accent text-accent-ink" : "bg-chip"}`}
           >
             {bot.name}
           </Link>

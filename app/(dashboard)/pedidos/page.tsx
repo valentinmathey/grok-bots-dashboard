@@ -26,20 +26,20 @@ export default async function PedidosPage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Pedidos</h1>
+        <h1 className="page-heading text-2xl font-semibold tracking-tight">Pedidos</h1>
         <p className="mt-1.5 text-sm text-muted">
           Lo que le pediste a cada bot y sus respuestas.
         </p>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        <Link href="/pedidos" className={`rounded-full px-3 py-1 text-xs ${!params.status ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+      <div className="chip-row">
+        <Link href="/pedidos" className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs ${!params.status ? "bg-accent text-accent-ink" : "bg-chip"}`}>
           Todos
         </Link>
         {["pendiente", "en_progreso", "respondido", "descartado"].map((status) => (
           <Link
             key={status}
             href={`/pedidos?status=${status}`}
-            className={`rounded-full px-3 py-1 text-xs ${params.status === status ? "bg-accent text-accent-ink" : "bg-chip"}`}
+            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs ${params.status === status ? "bg-accent text-accent-ink" : "bg-chip"}`}
           >
             {status}
           </Link>

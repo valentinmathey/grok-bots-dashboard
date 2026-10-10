@@ -36,21 +36,21 @@ export default async function EstadisticasPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Estadísticas</h1>
+        <h1 className="page-heading text-2xl font-semibold tracking-tight">Estadísticas</h1>
         <p className="mt-1.5 text-sm text-muted">
           {selectedBot
             ? `${selectedBot.name}, últimos ${days} días.`
             : `Actividad de los bots, últimos ${days} días.`}
         </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <Link href={href({ days: 30 })} className={`rounded-full px-3 py-1 text-xs ${days === 30 ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+        <div className="chip-row mt-3">
+          <Link href={href({ days: 30 })} className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs ${days === 30 ? "bg-accent text-accent-ink" : "bg-chip"}`}>
             30 días
           </Link>
-          <Link href={href({ days: 90 })} className={`rounded-full px-3 py-1 text-xs ${days === 90 ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+          <Link href={href({ days: 90 })} className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs ${days === 90 ? "bg-accent text-accent-ink" : "bg-chip"}`}>
             90 días
           </Link>
           {params.bot ? (
-            <Link href={href({ bot: null })} className="rounded-full bg-chip px-3 py-1 text-xs">
+            <Link href={href({ bot: null })} className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-chip px-3 text-xs">
               Todos los bots
             </Link>
           ) : null}

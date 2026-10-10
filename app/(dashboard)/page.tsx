@@ -33,10 +33,10 @@ export default async function HomePage() {
   return (
     <div>
       <div className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
+        <p className="page-heading text-xs font-medium uppercase tracking-[0.16em] text-muted">
           Panel
         </p>
-        <h1 className="mt-1 text-[1.75rem] font-semibold tracking-tight sm:text-3xl">
+        <h1 className="page-heading mt-1 text-[1.75rem] font-semibold tracking-tight sm:text-3xl">
           Tus bots
         </h1>
         <p className="mt-1.5 max-w-md text-sm leading-6 text-muted">

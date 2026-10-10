@@ -32,7 +32,7 @@ export function ThemeToggle() {
       aria-label={`Tema: ${themeLabel(mode)}. Cambiar`}
       title={`Tema: ${themeLabel(mode)}`}
       suppressHydrationWarning
-      className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
+      className="grid h-11 w-11 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground active:bg-line"
     >
       <Icon size={18} strokeWidth={1.75} />
     </button>
