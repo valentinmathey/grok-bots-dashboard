@@ -344,6 +344,18 @@ export class MemoryRepository implements BotsRepository {
     return products.sort((a, b) => a.localeCompare(b, "es"));
   }
 
+  async searchPosts(filters: import("@/lib/search").SearchFilters) {
+    const { memorySearch } = await import("@/lib/search");
+    const posts = this.posts
+      .map((post) => {
+        const bot = this.bots.find((item) => item.id === post.bot_id);
+        if (!bot) return null;
+        return { ...post, bot };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null);
+    return memorySearch(posts, filters);
+  }
+
   async latestPostByBotIds(botIds: string[]) {
     const latest: Awaited<ReturnType<BotsRepository["latestPostByBotIds"]>> = {};
     for (const post of this.posts) {

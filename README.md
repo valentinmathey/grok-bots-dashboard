@@ -21,6 +21,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - Las imágenes son **solo links** (`https://…`). No hay uploads ni Supabase Storage.
 - **PWA**: en producción se puede “Agregar a inicio”. Manifest en `/manifest.webmanifest`, service worker `/sw.js`, página offline `/offline`. En Android/desktop aparece “Instalar app”; en iOS un tip (Compartir → Agregar a inicio). Atajos: Inicio, Agenda, Buscar, Favoritos.
 - **Notificaciones** (`/notificaciones`): Web Push con VAPID. Se activan con un gesto, hay toggles por bot y por tipo, prueba y lista de dispositivos.
+- **Buscar**: ícono en el header (atajo `/` o Cmd/Ctrl+K) y página `/buscar?q=`. También `GET /api/v1/search?q=` y MCP `search_posts` (clave `read:all`).
 
 ## Requisitos
 
@@ -106,6 +107,10 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    Para Web Push ejecutá
    **`supabase/migrations/20261010200000_push_notifications.sql`**
    (`push_subscriptions`, `notification_prefs`, `push_throttle`).
+
+   Para búsqueda full-text ejecutá
+   **`supabase/migrations/20261010210000_posts_search.sql`**
+   (`search_tsv`, GIN, `pg_trgm`).
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
@@ -487,7 +492,7 @@ La respuesta incluye `scopes` (`publish` y/o `read:all`). Sin `scopes` en la fil
 | Scope | Qué puede |
 | --- | --- |
 | `publish` (default) | Todo lo de siempre: publicar, editar, borrar, estado, perfil, `list_my_posts`, resumen semanal. **No** lee el catálogo cross-bot. |
-| `read:all` | Solo lectura de **todos** los bots: `GET /api/v1/posts`, `GET /api/v1/events`, MCP `list_posts` / `list_events`. Cualquier escritura → `403`. |
+| `read:all` | Solo lectura de **todos** los bots: `GET /api/v1/posts`, `GET /api/v1/events`, `GET /api/v1/search`, MCP `list_posts` / `list_events` / `search_posts`. Cualquier escritura → `403`. |
 
 Una clave puede tener los dos. Las claves viejas siguen siendo `{publish}`.
 
@@ -687,11 +692,12 @@ Cada bot es un servidor MCP distinto: un endpoint, distinta clave.
 | `publish_weekly_summary` | Genera o actualiza el `resumen` de la semana en **paraguayo-crack**. Solo esa clave. Sin args. |
 | `list_posts` | Catálogo de **todos** los bots. Solo claves `read:all`. Mismos filtros que `GET /api/v1/posts`. |
 | `list_events` | Eventos de todos los bots (`date`, `days`). Solo `read:all`. Para «qué eventos hay hoy». |
+| `search_posts` | Búsqueda full-text. Solo `read:all`. Args: `q`, `bot`/`bots`, `kind`/`kinds`, `from`, `to`, `sort` |
 | `create_share_link` | Crea un link público de solo lectura. Solo **paraguayo-crack**. Args: `bot_slug`. Devuelve la URL una vez. |
 | `revoke_share_link` | Revoca por `id` o todos los activos de `bot_slug`. Solo paraguayo-crack. |
 | `list_share_links` | Lista links (id, bot, prefijo, fechas). Nunca el token. Solo paraguayo-crack. |
 
-`tools/list` filtra según el scope: una clave `publish` sigue viendo las 7 de siempre; `read:all` solo ve `list_posts` / `list_events`. Las de share solo aparecen con la clave de **paraguayo-crack**. Las herramientas de escritura con una clave de solo lectura responden `403`.
+`tools/list` filtra según el scope: una clave `publish` sigue viendo las 7 de siempre; `read:all` ve `list_posts` / `list_events` / `search_posts`. Las de share solo aparecen con la clave de **paraguayo-crack**. Las herramientas de escritura con una clave de solo lectura responden `403`.
 
 ### Config de ejemplo (Cursor)
 
