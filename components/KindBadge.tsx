@@ -4,9 +4,12 @@ import {
   FileText,
   Flag,
   Home,
+  LineChart,
+  Newspaper,
   NotebookPen,
   Sparkles,
   Target,
+  Workflow,
 } from "lucide-react";
 import { kindLabel } from "@/lib/format";
 import type { PostKind } from "@/lib/types";
@@ -43,6 +46,22 @@ const KNOWN: Record<string, { className: string; Icon: typeof Sparkles }> = {
   oportunidades: {
     className: "bg-emerald-500/14 text-emerald-800 dark:text-emerald-200",
     Icon: Target,
+  },
+  ranking: {
+    className: "bg-orange-500/14 text-orange-900 dark:text-orange-200",
+    Icon: LineChart,
+  },
+  newsletter: {
+    className: "bg-fuchsia-500/14 text-fuchsia-800 dark:text-fuchsia-200",
+    Icon: Newspaper,
+  },
+  informe: {
+    className: "bg-lime-500/14 text-lime-900 dark:text-lime-200",
+    Icon: LineChart,
+  },
+  workflow: {
+    className: "bg-slate-500/14 text-slate-800 dark:text-slate-200",
+    Icon: Workflow,
   },
 };
 

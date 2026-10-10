@@ -11,15 +11,26 @@ import {
   ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
+import { InformeCard } from "@/components/InformeCard";
 import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
+import { NewsletterCard } from "@/components/NewsletterCard";
 import { OportunidadesCard } from "@/components/OportunidadesCard";
+import { RankingCard } from "@/components/RankingCard";
 import { ResumenCard } from "@/components/ResumenCard";
+import { WorkflowCard } from "@/components/WorkflowCard";
 import { isEventPast, isEventToday } from "@/lib/event-time";
 import { filtersToSearchParams, type FeedQuery } from "@/lib/filters";
 import { formatDateTime, formatEventWhen, previewPlain } from "@/lib/format";
 import { uniquePostMedia } from "@/lib/images";
+import {
+  asInforme,
+  asNewsletter,
+  asRanking,
+  asWorkflow,
+  looksLikeRanking,
+} from "@/lib/rich-details";
 import type { Post, PostKind } from "@/lib/types";
 
 export function PostCard({
@@ -50,6 +61,21 @@ export function PostCard({
         query={query}
       />
     );
+  }
+  if (
+    (post.kind === "ranking" || (post.kind === "report" && looksLikeRanking(post.details))) &&
+    asRanking(post.details)
+  ) {
+    return <RankingCard post={post} href={href} defaultOpen={defaultOpen} />;
+  }
+  if (post.kind === "newsletter" && asNewsletter(post.details)) {
+    return <NewsletterCard post={post} href={href} defaultOpen={defaultOpen} />;
+  }
+  if (post.kind === "informe" && asInforme(post.details)) {
+    return <InformeCard post={post} href={href} defaultOpen={defaultOpen} />;
+  }
+  if (post.kind === "workflow" && asWorkflow(post.details)) {
+    return <WorkflowCard post={post} href={href} defaultOpen={defaultOpen} />;
   }
   return (
     <StandardPostCard

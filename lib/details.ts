@@ -4,6 +4,13 @@ import {
   parseEventInstant,
 } from "@/lib/event-time";
 import { isHttpUrl } from "@/lib/images";
+import {
+  informeDetailsSchema,
+  looksLikeRanking,
+  newsletterDetailsSchema,
+  rankingDetailsSchema,
+  workflowDetailsSchema,
+} from "@/lib/rich-details";
 
 export const ALOJAMIENTO_PLATFORMS = ["airbnb", "booking", "otro"] as const;
 export type AlojamientoPlatform = (typeof ALOJAMIENTO_PLATFORMS)[number];
@@ -197,6 +204,41 @@ export const resumenBotSchema = z.object({
         .default([]),
     })
     .optional(),
+  ranking: z
+    .object({
+      new_count: z.coerce.number().int().min(0).max(10_000),
+      product_name: z.string().trim().max(160).optional(),
+      best_price: z.coerce.number().finite().optional(),
+      currency: z.string().trim().max(8).optional(),
+      drop_pct: z.coerce.number().finite().optional(),
+      post_id: z.string().trim().max(64).optional(),
+    })
+    .optional(),
+  newsletter: z
+    .object({
+      new_count: z.coerce.number().int().min(0).max(10_000),
+      headline: z.string().trim().max(200).optional(),
+      edition_date: z.string().trim().max(20).optional(),
+      post_id: z.string().trim().max(64).optional(),
+    })
+    .optional(),
+  informe: z
+    .object({
+      new_count: z.coerce.number().int().min(0).max(10_000),
+      brecha_pct: z.coerce.number().finite().optional(),
+      headline: z.string().trim().max(200).optional(),
+      post_id: z.string().trim().max(64).optional(),
+    })
+    .optional(),
+  workflow: z
+    .object({
+      new_count: z.coerce.number().int().min(0).max(10_000),
+      workflow_name: z.string().trim().max(160).optional(),
+      status: z.string().trim().max(32).optional(),
+      last_run_status: z.string().trim().max(32).optional(),
+      post_id: z.string().trim().max(64).optional(),
+    })
+    .optional(),
 });
 
 export const resumenDetailsSchema = z.object({
@@ -385,6 +427,54 @@ export function parsePostDetails(
       };
     }
     return { ok: true, details: normalizeOportunidades(parsed.data) };
+  }
+
+  if (kind === "ranking" || (kind === "report" && looksLikeRanking(raw))) {
+    const parsed = rankingDetailsSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: "Los details de ranking no son válidos",
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: parsed.data };
+  }
+
+  if (kind === "newsletter") {
+    const parsed = newsletterDetailsSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: "Los details de newsletter no son válidos",
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: parsed.data };
+  }
+
+  if (kind === "informe") {
+    const parsed = informeDetailsSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: "Los details del informe no son válidos",
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: parsed.data };
+  }
+
+  if (kind === "workflow") {
+    const parsed = workflowDetailsSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: "Los details de workflow no son válidos",
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: parsed.data };
   }
 
   const parsed = looseDetailsSchema.safeParse(raw);

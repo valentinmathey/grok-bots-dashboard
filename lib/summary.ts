@@ -8,6 +8,15 @@ import {
   type ResumenDetails,
   type ResumenHighlight,
 } from "@/lib/details";
+import {
+  asInforme,
+  asNewsletter,
+  asRanking,
+  asWorkflow,
+  looksLikeRanking,
+  rankingBestOffer,
+  rankingDropPct,
+} from "@/lib/rich-details";
 import { baCalendarDate, baStartOfDay } from "@/lib/event-time";
 import { fail } from "@/lib/http";
 import { authenticateBot, requireWrite, type BotsRepository } from "@/lib/publishing";
@@ -16,7 +25,16 @@ import type { Bot, Post, Result } from "@/lib/types";
 const MS_DAY = 86_400_000;
 export const SUMMARY_LOOKBACK_DAYS = 7;
 export const SUMMARY_EVENT_HORIZON_DAYS = 14;
-const GENERIC_KIND_SKIP = new Set(["resumen", "alojamiento", "evento", "oportunidades"]);
+const GENERIC_KIND_SKIP = new Set([
+  "resumen",
+  "alojamiento",
+  "evento",
+  "oportunidades",
+  "ranking",
+  "newsletter",
+  "informe",
+  "workflow",
+]);
 
 export function baIsoWeekKey(now = new Date()): string {
   const ymd = baCalendarDate(now);
@@ -89,6 +107,7 @@ function kindBreakdown(posts: Post[]) {
   const groups = new Map<string, Post[]>();
   for (const post of posts) {
     if (GENERIC_KIND_SKIP.has(post.kind)) continue;
+    if (post.kind === "report" && looksLikeRanking(post.details)) continue;
     const list = groups.get(post.kind) ?? [];
     list.push(post);
     groups.set(post.kind, list);
@@ -182,6 +201,36 @@ export function buildResumenDetails(input: {
           prize_text: item.prize_text,
         }));
 
+      const rankingPosts = recent.filter(
+        (post) =>
+          post.kind === "ranking" ||
+          (post.kind === "report" && looksLikeRanking(post.details)),
+      );
+      const latestRanking = rankingPosts
+        .map((post) => ({ post, details: asRanking(post.details) }))
+        .find((item) => item.details);
+      const rankingBest = latestRanking?.details
+        ? rankingBestOffer(latestRanking.details)
+        : null;
+      const rankingDrop = latestRanking?.details
+        ? rankingDropPct(latestRanking.details)
+        : null;
+
+      const newsletterPosts = recent.filter((post) => post.kind === "newsletter");
+      const latestNewsletter = newsletterPosts
+        .map((post) => ({ post, details: asNewsletter(post.details) }))
+        .find((item) => item.details);
+
+      const informePosts = recent.filter((post) => post.kind === "informe");
+      const latestInforme = informePosts
+        .map((post) => ({ post, details: asInforme(post.details) }))
+        .find((item) => item.details);
+
+      const workflowPosts = recent.filter((post) => post.kind === "workflow");
+      const latestWorkflow = workflowPosts
+        .map((post) => ({ post, details: asWorkflow(post.details) }))
+        .find((item) => item.details);
+
       return {
         bot_id: bot.id,
         name: bot.name,
@@ -211,6 +260,47 @@ export function buildResumenDetails(input: {
                 open_count: openItems.length,
                 recommended_count: recommendedOpen.length,
                 next_deadlines: nextDeadlines,
+              }
+            : undefined,
+        ranking:
+          rankingPosts.length > 0
+            ? {
+                new_count: rankingPosts.length,
+                product_name: latestRanking?.details?.product_name,
+                best_price: rankingBest?.price,
+                currency: latestRanking?.details?.currency,
+                drop_pct: rankingDrop ?? undefined,
+                post_id: latestRanking?.post.id,
+              }
+            : undefined,
+        newsletter:
+          newsletterPosts.length > 0
+            ? {
+                new_count: newsletterPosts.length,
+                headline: latestNewsletter?.details?.headline ?? latestNewsletter?.post.title,
+                edition_date: latestNewsletter?.details?.edition_date,
+                post_id: latestNewsletter?.post.id,
+              }
+            : undefined,
+        informe:
+          informePosts.length > 0
+            ? {
+                new_count: informePosts.length,
+                brecha_pct: latestInforme?.details?.brecha_pct,
+                headline:
+                  latestInforme?.details?.summary_simple?.slice(0, 120) ??
+                  latestInforme?.post.title,
+                post_id: latestInforme?.post.id,
+              }
+            : undefined,
+        workflow:
+          workflowPosts.length > 0
+            ? {
+                new_count: workflowPosts.length,
+                workflow_name: latestWorkflow?.details?.workflow_name,
+                status: latestWorkflow?.details?.status,
+                last_run_status: latestWorkflow?.details?.last_run_status,
+                post_id: latestWorkflow?.post.id,
               }
             : undefined,
         products: productRank(recent),
@@ -264,6 +354,26 @@ export function resumenMarkdown(details: ResumenDetails): string {
           lines.push(`    - ${item.name} (${item.deadline.slice(0, 10)})`);
         }
       }
+    }
+    if (bot.ranking) {
+      lines.push(
+        `- Rankings: **${bot.ranking.new_count}**${bot.ranking.product_name ? ` · ${bot.ranking.product_name}` : ""}`,
+      );
+    }
+    if (bot.newsletter) {
+      lines.push(
+        `- Newsletter: **${bot.newsletter.new_count}**${bot.newsletter.headline ? ` · ${bot.newsletter.headline}` : ""}`,
+      );
+    }
+    if (bot.informe) {
+      lines.push(
+        `- Informes: **${bot.informe.new_count}**${bot.informe.brecha_pct != null ? ` · brecha ${bot.informe.brecha_pct}%` : ""}`,
+      );
+    }
+    if (bot.workflow) {
+      lines.push(
+        `- Workflows: **${bot.workflow.new_count}**${bot.workflow.workflow_name ? ` · ${bot.workflow.workflow_name}` : ""}`,
+      );
     }
     if (bot.kinds?.length) {
       lines.push(
