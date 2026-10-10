@@ -53,6 +53,9 @@ describe("MCP Streamable HTTP", () => {
       "update_post",
       "delete_post",
       "publish_weekly_summary",
+      "list_requests",
+      "claim_request",
+      "reply_request",
     ]);
     expect(tools.map((tool) => tool.name)).not.toContain("upload_image");
 

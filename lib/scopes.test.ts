@@ -192,6 +192,9 @@ describe("scopes de API key", () => {
       "update_post",
       "delete_post",
       "publish_weekly_summary",
+      "list_requests",
+      "claim_request",
+      "reply_request",
     ]);
 
     const readListed = await dispatchMcpRequest(repo, `Bearer ${readKey}`, {
@@ -207,6 +210,7 @@ describe("scopes de API key", () => {
       "list_posts",
       "list_events",
       "search_posts",
+      "list_requests",
     ]);
   });
 
