@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, LogOut, Settings, Star } from "lucide-react";
+import { Bell, CalendarDays, LogOut, Settings, Star } from "lucide-react";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -18,6 +18,14 @@ export function Header({ email }: { email: string }) {
         <div className="flex items-center gap-0.5 sm:gap-1.5">
           <ThemeToggle />
           <SearchOverlay />
+          <Link
+            href="/agenda"
+            aria-label="Agenda"
+            title="Agenda"
+            className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
+          >
+            <CalendarDays size={18} strokeWidth={1.75} />
+          </Link>
           <Link
             href="/favoritos"
             aria-label="Guardados"

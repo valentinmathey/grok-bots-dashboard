@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
+import { AgendaFeedButton } from "@/components/AgendaFeedButton";
 import { CreateBotForm } from "@/components/CreateBotForm";
 import { EditBotProfileForm } from "@/components/EditBotProfileForm";
 import { RegenerateKeyButton } from "@/components/RegenerateKeyButton";
@@ -33,6 +34,13 @@ export default async function SettingsPage() {
           .
         </p>
       </div>
+
+      <section className="surface rounded-3xl p-5">
+        <h2 className="text-base font-semibold">Agenda</h2>
+        <div className="mt-3">
+          <AgendaFeedButton />
+        </div>
+      </section>
 
       <section className="surface rounded-3xl p-5">
         <h2 className="text-base font-semibold">Nuevo bot</h2>

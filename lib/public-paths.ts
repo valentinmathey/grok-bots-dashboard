@@ -13,6 +13,7 @@ export function isPublicPath(pathname: string): boolean {
     pathname === "/manifest.webmanifest" ||
     pathname === "/sw.js" ||
     pathname === "/offline" ||
+    pathname === "/api/agenda.ics" ||
     pathname.startsWith("/icons/") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||

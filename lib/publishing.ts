@@ -114,6 +114,9 @@ export type BotsRepository = {
     hits: import("@/lib/search").SearchHit[];
     total: number;
   }>;
+  listAgendaPosts(): Promise<
+    Array<import("@/lib/types").Post & { bot: Pick<import("@/lib/types").Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url"> }>
+  >;
   listProducts(botId?: string): Promise<string[]>;
   latestPostByBotIds(
     botIds: string[],

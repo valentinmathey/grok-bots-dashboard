@@ -23,6 +23,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - **Notificaciones** (`/notificaciones`): Web Push con VAPID. Se activan con un gesto, hay toggles por bot y por tipo, prueba y lista de dispositivos.
 - **Buscar**: ícono en el header (atajo `/` o Cmd/Ctrl+K) y página `/buscar?q=`. También `GET /api/v1/search?q=` y MCP `search_posts` (clave `read:all`).
 - **Guardados** (`/favoritos`): estrella en cada card (y en ítems de oportunidades/ranking). Se persiste en el server.
+- **Agenda** (`/agenda`): lista y mes con eventos, cierres y viajes. Export .ics y feed suscribible desde Ajustes.
 
 ## Requisitos
 
@@ -115,6 +116,9 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
 
    Para favoritos ejecutá
    **`supabase/migrations/20261010220000_favorites.sql`**.
+
+   Para el feed de agenda ejecutá
+   **`supabase/migrations/20261010230000_agenda_feed.sql`**.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 

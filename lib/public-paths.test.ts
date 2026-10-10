@@ -6,6 +6,7 @@ describe("rutas públicas PWA", () => {
     expect(isPublicPath("/manifest.webmanifest")).toBe(true);
     expect(isPublicPath("/sw.js")).toBe(true);
     expect(isPublicPath("/offline")).toBe(true);
+    expect(isPublicPath("/api/agenda.ics")).toBe(true);
     expect(isPublicPath("/icons/icon-192.png")).toBe(true);
     expect(isPublicPath("/login")).toBe(true);
     expect(isPublicPath("/")).toBe(false);
