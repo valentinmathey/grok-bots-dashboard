@@ -7,6 +7,10 @@ export const KNOWN_KINDS = [
   "alojamiento",
   "resumen",
   "oportunidades",
+  "ranking",
+  "newsletter",
+  "informe",
+  "workflow",
 ] as const;
 
 export type KnownKind = (typeof KNOWN_KINDS)[number];

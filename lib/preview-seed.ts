@@ -121,6 +121,45 @@ export function getPreviewRepository(): MemoryRepository {
       updated_at: hoursAgo(0.6),
     },
     {
+      id: "bot_periodista",
+      name: "Periodista Tech",
+      slug: "periodista-tech",
+      description: "Newsletter semanal de IA, cloud y startups.",
+      status: "Cerrando la edición del viernes",
+      status_updated_at: hoursAgo(1.2),
+      avatar_color: "violet",
+      avatar_shape: "squircle",
+      avatar_url: "https://picsum.photos/seed/periodista-av/256/256.jpg",
+      created_at: daysAgo(11),
+      updated_at: hoursAgo(1.2),
+    },
+    {
+      id: "bot_finanzas",
+      name: "Finanzas AR",
+      slug: "finanzas-ar",
+      description: "Dólar, brecha y un párrafo en simple todos los días.",
+      status: "Actualizando blue y MEP",
+      status_updated_at: hoursAgo(0.8),
+      avatar_color: "green",
+      avatar_shape: "shield",
+      avatar_url: "https://picsum.photos/seed/finanzas-av/256/256.jpg",
+      created_at: daysAgo(10),
+      updated_at: hoursAgo(0.8),
+    },
+    {
+      id: "bot_n8n",
+      name: "n8n Experto",
+      slug: "n8n-experto",
+      description: "Documenta workflows, triggers y salud de las corridas.",
+      status: "Revisando el digest de Telegram",
+      status_updated_at: hoursAgo(1.5),
+      avatar_color: "orange",
+      avatar_shape: "hex",
+      avatar_url: "https://picsum.photos/seed/n8n-av/256/256.jpg",
+      created_at: daysAgo(7),
+      updated_at: hoursAgo(1.5),
+    },
+    {
       id: "bot_crack",
       name: "Paraguayo Crack",
       slug: "paraguayo-crack",
@@ -336,28 +375,10 @@ export function getPreviewRepository(): MemoryRepository {
       bot: "bot_productos",
       title:
         "Comprar los parlantes Logitech Z407 nuevos en Argentina",
-      kind: "result" as const,
+      kind: "ranking" as const,
       product: "Logitech Z407",
       tags: ["comparación", "audio"],
-      body: `Búsqueda del jueves 8 de octubre de 2026, entre las 20:07 y las 20:11 (hora de Argentina). Mercado Libre quedó afuera de esta búsqueda.
-
-Los precios son el más bajo que se puede pagar en cada tienda. El envío no está incluido, salvo donde se aclare.
-
-| Puesto | Tienda | Precio | Link |
-| --- | --- | --- | --- |
-| 1 | Mexx | $184.900,90 en efectivo, débito, crédito en 1 pago o transferencia. Precio de lista $207.763. Stock, envío a todo el país con costo, garantía oficial de 12 meses. | [Ver](https://www.mexx.com.ar/productos/parlantes-logitech-z407/) |
-| 2 | Reed | $192.290,00 por transferencia (5% de descuento / lista $202.410). Últimas unidades. Envío a todo el país en 3 a 5 días hábiles. | [Ver](https://www.reed.com.ar/logitech-z407) |
-| 3 | Compumundo | $198.499,00 en un pago. 6 cuotas sin interés. Retiro en local o envío a CABA. | [Ver](https://www.compumundo.com.ar/logitech-z407-parlantes) |
-| 4 | Frávega | $204.999,00 listado. Envío a domicilio en AMBA. | [Ver](https://www.fravega.com/p/parlantes-logitech-z407) |
-
-Consulta larga: [https://www.example.com/busquedas/argentina/parlantes/logitech-z407-nuevos-comparacion-precios-octubre-2026](https://www.example.com/busquedas/argentina/parlantes/logitech-z407-nuevos-comparacion-precios-octubre-2026)
-
-\`\`\`text
-fuente=mexx,reed,compumundo,fravega
-producto=Logitech Z407
-moneda=ARS
-excluidos=mercadolibre
-\`\`\`
+      body: `Búsqueda del jueves. El mejor precio está en Mexx.
 
 ![Logitech Z407](https://picsum.photos/seed/z407-hero/1200/800.jpg)
 `,
@@ -367,6 +388,268 @@ excluidos=mercadolibre
         { url: "https://picsum.photos/seed/z407-mexx/900/600.jpg", alt: "Mexx" },
         { url: "https://picsum.photos/seed/z407-reed/900/600.jpg", alt: "Reed" },
       ],
+      details: {
+        product_name: "Logitech Z407",
+        product_image_url: "https://picsum.photos/seed/z407-hero/1200/800.jpg",
+        category: "audio",
+        query: "parlantes logitech z407 nuevos argentina",
+        currency: "ARS",
+        best_offer_index: 0,
+        verdict: "Mexx es la compra. Reed si querés transferir y no te importa el stock.",
+        score: 8.4,
+        previous_best_price: 210000,
+        checked_at: hoursAgo(0.12),
+        price_history: [
+          { date: addCalendarDays(todayYmd, -10), best_price: 219000 },
+          { date: addCalendarDays(todayYmd, -6), best_price: 210000 },
+          { date: addCalendarDays(todayYmd, -2), best_price: 198499 },
+          { date: todayYmd, best_price: 184900.9 },
+        ],
+        offers: [
+          {
+            store: "Mexx",
+            url: "https://www.mexx.com.ar/productos/parlantes-logitech-z407/",
+            price: 184900.9,
+            price_as_shown: "$184.900,90",
+            original_price: 207763,
+            discount_pct: 11,
+            shipping_text: "Envío a todo el país",
+            installments_text: "1 pago / débito / transferencia",
+            in_stock: true,
+            condition: "nuevo",
+            rank: 1,
+          },
+          {
+            store: "Reed",
+            url: "https://www.reed.com.ar/logitech-z407",
+            price: 192290,
+            shipping_text: "3 a 5 días hábiles",
+            installments_text: "Transferencia −5%",
+            in_stock: true,
+            condition: "nuevo",
+            rank: 2,
+          },
+          {
+            store: "Compumundo",
+            url: "https://www.compumundo.com.ar/logitech-z407-parlantes",
+            price: 198499,
+            installments_text: "6 cuotas sin interés",
+            shipping_text: "Retiro o CABA",
+            in_stock: true,
+            condition: "nuevo",
+            rank: 3,
+          },
+          {
+            store: "Frávega",
+            url: "https://www.fravega.com/p/parlantes-logitech-z407",
+            price: 204999,
+            shipping_text: "AMBA",
+            in_stock: true,
+            condition: "nuevo",
+            rank: 4,
+          },
+        ],
+      },
+    },
+    {
+      bot: "bot_productos",
+      title: "Auriculares Sony WH-1000XM5",
+      kind: "report" as const,
+      product: "Sony WH-1000XM5",
+      tags: ["audio"],
+      body: "Comparación vieja publicada como report, ahora con details de ranking.",
+      created_at: hoursAgo(30),
+      details: {
+        product_name: "Sony WH-1000XM5",
+        currency: "ARS",
+        previous_best_price: 689999,
+        offers: [
+          {
+            store: "Frávega",
+            url: "https://www.fravega.com/p/sony-wh-1000xm5",
+            price: 649999,
+            in_stock: true,
+            installments_text: "12 cuotas",
+            shipping_text: "Envío AMBA",
+          },
+          {
+            store: "Musimundo",
+            url: "https://www.musimundo.com/sony-xm5",
+            price: 669999,
+            in_stock: true,
+          },
+        ],
+      },
+    },
+    {
+      bot: "bot_periodista",
+      title: "Tech Friday #18",
+      kind: "newsletter" as const,
+      product: null,
+      tags: ["newsletter", "ia"],
+      body: "## Tech Friday\n\n- OpenAI bajó precios\n- Cloudflare tuvo un susto",
+      created_at: hoursAgo(1.2),
+      details: {
+        edition_date: todayYmd,
+        edition_number: 18,
+        headline: "La semana en la que la IA se puso más barata",
+        reading_minutes: 6,
+        tldr: [
+          "OpenAI recortó precios de la API.",
+          "Cloudflare se recuperó en 40 minutos.",
+          "Una startup argentina cerró seed.",
+        ],
+        quote: {
+          text: "El costo de inferencia va a ser el próximo campo de batalla.",
+          author: "Una analista de a16z",
+        },
+        sections: [
+          {
+            title: "Inteligencia artificial",
+            icon: "ai",
+            items: [
+              {
+                title: "OpenAI baja el precio de GPT",
+                url: "https://openai.com/blog",
+                source: "OpenAI",
+                summary: "Tokens de entrada más baratos y un modelo mini más usable.",
+                why_it_matters: "Los bots del panel pueden correr más barato.",
+                tags: ["api", "costos"],
+              },
+            ],
+          },
+          {
+            title: "Infra",
+            icon: "cloud",
+            items: [
+              {
+                title: "Cloudflare: incidente corto, postmortem claro",
+                url: "https://blog.cloudflare.com",
+                source: "Cloudflare",
+                summary: "Un cambio de config tumbió el edge. Volvió solo.",
+                why_it_matters: "Si algo del panel pega a CF, conviene tener fallback.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      bot: "bot_periodista",
+      title: "Borrador sin details",
+      kind: "newsletter" as const,
+      product: null,
+      tags: ["draft"],
+      body: "Una edición vieja, sin details. Tiene que verse como card estándar.",
+      created_at: daysAgo(9, 10),
+    },
+    {
+      bot: "bot_finanzas",
+      title: "Cierre del viernes: blue y brecha",
+      kind: "informe" as const,
+      product: null,
+      tags: ["dolar", "cierre"],
+      body: "## En simple\n\nEl blue aflojó y la brecha quedó en 28%.",
+      created_at: hoursAgo(0.8),
+      details: {
+        date: todayYmd,
+        summary_simple:
+          "El blue aflojó un poco y la brecha quedó cerca de 28%. Nada para asustarse el finde.",
+        summary_technical:
+          "El oficial mayorista se mantuvo. El MEP y el CCL recortaron. El riesgo país sigue alto.",
+        brecha_pct: 28.4,
+        indicators: [
+          {
+            key: "dolar_oficial",
+            label: "Oficial",
+            value: 1155,
+            unit: "ARS",
+            buy: 1138,
+            sell: 1172,
+            change_pct: 0.2,
+            direction: "up",
+          },
+          {
+            key: "dolar_blue",
+            label: "Blue",
+            value: 1480,
+            unit: "ARS",
+            buy: 1465,
+            sell: 1495,
+            change_pct: -1.1,
+            direction: "down",
+          },
+          {
+            key: "dolar_mep",
+            label: "MEP",
+            value: 1410,
+            unit: "ARS",
+            change_pct: -0.6,
+            direction: "down",
+          },
+          {
+            key: "riesgo_pais",
+            label: "Riesgo país",
+            value: 1180,
+            unit: "pb",
+            change_abs: 12,
+            direction: "up",
+          },
+          {
+            key: "inflacion_mensual",
+            label: "Inflación mensual",
+            value: 2.1,
+            unit: "%",
+            direction: "flat",
+          },
+        ],
+        highlights: ["El blue recortó más que el MEP.", "El oficial casi no se movió."],
+        risks: ["Si el BCRA frena el crawl, la brecha puede volver a estirarse."],
+        outlook: "Semana calma si no hay dato sorpresa el lunes.",
+        sources: [
+          { name: "Ámbito", url: "https://www.ambito.com" },
+          { name: "BCRA" },
+        ],
+      },
+    },
+    {
+      bot: "bot_n8n",
+      title: "Digest diario a Telegram",
+      kind: "workflow" as const,
+      product: null,
+      tags: ["telegram", "digest"],
+      body: "## Digest\n\nLee posts nuevos y manda un resumen a Telegram.",
+      created_at: hoursAgo(1.5),
+      details: {
+        workflow_name: "Digest diario a Telegram",
+        workflow_url: "https://n8n.example.com/workflow/digest-telegram",
+        status: "active",
+        trigger_type: "schedule",
+        trigger_detail: "Cron 09:00 ART",
+        schedule_text: "Todos los días a las 9",
+        services: ["telegram", "openai", "http"],
+        purpose: "Junta lo nuevo del panel y lo manda al grupo de Telegram.",
+        steps: [
+          "Cron de las 9",
+          "GET /api/v1/posts con read:all",
+          "Arma el resumen con OpenAI",
+          "Manda el mensaje a Telegram",
+        ],
+        nodes: [
+          { name: "Cron", type: "schedule" },
+          { name: "HTTP", type: "http" },
+          { name: "OpenAI", type: "openai" },
+          { name: "Telegram", type: "telegram" },
+        ],
+        inputs: "Posts de las últimas 24 h",
+        outputs: "Un mensaje al grupo",
+        credentials_needed: ["Telegram Bot", "OpenAI"],
+        last_run_at: hoursAgo(8),
+        last_run_status: "success",
+        runs_7d: 7,
+        errors_7d: 0,
+        version: "1.4",
+      },
     },
     {
       bot: "bot_oportunidades",

@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { Sparkles, Target } from "lucide-react";
+import { LineChart, Newspaper, Sparkles, Target, Workflow } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import {
   cardCollapseProps,
@@ -19,7 +19,7 @@ import {
   oportunidadCategoryLabel,
   type ResumenDetails,
 } from "@/lib/details";
-import { formatDate, formatEventWhen, kindLabel } from "@/lib/format";
+import { formatDate, formatEventWhen, formatMoney, kindLabel } from "@/lib/format";
 import { persistResumenOpen } from "@/lib/resumen-collapse";
 import type { Post } from "@/lib/types";
 
@@ -39,6 +39,10 @@ function botLead(bot: ResumenDetails["bots"][number]): string {
     bot.oportunidades?.open_count
       ? `${bot.oportunidades.open_count} abiertas`
       : null,
+    bot.ranking?.product_name ?? (bot.ranking?.new_count ? "ranking" : null),
+    bot.newsletter?.headline ?? (bot.newsletter?.new_count ? "newsletter" : null),
+    bot.informe?.new_count ? "informe" : null,
+    bot.workflow?.workflow_name ?? (bot.workflow?.new_count ? "workflow" : null),
   ].filter(Boolean);
   return bits.slice(0, 2).join(" · ") || "Sin novedades";
 }
@@ -140,6 +144,47 @@ function BotResumenRow({ bot }: { bot: ResumenDetails["bots"][number] }) {
               </p>
             ))}
           </div>
+        ) : null}
+        {bot.ranking ? (
+          <p className="text-sm">
+            <LineChart size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+            <Link href={postHref(bot.slug, bot.ranking.post_id)} className="font-medium hover:underline">
+              {bot.ranking.product_name ?? "Ranking"}
+            </Link>
+            {bot.ranking.best_price != null
+              ? ` · ${formatMoney(bot.ranking.best_price, bot.ranking.currency || "ARS")}`
+              : ""}
+            {bot.ranking.drop_pct != null ? ` · bajó ${bot.ranking.drop_pct}%` : ""}
+          </p>
+        ) : null}
+        {bot.newsletter ? (
+          <p className="text-sm">
+            <Newspaper size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+            <Link
+              href={postHref(bot.slug, bot.newsletter.post_id)}
+              className="font-medium hover:underline"
+            >
+              {bot.newsletter.headline ?? "Newsletter"}
+            </Link>
+          </p>
+        ) : null}
+        {bot.informe ? (
+          <p className="text-sm">
+            <LineChart size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+            <Link href={postHref(bot.slug, bot.informe.post_id)} className="font-medium hover:underline">
+              {bot.informe.headline ?? "Informe"}
+            </Link>
+            {bot.informe.brecha_pct != null ? ` · brecha ${bot.informe.brecha_pct.toFixed(1)}%` : ""}
+          </p>
+        ) : null}
+        {bot.workflow ? (
+          <p className="text-sm">
+            <Workflow size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
+            <Link href={postHref(bot.slug, bot.workflow.post_id)} className="font-medium hover:underline">
+              {bot.workflow.workflow_name ?? "Workflow"}
+            </Link>
+            {bot.workflow.status ? ` · ${bot.workflow.status}` : ""}
+          </p>
         ) : null}
         {kinds.length ? (
           <p className="text-xs text-muted">
