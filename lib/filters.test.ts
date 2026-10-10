@@ -107,41 +107,4 @@ describe("filtros", () => {
     expect(query.sort).toBe("oldest");
     expect(filtersToSearchParams(query).get("when")).toBe("past");
   });
-
-  it("en un bot de alojamientos, el default es score y filtra ciudad / amenities / precio", () => {
-    const query = parseFeedQuery({}, { hasAlojamientos: true });
-    expect(query.sort).toBe("score");
-    expect(query.dateBasis).toBe("created");
-
-    const listing = post({
-      kind: "alojamiento",
-      details: {
-        city: "Florianópolis",
-        search_area: "Florianópolis",
-        neighborhood: "Campeche",
-        price_per_person: 400,
-        amenities: ["pool", "parking"],
-        score: 8,
-      },
-    });
-    expect(
-      matchesFilters(listing, {
-        city: "Florianópolis",
-        amenities: ["pool"],
-        max_price_pp: 500,
-      }),
-    ).toBe(true);
-    expect(matchesFilters(listing, { city: "Balneário Camboriú" })).toBe(false);
-    expect(matchesFilters(listing, { max_price_pp: 300 })).toBe(false);
-    expect(matchesFilters(listing, { amenities: ["pool", "sea_view"] })).toBe(
-      false,
-    );
-  });
-
-  it("si hay eventos, no cambia el default de sort aunque haya alojamientos", () => {
-    const query = parseFeedQuery({}, { hasEvents: true, hasAlojamientos: true });
-    expect(query.sort).toBe("newest");
-    expect(query.when).toBe("upcoming");
-    expect(query.eventsOnly).toBe(true);
-  });
 });

@@ -155,16 +155,26 @@ export function formatRelative(iso: string, now = new Date()): string {
 }
 
 export function formatMoney(amount: number, currency = "BRL"): string {
+  const digits = amount % 1 === 0 ? 0 : 2;
+  const number = new Intl.NumberFormat("es-AR", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  })
+    .format(amount)
+    .replace(/[\u00a0\u202f\u2007\u2009]/g, " ");
+  if (currency === "BRL") {
+    return `R$ ${number}`;
+  }
   try {
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency,
-      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: digits,
     })
       .format(amount)
       .replace(/[\u00a0\u202f\u2007\u2009]/g, " ");
   } catch {
-    return `${amount} ${currency}`;
+    return `${number} ${currency}`;
   }
 }
 

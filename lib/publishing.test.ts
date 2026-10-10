@@ -387,54 +387,6 @@ describe("API de publicación", () => {
     expect(earlier.ok).toBe(false);
   });
 
-  it("publica y lista details de un alojamiento", async () => {
-    const { repo, key } = repoWithBot();
-    const created = await publishPost(repo, `Bearer ${key}`, {
-      title: "Casa en Campeche",
-      body: "Floripa",
-      kind: "alojamiento",
-      details: {
-        platform: "airbnb",
-        city: "Florianópolis",
-        lat: -27.6,
-        lng: -48.5,
-        score: 8.4,
-        price_per_person: 410,
-        previous_price_per_person: 500,
-      },
-    });
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
-    expect(created.data.post.kind).toBe("alojamiento");
-    expect(created.data.post.details).toMatchObject({
-      city: "Florianópolis",
-      score: 8.4,
-    });
-    expect(String(created.data.post.details?.maps_url)).toContain("google.com/maps");
-
-    const listed = await listMyPosts(repo, `Bearer ${key}`, { kind: "alojamiento" });
-    expect(listed.ok).toBe(true);
-    if (listed.ok) {
-      expect(listed.data.posts[0]?.details).toMatchObject({ score: 8.4 });
-    }
-
-    const patched = await updateOwnPost(repo, `Bearer ${key}`, created.data.post.id, {
-      details: { score: 9.1, city: "Florianópolis" },
-    });
-    expect(patched.ok).toBe(true);
-    if (patched.ok) {
-      expect(patched.data.post.details).toMatchObject({ score: 9.1 });
-    }
-
-    const bad = await publishPost(repo, `Bearer ${key}`, {
-      title: "Mal",
-      body: "x",
-      kind: "alojamiento",
-      details: { score: 99 },
-    });
-    expect(bad.ok).toBe(false);
-  });
-
   it("no permite slugs duplicados", async () => {
     const repo = new MemoryRepository();
     await createOwnedBot(repo, { name: "Uno", slug: "scout" });

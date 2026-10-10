@@ -129,14 +129,14 @@ export function FilterSheet({
 
   return (
     <div className="space-y-3">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={() => {
             setDraft(query);
             setOpen(true);
           }}
-          className="inline-flex min-h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:flex-none sm:px-4"
+          className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:w-auto sm:px-4"
         >
           <SlidersHorizontal size={16} strokeWidth={1.75} />
           Filtros
@@ -147,7 +147,7 @@ export function FilterSheet({
           ) : null}
         </button>
         {alojamiento ? (
-          <div className="flex min-w-0 flex-1 overflow-x-auto rounded-full bg-chip p-1">
+          <div className="flex w-full min-w-0 rounded-full bg-chip p-1 sm:flex-1">
             {(
               [
                 ["score", "Score"],
@@ -160,7 +160,7 @@ export function FilterSheet({
                 key={value}
                 type="button"
                 onClick={() => toggleSort(value)}
-                className={`min-h-8 shrink-0 rounded-full px-2.5 text-xs font-medium ${
+                className={`min-h-8 flex-1 rounded-full px-1.5 text-[11px] font-medium sm:px-2.5 sm:text-xs ${
                   query.sort === value ? "bg-card text-foreground shadow-sm" : "text-muted"
                 }`}
               >
