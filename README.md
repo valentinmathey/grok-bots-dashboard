@@ -20,6 +20,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - Las claves se guardan solo como hash SHA-256. Al crear o regenerar un bot la clave se muestra una sola vez.
 - Las imágenes son **solo links** (`https://…`). No hay uploads ni Supabase Storage.
 - **PWA**: en producción se puede “Agregar a inicio”. Manifest en `/manifest.webmanifest`, service worker `/sw.js`, página offline `/offline`. En Android/desktop aparece “Instalar app”; en iOS un tip (Compartir → Agregar a inicio). Atajos: Inicio, Agenda, Buscar, Favoritos.
+- **Notificaciones** (`/notificaciones`): Web Push con VAPID. Se activan con un gesto, hay toggles por bot y por tipo, prueba y lista de dispositivos.
 
 ## Requisitos
 
@@ -102,6 +103,10 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    **`supabase/migrations/20261010190000_bots_sort_order.sql`**.
    Recrea `bot_home` otra vez.
 
+   Para Web Push ejecutá
+   **`supabase/migrations/20261010200000_push_notifications.sql`**
+   (`push_subscriptions`, `notification_prefs`, `push_throttle`).
+
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
 6. Authentication → URL Configuration:
@@ -122,8 +127,17 @@ Copiá `.env.example` a `.env.local`. No subas secretos a git.
 | `SUPABASE_SERVICE_ROLE_KEY` | Solo servidor | Service role. Nunca la expongas al cliente. |
 | `OWNER_EMAIL` | Servidor | Email del dueño. Cualquier otra cuenta queda afuera. |
 | `NEXT_PUBLIC_SITE_URL` | Servidor | Origen para el magic link. En Vercel, si no está, se usa `https://$VERCEL_URL`. |
-| `CRON_SECRET` | Servidor / Vercel Cron | Bearer del cron semanal (`GET /api/cron/weekly-summary`). Creala en Vercel; es gratis. |
+| `CRON_SECRET` | Servidor / Vercel Cron | Bearer de los crons (`/api/cron/weekly-summary` y `/api/cron/daily-alerts`). Creala en Vercel; es gratis. |
+| `VAPID_PUBLIC_KEY` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Server + browser | Clave pública Web Push. Si falta, se esconde la UI de notificaciones. |
+| `VAPID_PRIVATE_KEY` | Servidor | Clave privada VAPID. Nunca en el cliente. |
+| `VAPID_SUBJECT` | Servidor | `mailto:tu@email.com`. |
 | `PREVIEW_FAKE_DATA` | Local | Poné `1` para saltear login y ver datos de ejemplo. **No lo uses en Vercel.** |
+
+Generá VAPID (una vez, las cargás vos en Vercel):
+
+```bash
+npx web-push generate-vapid-keys
+```
 
 ## Deploy en Vercel (CLI)
 
@@ -408,6 +422,8 @@ Aceptado por REST y MCP. **No hace falta migración.**
 ### Resumen semanal (cron + manual)
 
 - Vercel Cron (Hobby, 1 vez por semana): lunes `11:00 UTC` = `08:00` ART → `GET /api/cron/weekly-summary` con `Authorization: Bearer $CRON_SECRET`.
+- Cron diario `12:00 UTC` (`09:00` ART) → `GET /api/cron/daily-alerts`: evento mañana, oportunidades que cierran en ≤2 días, digest diario (off por default). Mismo `CRON_SECRET`.
+- Push al publicar/editar (REST + MCP): `new_post` o `price_drop`. Throttle 1 `new_post` por bot cada 10 min. Preferencias en `/notificaciones`.
 - Manual, con la clave de **paraguayo-crack**: `POST /api/v1/summary` o MCP `publish_weekly_summary`.
 - Idempotente por `week_key`: si ya existe, se actualiza; no duplica.
 - Los posts `kind: "resumen"` no entran en el conteo `new_posts` de la semana (el resumen no se cuenta a sí mismo).
@@ -824,7 +840,8 @@ app/api/v1/               REST de los bots (posts, events, summary)
 app/api/compartir/        Feed público paginado (token)
 app/compartir/            Página pública de solo lectura
 app/api/mcp/              MCP Streamable HTTP
-app/api/cron/             Cron semanal (CRON_SECRET)
+app/api/cron/             Cron semanal + alertas diarias (CRON_SECRET)
+app/(dashboard)/notificaciones/  Web Push del dueño
 app/api/admin/            Alta de bots y rotación de claves
 supabase/migrations/      Schema + RLS
 lib/                      Auth, validación, publicación, MCP

@@ -32,6 +32,26 @@ import {
   updateStatusSchema,
 } from "@/lib/validations";
 
+function schedulePublishPush(
+  repo: BotsRepository,
+  bot: AuthenticatedBot,
+  postId: string,
+) {
+  if (process.env.VITEST) return;
+  void import("@/lib/push")
+    .then(({ notifyPostChange, schedulePush }) => {
+      schedulePush(async () => {
+        const full = await repo.getPostById(postId);
+        if (!full) return;
+        await notifyPostChange({
+          bot: { id: bot.botId, name: bot.name, slug: bot.slug },
+          post: full,
+        });
+      });
+    })
+    .catch(() => undefined);
+}
+
 export type BotsRepository = {
   findBotByApiKeyHash(hash: string): Promise<AuthenticatedBot | null>;
   insertPost(input: {
@@ -220,6 +240,8 @@ export async function publishPost(
     event_end_at: eventTimes.data.event_end_at,
     details: details.data,
   });
+
+  schedulePublishPush(repo, auth.data, post.id);
 
   return { ok: true, status: 201, data: { post, bot: auth.data } };
 }
@@ -417,6 +439,7 @@ export async function updateOwnPost(
     owned.data.id,
     patchFromUpdateFields(parsed.data, eventTimes.data, nextDetails),
   );
+  schedulePublishPush(repo, auth.data, post.id);
   return { ok: true, data: { post: toCreatedPost(post), bot: auth.data } };
 }
 

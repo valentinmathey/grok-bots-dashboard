@@ -26,7 +26,11 @@ export default async function SettingsPage() {
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">Ajustes</h1>
         <p className="mt-1.5 text-sm leading-6 text-muted">
           Crear bots, elegir avatar y rotar claves. El dueño solo mira el
-          panel; esto queda aparte a propósito.
+          panel; esto queda aparte a propósito.{" "}
+          <Link href="/notificaciones" className="font-medium text-accent">
+            Notificaciones
+          </Link>
+          .
         </p>
       </div>
 
