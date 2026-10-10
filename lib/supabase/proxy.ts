@@ -3,14 +3,31 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPublicSupabaseEnv, getOwnerEmail, isPreviewMode } from "@/lib/env";
 import { isOwnerEmail } from "@/lib/owner";
 
+function isSharePath(pathname: string): boolean {
+  return (
+    pathname === "/compartir" ||
+    pathname.startsWith("/compartir/") ||
+    pathname === "/api/compartir" ||
+    pathname.startsWith("/api/compartir/")
+  );
+}
+
 function isPublicPath(pathname: string): boolean {
   return (
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/v1") ||
     pathname.startsWith("/api/mcp") ||
-    pathname.startsWith("/api/cron")
+    pathname.startsWith("/api/cron") ||
+    isSharePath(pathname)
   );
+}
+
+function applyShareRobots(response: NextResponse, pathname: string): NextResponse {
+  if (isSharePath(pathname)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return response;
 }
 
 function applyCookies(
@@ -31,7 +48,8 @@ function applyCookies(
 
 export async function updateSession(request: NextRequest) {
   if (isPreviewMode()) {
-    return NextResponse.next({ request });
+    const next = NextResponse.next({ request });
+    return applyShareRobots(next, request.nextUrl.pathname);
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -41,7 +59,7 @@ export async function updateSession(request: NextRequest) {
     env = getPublicSupabaseEnv();
   } catch {
     if (isPublicPath(request.nextUrl.pathname)) {
-      return supabaseResponse;
+      return applyShareRobots(supabaseResponse, request.nextUrl.pathname);
     }
     const login = request.nextUrl.clone();
     login.pathname = "/login";
@@ -77,14 +95,15 @@ export async function updateSession(request: NextRequest) {
   if (
     pathname.startsWith("/api/v1") ||
     pathname.startsWith("/api/mcp") ||
-    pathname.startsWith("/api/cron")
+    pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/compartir/")
   ) {
-    return supabaseResponse;
+    return applyShareRobots(supabaseResponse, pathname);
   }
 
   if (!email) {
     if (isPublicPath(pathname)) {
-      return supabaseResponse;
+      return applyShareRobots(supabaseResponse, pathname);
     }
     const login = request.nextUrl.clone();
     login.pathname = "/login";
@@ -107,5 +126,5 @@ export async function updateSession(request: NextRequest) {
     return applyCookies(supabaseResponse, NextResponse.redirect(home));
   }
 
-  return supabaseResponse;
+  return applyShareRobots(supabaseResponse, pathname);
 }

@@ -1,9 +1,16 @@
+import Link from "next/link";
 import { Star, TrendingDown } from "lucide-react";
 import { asAlojamiento, hasPriceDrop } from "@/lib/details";
 import { formatMoney } from "@/lib/format";
 import type { Post } from "@/lib/types";
 
-export function AlojamientoTable({ posts }: { posts: Post[] }) {
+export function AlojamientoTable({
+  posts,
+  postHref,
+}: {
+  posts: Post[];
+  postHref?: (post: Post) => string;
+}) {
   return (
     <div className="surface overflow-hidden rounded-3xl">
       <div className="overflow-x-auto">
@@ -27,7 +34,13 @@ export function AlojamientoTable({ posts }: { posts: Post[] }) {
               return (
                 <tr key={post.id} className="border-t border-line">
                   <td className="sticky left-0 z-10 max-w-[9.5rem] bg-card px-3 py-2.5 font-medium leading-snug">
-                    <span className="line-clamp-2">{post.title}</span>
+                    {postHref ? (
+                      <Link href={postHref(post)} className="line-clamp-2 hover:underline">
+                        {post.title}
+                      </Link>
+                    ) : (
+                      <span className="line-clamp-2">{post.title}</span>
+                    )}
                     {drop ? (
                       <span className="mt-1 inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                         <TrendingDown size={10} strokeWidth={1.75} />

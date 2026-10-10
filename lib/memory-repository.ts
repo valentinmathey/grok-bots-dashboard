@@ -3,7 +3,7 @@ import { isEventUpcoming } from "@/lib/event-time";
 import { matchesFilters, sortPosts, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
 import { canWrite, normalizeScopes } from "@/lib/scopes";
-import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
+import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind, ShareLink } from "@/lib/types";
 
 type StoredKey = {
   botId: string;
@@ -17,6 +17,7 @@ export class MemoryRepository implements BotsRepository {
   bots: Bot[] = [];
   posts: Post[] = [];
   keys: StoredKey[] = [];
+  shareLinks: ShareLink[] = [];
 
   async findBotByApiKeyHash(hash: string) {
     const key = this.keys.find((item) => item.hash === hash && !item.revokedAt);
@@ -371,5 +372,53 @@ export class MemoryRepository implements BotsRepository {
     const active = this.keys.filter((key) => key.botId === botId && !key.revokedAt);
     const publish = active.find((key) => canWrite(key.scopes));
     return (publish ?? active[0])?.prefix ?? null;
+  }
+
+  async insertShareLink(input: {
+    botId: string;
+    tokenHash: string;
+    tokenPrefix: string;
+  }) {
+    const link: ShareLink = {
+      id: crypto.randomUUID(),
+      bot_id: input.botId,
+      token_hash: input.tokenHash,
+      token_prefix: input.tokenPrefix,
+      created_at: new Date().toISOString(),
+      revoked_at: null,
+    };
+    this.shareLinks.unshift(link);
+    return link;
+  }
+
+  async findShareLinkByTokenHash(hash: string) {
+    return this.shareLinks.find((link) => link.token_hash === hash) ?? null;
+  }
+
+  async revokeShareLink(id: string) {
+    const link = this.shareLinks.find((item) => item.id === id);
+    if (!link) {
+      return null;
+    }
+    if (!link.revoked_at) {
+      link.revoked_at = new Date().toISOString();
+    }
+    return link;
+  }
+
+  async revokeShareLinksByBot(botId: string) {
+    const now = new Date().toISOString();
+    let count = 0;
+    for (const link of this.shareLinks) {
+      if (link.bot_id === botId && !link.revoked_at) {
+        link.revoked_at = now;
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  async listShareLinks(botId?: string) {
+    return this.shareLinks.filter((link) => !botId || link.bot_id === botId);
   }
 }
