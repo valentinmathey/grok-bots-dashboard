@@ -122,7 +122,7 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    **`supabase/migrations/20261010230000_agenda_feed.sql`**.
 
    Para pedidos ejecutá
-   **`supabase/migrations/20261010240000_bot_requests.sql`**.
+   **`supabase/migrations/20261011000000_bot_requests.sql`**.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
