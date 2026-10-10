@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function BuscarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; bot?: string; kind?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; bot?: string; kind?: string; sort?: string; favorites?: string }>;
 }) {
   const params = await searchParams;
   const q = (params.q ?? "").trim();
@@ -20,15 +20,28 @@ export default async function BuscarPage({
           q,
           bots: params.bot ? [params.bot] : undefined,
           kinds: params.kind ? [params.kind] : undefined,
+          favoritesOnly: params.favorites === "1",
           sort: params.sort === "newest" ? "newest" : "relevance",
           limit: 40,
         })
       : Promise.resolve({ hits: [], total: 0 }),
   ]);
+  if (params.favorites === "1" && result.hits.length) {
+    const { listFavorites } = await import("@/lib/favorites-store");
+    const ids = new Set((await listFavorites()).map((row) => row.post_id));
+    result.hits = result.hits.filter((hit) => ids.has(hit.id));
+  }
 
   function href(next: Record<string, string | undefined>) {
     const query = new URLSearchParams();
-    const merged = { q, bot: params.bot, kind: params.kind, sort: params.sort, ...next };
+    const merged = {
+      q,
+      bot: params.bot,
+      kind: params.kind,
+      sort: params.sort,
+      favorites: params.favorites,
+      ...next,
+    };
     for (const [key, value] of Object.entries(merged)) {
       if (value) query.set(key, value);
     }
@@ -65,6 +78,12 @@ export default async function BuscarPage({
               {bot.name}
             </Link>
           ))}
+          <Link
+            href={href({ favorites: params.favorites === "1" ? undefined : "1" })}
+            className={`rounded-full px-3 py-1 text-xs font-medium ${params.favorites === "1" ? "bg-accent text-accent-ink" : "bg-chip"}`}
+          >
+            Solo favoritos
+          </Link>
         </div>
       ) : null}
       {q.length < 2 ? (
