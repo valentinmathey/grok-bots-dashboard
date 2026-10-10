@@ -3,6 +3,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getPublicSupabaseEnv, getOwnerEmail, isPreviewMode } from "@/lib/env";
 import { isOwnerEmail } from "@/lib/owner";
 
+function isSharePath(pathname: string): boolean {
+  return (
+    pathname === "/compartir" ||
+    pathname.startsWith("/compartir/") ||
+    pathname === "/api/compartir" ||
+    pathname.startsWith("/api/compartir/")
+  );
+}
+
 function isPublicPath(pathname: string): boolean {
   return (
     pathname.startsWith("/login") ||
@@ -10,13 +19,12 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/api/v1") ||
     pathname.startsWith("/api/mcp") ||
     pathname.startsWith("/api/cron") ||
-    pathname.startsWith("/compartir") ||
-    pathname.startsWith("/api/compartir")
+    isSharePath(pathname)
   );
 }
 
 function applyShareRobots(response: NextResponse, pathname: string): NextResponse {
-  if (pathname.startsWith("/compartir") || pathname.startsWith("/api/compartir")) {
+  if (isSharePath(pathname)) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   return response;
@@ -88,7 +96,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/v1") ||
     pathname.startsWith("/api/mcp") ||
     pathname.startsWith("/api/cron") ||
-    pathname.startsWith("/api/compartir")
+    pathname.startsWith("/api/compartir/")
   ) {
     return applyShareRobots(supabaseResponse, pathname);
   }
