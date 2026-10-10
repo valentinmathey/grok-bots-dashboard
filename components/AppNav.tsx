@@ -47,6 +47,15 @@ const TABS = [
   { id: "guardados", href: "/favoritos", label: "Guardados", icon: Star },
 ] as const;
 
+const LEFT_TABS = [
+  { id: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { id: "buscar", href: "/buscar", label: "Buscar", icon: Search },
+] as const;
+
+const RIGHT_TABS = [
+  { id: "guardados", href: "/favoritos", label: "Guardados", icon: Star },
+] as const;
+
 const MORE_LINKS = [
   { href: "/pedidos", label: "Pedidos", icon: MessageSquare, badge: true },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3, badge: false },
@@ -89,6 +98,16 @@ export function AppNav({ email }: { email: string }) {
   useEffect(() => {
     setSearchOpen(false);
   }, [pathname, setSearchOpen]);
+
+  useEffect(() => {
+    const sheet = document.getElementById("more-menu");
+    if (!sheet) return;
+    function onToggle(event: Event) {
+      setMoreOpen((event as ToggleEvent).newState === "open");
+    }
+    sheet.addEventListener("toggle", onToggle);
+    return () => sheet.removeEventListener("toggle", onToggle);
+  }, []);
 
   return (
     <>
@@ -213,52 +232,117 @@ function MobileTabBar({
   unread: number;
   moreOpen: boolean;
 }) {
+  const homeActive = activeTab === "inicio";
+  const moreActive = moreOpen || activeTab === "mas";
+  const leftIndex = LEFT_TABS.findIndex((tab) => tab.id === activeTab);
+  const rightIndex = moreActive ? 1 : RIGHT_TABS.findIndex((tab) => tab.id === activeTab);
+
   return (
     <nav
       aria-label="Principal"
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-background/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl transition-transform duration-200 lg:hidden ${
-        hidden ? "translate-y-[110%]" : "translate-y-0"
-      }`}
+      className={`tab-dock lg:hidden ${hidden ? "tab-dock-hidden" : ""}`}
     >
-      <ul className="grid h-14 grid-cols-5">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.id;
-          return (
-            <li key={tab.id}>
-              <Link
-                href={tab.href}
-                className={`flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 ${
-                  active ? "text-accent" : "text-muted"
-                }`}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon size={20} strokeWidth={active ? 2.2 : 1.75} className="pointer-events-none" />
-                <span className="pointer-events-none text-[10px] font-medium">{tab.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-        <li>
+      <div className="tab-dock-bar">
+        <SideCluster
+          activeIndex={leftIndex}
+          slots={2}
+        >
+          {LEFT_TABS.map((tab) => (
+            <TabLink key={tab.id} tab={tab} active={activeTab === tab.id} />
+          ))}
+        </SideCluster>
+        <span className="tab-dock-notch" aria-hidden />
+        <SideCluster
+          activeIndex={rightIndex}
+          slots={2}
+        >
+          {RIGHT_TABS.map((tab) => (
+            <TabLink key={tab.id} tab={tab} active={activeTab === tab.id && !moreActive} />
+          ))}
           <button
             type="button"
             popoverTarget="more-menu"
-            className={`relative flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 ${
-              moreOpen || activeTab === "mas" ? "text-accent" : "text-muted"
-            }`}
+            className={`tab-item ${moreActive ? "tab-item-active" : ""}`}
+            aria-current={activeTab === "mas" ? "page" : undefined}
             aria-expanded={moreOpen}
+            aria-haspopup="dialog"
           >
             <span className="pointer-events-none relative">
-              <Menu size={20} strokeWidth={moreOpen || activeTab === "mas" ? 2.2 : 1.75} />
-              {unread > 0 ? (
-                <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-accent" />
-              ) : null}
+              <Menu
+                size={20}
+                strokeWidth={moreActive ? 2.35 : 1.75}
+                fill={moreActive ? "currentColor" : "none"}
+              />
+              {unread > 0 ? <span className="tab-badge" /> : null}
             </span>
-            <span className="pointer-events-none text-[10px] font-medium">Más</span>
+            <span className="pointer-events-none">Más</span>
           </button>
-        </li>
-      </ul>
+        </SideCluster>
+      </div>
+      <Link
+        href="/"
+        aria-label="Inicio"
+        aria-current={homeActive ? "page" : undefined}
+        className={`tab-fab ${homeActive ? "tab-fab-active" : ""}`}
+      >
+        <Home
+          size={26}
+          strokeWidth={homeActive ? 2.3 : 1.9}
+          fill={homeActive ? "currentColor" : "none"}
+          className="pointer-events-none"
+        />
+      </Link>
     </nav>
+  );
+}
+
+function SideCluster({
+  children,
+  activeIndex,
+  slots,
+}: {
+  children: React.ReactNode;
+  activeIndex: number;
+  slots: number;
+}) {
+  return (
+    <div className="relative flex min-w-0 flex-1">
+      {activeIndex >= 0 ? (
+        <span
+          className="tab-indicator"
+          style={{
+            width: `${100 / slots}%`,
+            transform: `translateX(${activeIndex * 100}%)`,
+          }}
+        />
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
+function TabLink({
+  tab,
+  active,
+}: {
+  tab: { id: string; href: string; label: string; icon: typeof Home };
+  active: boolean;
+}) {
+  const Icon = tab.icon;
+  return (
+    <Link
+      href={tab.href}
+      className={`tab-item ${active ? "tab-item-active" : ""}`}
+      aria-current={active ? "page" : undefined}
+    >
+      <Icon
+        size={20}
+        strokeWidth={active ? 2.35 : 1.75}
+        fill={active && tab.id === "guardados" ? "currentColor" : "none"}
+        className="pointer-events-none"
+      />
+      <span className="pointer-events-none">{tab.label}</span>
+    </Link>
   );
 }
 
