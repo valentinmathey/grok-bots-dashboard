@@ -14,6 +14,7 @@ import {
   Trophy,
   Wallet,
 } from "lucide-react";
+import { Sheet } from "@/components/Sheet";
 import { amenityLabel, oportunidadCategoryLabel } from "@/lib/details";
 import {
   countActiveFilters,
@@ -282,27 +283,7 @@ export function FilterSheet({
         </div>
       ) : null}
 
-      {open ? (
-        <div className="fixed inset-0 z-40">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/40"
-            aria-label="Cerrar filtros"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-3xl bg-card p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:inset-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:pb-8">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line sm:hidden" />
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold tracking-tight">Filtros</h2>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-sm text-muted"
-              >
-                Cerrar
-              </button>
-            </div>
-
+      <Sheet open={open} onClose={() => setOpen(false)} title="Filtros" desktopDialog>
             {facets.products.length > 0 ? (
               <section className="mt-5">
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
@@ -608,9 +589,7 @@ export function FilterSheet({
                 Aplicar
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+      </Sheet>
     </div>
   );
 }
