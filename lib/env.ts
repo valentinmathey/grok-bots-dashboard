@@ -53,6 +53,22 @@ export function getCronSecret(): string | undefined {
   return read("CRON_SECRET");
 }
 
+export function getVapidConfig(): {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+} | null {
+  const publicKey = read("NEXT_PUBLIC_VAPID_PUBLIC_KEY") ?? read("VAPID_PUBLIC_KEY");
+  const privateKey = read("VAPID_PRIVATE_KEY");
+  const subject = read("VAPID_SUBJECT") ?? "mailto:owner@localhost";
+  if (!publicKey || !privateKey) return null;
+  return { publicKey, privateKey, subject };
+}
+
+export function getVapidPublicKey(): string | null {
+  return read("NEXT_PUBLIC_VAPID_PUBLIC_KEY") ?? read("VAPID_PUBLIC_KEY") ?? null;
+}
+
 export function isSupabaseConfigured(): boolean {
   try {
     getPublicSupabaseEnv();

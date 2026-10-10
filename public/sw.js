@@ -1,4 +1,4 @@
-const VERSION = "gb-pwa-v1";
+const VERSION = "gb-pwa-v2";
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const PRECACHE = [
@@ -113,8 +113,29 @@ self.addEventListener("message", (event) => {
   }
 });
 
-self.addEventListener("push", () => {
-  // Plan 2: Web Push
+self.addEventListener("push", (event) => {
+  let data = {
+    title: "Grok Bots",
+    body: "",
+    url: "/",
+    tag: "grok-bots",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+  };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    /* payload vacío */
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      tag: data.tag,
+      icon: data.icon,
+      badge: data.badge,
+      data: { url: data.url || "/" },
+    }),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
