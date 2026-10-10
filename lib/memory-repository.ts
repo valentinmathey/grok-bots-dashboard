@@ -354,6 +354,13 @@ export class MemoryRepository implements BotsRepository {
       .filter((row): row is NonNullable<typeof row> => row != null);
   }
 
+  async listStatsPosts(days = 90) {
+    const since = Date.now() - days * 86_400_000;
+    return (await this.listAgendaPosts()).filter(
+      (post) => new Date(post.created_at).getTime() >= since,
+    );
+  }
+
   async searchPosts(filters: import("@/lib/search").SearchFilters) {
     const { memorySearch } = await import("@/lib/search");
     const posts = this.posts

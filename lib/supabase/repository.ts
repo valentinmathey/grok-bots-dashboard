@@ -582,6 +582,23 @@ export function createSupabaseRepository(): BotsRepository {
       };
     },
 
+    async listStatsPosts(days = 90) {
+      const since = new Date(Date.now() - days * 86_400_000).toISOString();
+      const { data, error } = await admin
+        .from("posts")
+        .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      return (data ?? []).map((row) => {
+        const { bots, ...post } = row as import("@/lib/types").Post & {
+          bots: Pick<Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url">;
+        };
+        return { ...(post as import("@/lib/types").Post), bot: bots };
+      });
+    },
+
     async listAgendaPosts() {
       const { data, error } = await admin
         .from("posts")
