@@ -582,6 +582,22 @@ export function createSupabaseRepository(): BotsRepository {
       };
     },
 
+    async listAgendaPosts() {
+      const { data, error } = await admin
+        .from("posts")
+        .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)")
+        .or("event_at.not.is.null,kind.eq.oportunidades,kind.eq.alojamiento")
+        .order("created_at", { ascending: false })
+        .limit(800);
+      if (error) throw error;
+      return (data ?? []).map((row) => {
+        const { bots, ...post } = row as import("@/lib/types").Post & {
+          bots: Pick<Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url">;
+        };
+        return { ...(post as import("@/lib/types").Post), bot: bots };
+      });
+    },
+
     async searchPosts(filters) {
       const { highlightSnippet, memorySearch } = await import("@/lib/search");
       const q = filters.q.trim();
