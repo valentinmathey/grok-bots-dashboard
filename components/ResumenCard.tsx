@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, ChevronDown, ChevronUp, Home, Newspaper, Sparkles } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
@@ -8,6 +8,7 @@ import { MarkdownBody } from "@/components/MarkdownBody";
 import { TimeStamp } from "@/components/TimeStamp";
 import { asResumen, type ResumenDetails } from "@/lib/details";
 import { formatDate, formatEventWhen, formatMoney, kindLabel } from "@/lib/format";
+import { persistResumenOpen } from "@/lib/resumen-collapse";
 import type { Post } from "@/lib/types";
 
 function Stat({
@@ -39,6 +40,7 @@ export function ResumenCard({
   details: detailsProp,
   compact = false,
   live = false,
+  initialOpen,
   updatedAt,
   archiveHref,
 }: {
@@ -46,12 +48,28 @@ export function ResumenCard({
   details?: ResumenDetails | null;
   compact?: boolean;
   live?: boolean;
+  initialOpen?: boolean;
   updatedAt?: string;
   archiveHref?: string;
 }) {
-  const [open, setOpen] = useState(live || !compact);
+  const bodyId = useId();
+  const [open, setOpen] = useState(() =>
+    live ? (initialOpen ?? true) : live || !compact,
+  );
   const details = detailsProp ?? (post ? asResumen(post.details) : null);
   const updated = updatedAt ?? details?.generated_at;
+  const totalNew = details?.bots.reduce((sum, bot) => sum + bot.new_posts, 0) ?? 0;
+  const totalEvents =
+    details?.bots.reduce((sum, bot) => sum + (bot.upcoming_events?.length ?? 0), 0) ?? 0;
+  const showHeaderToggle = live;
+
+  function toggle() {
+    setOpen((current) => {
+      const next = !current;
+      if (live) persistResumenOpen(next);
+      return next;
+    });
+  }
 
   return (
     <article
@@ -59,27 +77,61 @@ export function ResumenCard({
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
     >
       <div className="bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_70%)] p-4 sm:p-5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
-          {live ? "En vivo" : "Resumen semanal"}
-        </p>
-        <h2 className="mt-1 text-[1.35rem] font-semibold tracking-tight sm:text-2xl">
-          {live ? "Esta semana · últimos 7 días" : (post?.title ?? "Resumen")}
-        </h2>
-        {details ? (
-          <p className="mt-1 text-sm text-muted">
-            {formatDate(`${details.period_from}T12:00:00.000Z`)} —{" "}
-            {formatDate(`${details.period_to}T12:00:00.000Z`)}
-            {updated ? (
-              <>
-                {" · Actualizado "}
-                <TimeStamp iso={updated} />
-              </>
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
+              {live ? "En vivo" : "Resumen semanal"}
+            </p>
+            <h2 className="mt-1 text-[1.35rem] font-semibold tracking-tight sm:text-2xl">
+              {live ? "Esta semana · últimos 7 días" : (post?.title ?? "Resumen")}
+            </h2>
+            {details ? (
+              <p className="mt-1 text-sm text-muted">
+                {formatDate(`${details.period_from}T12:00:00.000Z`)} —{" "}
+                {formatDate(`${details.period_to}T12:00:00.000Z`)}
+                {updated ? (
+                  <>
+                    {" · Actualizado "}
+                    <TimeStamp iso={updated} />
+                  </>
+                ) : null}
+              </p>
             ) : null}
-          </p>
-        ) : null}
+            {live && !open && details ? (
+              <p className="mt-2 truncate text-sm text-muted">
+                {totalNew} {totalNew === 1 ? "nuevo" : "nuevos"} · {totalEvents}{" "}
+                {totalEvents === 1 ? "evento" : "eventos"}
+              </p>
+            ) : null}
+          </div>
+          {showHeaderToggle ? (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              aria-controls={bodyId}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
+              title={open ? "Cerrar resumen" : "Ver el resumen"}
+            >
+              <ChevronDown
+                size={20}
+                strokeWidth={1.75}
+                className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+              />
+              <span className="sr-only">{open ? "Cerrar resumen" : "Ver el resumen"}</span>
+            </button>
+          ) : null}
+        </div>
       </div>
 
-      {details && open ? (
+      <div
+        id={bodyId}
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+          details && open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="min-w-0 overflow-hidden">
+        {details ? (
         <div className="space-y-4 p-4 pt-0 sm:p-5 sm:pt-0">
           {details.bots.map((bot) => (
             <section key={bot.bot_id} className="rounded-2xl border border-line/80 p-3 sm:p-4">
@@ -249,16 +301,16 @@ export function ResumenCard({
             </p>
           ) : null}
         </div>
-      ) : compact && !live ? (
-        <p className="px-4 pb-4 text-sm leading-6 text-muted sm:px-5">
-          Lo que publicaron tus bots esta semana, con eventos y alojamientos destacados.
-        </p>
-      ) : null}
+        ) : null}
+        </div>
+      </div>
 
       {compact && !live ? (
         <button
           type="button"
-          onClick={() => setOpen((value) => !value)}
+          onClick={toggle}
+          aria-expanded={open}
+          aria-controls={bodyId}
           className="flex w-full items-center justify-center gap-1 border-t border-line px-4 py-3 text-sm font-medium text-accent"
         >
           {open ? <ChevronUp size={16} strokeWidth={1.75} /> : <ChevronDown size={16} strokeWidth={1.75} />}

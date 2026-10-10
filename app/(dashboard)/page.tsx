@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { BotCard } from "@/components/BotCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ResumenCard } from "@/components/ResumenCard";
 import { getRepository } from "@/lib/data";
 import { SUMMARY_BOT_SLUG } from "@/lib/details";
+import { parseResumenOpen, RESUMEN_OPEN_KEY } from "@/lib/resumen-collapse";
 import {
   buildResumenDetails,
   groupPostsByBot,
@@ -14,9 +16,10 @@ export const revalidate = 0;
 
 export default async function HomePage() {
   const repo = getRepository();
-  const [bots, posts] = await Promise.all([
+  const [bots, posts, jar] = await Promise.all([
     repo.listBotSummaries(),
     repo.listPostsForSummary(),
+    cookies(),
   ]);
   const details = buildResumenDetails({
     bots,
@@ -43,6 +46,7 @@ export default async function HomePage() {
           <ResumenCard
             details={details}
             live
+            initialOpen={parseResumenOpen(jar.get(RESUMEN_OPEN_KEY)?.value)}
             updatedAt={updatedAt}
             archiveHref={`/bots/${SUMMARY_BOT_SLUG}?kind=resumen`}
           />
