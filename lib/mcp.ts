@@ -1,4 +1,4 @@
-import { listCatalogEvents, listCatalogPosts } from "@/lib/catalog";
+import { listCatalogEvents, listCatalogPosts, searchCatalogPosts } from "@/lib/catalog";
 import { SUMMARY_BOT_SLUG } from "@/lib/details";
 import {
   authenticateBot,
@@ -292,6 +292,29 @@ export const MCP_READ_TOOLS = [
       },
     },
   },
+  {
+    name: "search_posts",
+    description:
+      "Busca posts de todos los bots (título, cuerpo, producto, tags y details). Solo claves read:all. Args: q (req, ≥2), bots[]/bot, kinds[]/kind, from, to, sort=relevance|newest, favorites (reservado), limit, offset.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["q"],
+      properties: {
+        q: { type: "string", description: "Texto a buscar (sin acento también sirve)" },
+        bot: { type: "string" },
+        bots: { type: "array", items: { type: "string" } },
+        kind: { type: "string" },
+        kinds: { type: "array", items: { type: "string" } },
+        from: { type: "string" },
+        to: { type: "string" },
+        sort: { type: "string", description: "relevance | newest" },
+        favorites: { type: "boolean" },
+        limit: { type: "integer", minimum: 1, maximum: 50 },
+        offset: { type: "integer", minimum: 0 },
+      },
+    },
+  },
 ] as const;
 
 export const MCP_SHARE_TOOLS = [
@@ -428,6 +451,8 @@ async function callTool(
       return listCatalogPosts(repo, authorization, args ?? {});
     case "list_events":
       return listCatalogEvents(repo, authorization, args ?? {});
+    case "search_posts":
+      return searchCatalogPosts(repo, authorization, args ?? {});
     case "create_share_link":
       return createShareLink(repo, authorization, args ?? {});
     case "revoke_share_link":

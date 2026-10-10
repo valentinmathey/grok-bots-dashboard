@@ -206,6 +206,7 @@ describe("scopes de API key", () => {
     expect(readTools.map((tool) => tool.name)).toEqual([
       "list_posts",
       "list_events",
+      "search_posts",
     ]);
   });
 

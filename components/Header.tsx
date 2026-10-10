@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Bell, LogOut, Settings } from "lucide-react";
+import { SearchOverlay } from "@/components/SearchOverlay";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Header({ email }: { email: string }) {
@@ -16,6 +17,7 @@ export function Header({ email }: { email: string }) {
         </Link>
         <div className="flex items-center gap-0.5 sm:gap-1.5">
           <ThemeToggle />
+          <SearchOverlay />
           <Link
             href="/notificaciones"
             aria-label="Notificaciones"

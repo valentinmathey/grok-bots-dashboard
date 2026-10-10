@@ -110,6 +110,10 @@ export type BotsRepository = {
     posts: Array<Post & { bot: Pick<Bot, "id" | "name" | "slug"> }>;
     total: number;
   }>;
+  searchPosts(filters: import("@/lib/search").SearchFilters): Promise<{
+    hits: import("@/lib/search").SearchHit[];
+    total: number;
+  }>;
   listProducts(botId?: string): Promise<string[]>;
   latestPostByBotIds(
     botIds: string[],

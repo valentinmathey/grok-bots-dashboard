@@ -202,3 +202,48 @@ export async function listCatalogEvents(
     },
   };
 }
+
+export async function searchCatalogPosts(
+  repo: BotsRepository,
+  authorization: string | null,
+  payload: unknown,
+): Promise<
+  Result<{
+    hits: Awaited<ReturnType<BotsRepository["searchPosts"]>>["hits"];
+    total: number;
+    limit: number;
+    offset: number;
+  }>
+> {
+  const auth = await requireCatalogReader(repo, authorization);
+  if (!auth.ok) return auth;
+  const raw = (payload ?? {}) as Record<string, unknown>;
+  const q = typeof raw.q === "string" ? raw.q.trim() : "";
+  if (q.length < 2) {
+    return fail(400, "invalid_input", "q tiene que tener al menos 2 caracteres");
+  }
+  const limit = Math.min(Number(raw.limit) || 20, 50);
+  const offset = Number(raw.offset) || 0;
+  const bots = Array.isArray(raw.bots)
+    ? raw.bots.filter((item): item is string => typeof item === "string")
+    : typeof raw.bot === "string"
+      ? [raw.bot]
+      : undefined;
+  const kinds = Array.isArray(raw.kinds)
+    ? raw.kinds.filter((item): item is string => typeof item === "string")
+    : typeof raw.kind === "string"
+      ? [raw.kind]
+      : undefined;
+  const result = await repo.searchPosts({
+    q,
+    bots,
+    kinds,
+    from: typeof raw.from === "string" ? raw.from : undefined,
+    to: typeof raw.to === "string" ? raw.to : undefined,
+    favoritesOnly: raw.favorites === true || raw.favorites === "1",
+    sort: raw.sort === "newest" ? "newest" : "relevance",
+    limit,
+    offset,
+  });
+  return { ok: true, data: { ...result, limit, offset } };
+}

@@ -582,6 +582,66 @@ export function createSupabaseRepository(): BotsRepository {
       };
     },
 
+    async searchPosts(filters) {
+      const { highlightSnippet, memorySearch } = await import("@/lib/search");
+      const q = filters.q.trim();
+      if (q.length < 2) return { hits: [], total: 0 };
+      const limit = Math.min(filters.limit ?? 20, 50);
+      const offset = filters.offset ?? 0;
+      let query = admin
+        .from("posts")
+        .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)", { count: "exact" });
+      if (filters.bots?.length) {
+        query = query.in("bots.slug", filters.bots);
+      }
+      if (filters.kinds?.length) {
+        query = query.in("kind", filters.kinds);
+      }
+      if (filters.from) query = query.gte("created_at", `${filters.from}T00:00:00.000Z`);
+      if (filters.to) query = query.lte("created_at", `${filters.to}T23:59:59.999Z`);
+      // search_tsv se guarda sin acentos: normalizamos la consulta igual.
+      const ts = q
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .replace(/[':()&|!]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      let { data, error, count } = await query
+        .textSearch("search_tsv", ts, { type: "websearch", config: "simple" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (error) {
+        const fallback = await admin
+          .from("posts")
+          .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)");
+        const rows = (fallback.data ?? []).map((row) => {
+          const { bots, ...post } = row as Post & {
+            bots: Pick<Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url">;
+          };
+          return { ...(post as Post), bot: bots };
+        });
+        return memorySearch(rows, filters);
+      }
+      const hits = (data ?? []).map((row) => {
+        const { bots, ...post } = row as Post & {
+          bots: Pick<Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url">;
+        };
+        return {
+          id: post.id,
+          title: post.title,
+          kind: post.kind,
+          snippet: highlightSnippet(`${post.title}. ${post.body_markdown}`, q),
+          created_at: post.created_at,
+          bot: bots,
+          url: `/bots/${bots.slug}#post-${post.id}`,
+        };
+      });
+      if (filters.sort !== "newest") {
+        hits.sort((a, b) => (a.title.toLowerCase().includes(q.toLowerCase()) ? -1 : 1) - (b.title.toLowerCase().includes(q.toLowerCase()) ? -1 : 1));
+      }
+      return { hits, total: count ?? hits.length };
+    },
+
     async listProducts(botId) {
       let query = admin
         .from("posts")
