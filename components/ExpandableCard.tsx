@@ -15,7 +15,10 @@ import { ChevronDown } from "lucide-react";
 const INTERACTIVE =
   "a, button, input, textarea, select, summary, label, [role='button'], [data-no-collapse], [data-gallery]";
 
-export function isCardInteractiveTarget(target: EventTarget | null): boolean {
+export function isCardInteractiveTarget(
+  target: EventTarget | null,
+  boundary?: EventTarget | null,
+): boolean {
   if (!(target instanceof Element)) return false;
   if (typeof window !== "undefined") {
     const selection = window.getSelection();
@@ -23,7 +26,13 @@ export function isCardInteractiveTarget(target: EventTarget | null): boolean {
       return true;
     }
   }
-  return Boolean(target.closest(INTERACTIVE));
+  const stop = boundary instanceof Element ? boundary : null;
+  let node: Element | null = target;
+  while (node && node !== stop) {
+    if (node.matches(INTERACTIVE)) return true;
+    node = node.parentElement;
+  }
+  return false;
 }
 
 function prefersReducedMotion(): boolean {
@@ -88,11 +97,8 @@ export function ExpandableHeader({
   className?: string;
 }) {
   function onClick(event: MouseEvent<HTMLElement>) {
-    if (isCardInteractiveTarget(event.target) && event.target !== event.currentTarget) {
-      const node = event.target;
-      if (node instanceof Element && node.closest(INTERACTIVE)) {
-        return;
-      }
+    if (isCardInteractiveTarget(event.target, event.currentTarget)) {
+      return;
     }
     event.stopPropagation();
     onToggle();
@@ -100,7 +106,7 @@ export function ExpandableHeader({
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key !== "Enter" && event.key !== " ") return;
-    if (isCardInteractiveTarget(event.target) && event.target !== event.currentTarget) {
+    if (isCardInteractiveTarget(event.target, event.currentTarget)) {
       return;
     }
     event.preventDefault();
