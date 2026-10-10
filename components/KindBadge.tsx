@@ -6,6 +6,7 @@ import {
   Home,
   NotebookPen,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { kindLabel } from "@/lib/format";
 import type { PostKind } from "@/lib/types";
@@ -38,6 +39,10 @@ const KNOWN: Record<string, { className: string; Icon: typeof Sparkles }> = {
   resumen: {
     className: "bg-indigo-500/14 text-indigo-800 dark:text-indigo-200",
     Icon: Sparkles,
+  },
+  oportunidades: {
+    className: "bg-emerald-500/14 text-emerald-800 dark:text-emerald-200",
+    Icon: Target,
   },
 };
 

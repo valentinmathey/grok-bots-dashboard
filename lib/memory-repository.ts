@@ -1,4 +1,8 @@
-import { collectAlojamientoFacets, emptyDetails } from "@/lib/details";
+import {
+  collectAlojamientoFacets,
+  collectOportunidadesFacets,
+  emptyDetails,
+} from "@/lib/details";
 import { isEventUpcoming } from "@/lib/event-time";
 import { matchesFilters, sortPosts, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
@@ -200,7 +204,12 @@ export class MemoryRepository implements BotsRepository {
     const matched = this.posts.filter(
       (post) => post.bot_id === botId && matchesFilters(post, filters ?? {}),
     );
-    const ordered = sortPosts(matched, options.sort ?? "newest", filters?.when);
+    const ordered = sortPosts(
+      matched,
+      options.sort ?? "newest",
+      filters?.when,
+      filters,
+    );
     const offset = options.offset ?? 0;
     const limit = options.limit ?? ordered.length;
     return {
@@ -230,7 +239,11 @@ export class MemoryRepository implements BotsRepository {
       has_alojamientos: this.posts.some(
         (post) => post.bot_id === botId && post.kind === "alojamiento",
       ),
+      has_oportunidades: this.posts.some(
+        (post) => post.bot_id === botId && post.kind === "oportunidades",
+      ),
       ...collectAlojamientoFacets(this.posts.filter((post) => post.bot_id === botId)),
+      ...collectOportunidadesFacets(this.posts.filter((post) => post.bot_id === botId)),
     };
   }
 

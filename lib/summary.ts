@@ -1,7 +1,9 @@
 import {
   asAlojamiento,
+  asOportunidades,
   asResumen,
   hasPriceDrop,
+  isOpportunityClosed,
   SUMMARY_BOT_SLUG,
   type ResumenDetails,
   type ResumenHighlight,
@@ -14,7 +16,7 @@ import type { Bot, Post, Result } from "@/lib/types";
 const MS_DAY = 86_400_000;
 export const SUMMARY_LOOKBACK_DAYS = 7;
 export const SUMMARY_EVENT_HORIZON_DAYS = 14;
-const GENERIC_KIND_SKIP = new Set(["resumen", "alojamiento", "evento"]);
+const GENERIC_KIND_SKIP = new Set(["resumen", "alojamiento", "evento", "oportunidades"]);
 
 export function baIsoWeekKey(now = new Date()): string {
   const ymd = baCalendarDate(now);
@@ -154,6 +156,32 @@ export function buildResumenDetails(input: {
         .filter((item) => hasPriceDrop(item.details))
         .map((item) => highlightFromPost(item.post));
 
+      const oportunidadPosts = recent.filter((post) => post.kind === "oportunidades");
+      const oportunidadItems = oportunidadPosts.flatMap((post) => {
+        const details = asOportunidades(post.details);
+        if (!details) return [];
+        return details.items.map((item) => ({ item, post_id: post.id }));
+      });
+      const openItems = oportunidadItems.filter(
+        ({ item }) => !isOpportunityClosed(item.deadline, now),
+      );
+      const recommendedOpen = openItems.filter(({ item }) => item.recommended);
+      const nextDeadlines = [...openItems]
+        .filter(({ item }) => item.deadline)
+        .sort(
+          (a, b) =>
+            new Date(a.item.deadline ?? 0).getTime() -
+            new Date(b.item.deadline ?? 0).getTime(),
+        )
+        .slice(0, 5)
+        .map(({ item, post_id }) => ({
+          name: item.name,
+          deadline: item.deadline as string,
+          category: item.category,
+          post_id,
+          prize_text: item.prize_text,
+        }));
+
       return {
         bot_id: bot.id,
         name: bot.name,
@@ -175,6 +203,14 @@ export function buildResumenDetails(input: {
                 best: best ? highlightFromPost(best.post) : undefined,
                 cheapest: cheapest ? highlightFromPost(cheapest.post) : undefined,
                 price_drops: drops,
+              }
+            : undefined,
+        oportunidades:
+          oportunidadItems.length > 0
+            ? {
+                open_count: openItems.length,
+                recommended_count: recommendedOpen.length,
+                next_deadlines: nextDeadlines,
               }
             : undefined,
         products: productRank(recent),
@@ -215,6 +251,18 @@ export function resumenMarkdown(details: ResumenDetails): string {
       }
       if (bot.alojamientos.price_drops?.length) {
         lines.push(`  - Bajaron de precio: ${bot.alojamientos.price_drops.length}`);
+      }
+    }
+    if (bot.oportunidades) {
+      lines.push(`- Oportunidades abiertas: **${bot.oportunidades.open_count}**`);
+      if (bot.oportunidades.recommended_count) {
+        lines.push(`  - Recomendadas: ${bot.oportunidades.recommended_count}`);
+      }
+      if (bot.oportunidades.next_deadlines?.length) {
+        lines.push(`  - Próximos cierres:`);
+        for (const item of bot.oportunidades.next_deadlines.slice(0, 4)) {
+          lines.push(`    - ${item.name} (${item.deadline.slice(0, 10)})`);
+        }
       }
     }
     if (bot.kinds?.length) {

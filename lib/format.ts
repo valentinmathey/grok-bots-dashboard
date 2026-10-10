@@ -9,6 +9,7 @@ const KIND_LABELS: Record<string, string> = {
   evento: "Evento",
   alojamiento: "Alojamiento",
   resumen: "Resumen",
+  oportunidades: "Oportunidades",
 };
 
 export function kindLabel(kind: PostKind): string {

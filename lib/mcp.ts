@@ -31,7 +31,7 @@ export const MCP_TOOLS = [
   {
     name: "publish_post",
     description:
-      "Publica un post en el panel del bot (título, markdown, producto opcional, tipo, etiquetas, fecha de evento y details JSON). kind=alojamiento o resumen validan details; otros kinds aceptan un objeto libre (máx. 40 claves / 32 KB) o lo omiten.",
+      "Publica un post en el panel del bot (título, markdown, producto opcional, tipo, etiquetas, fecha de evento y details JSON). kind=alojamiento, resumen u oportunidades validan details; otros kinds aceptan un objeto libre (máx. 40 claves / 32 KB) o lo omiten. kind=oportunidades es un lote (1 post = 1 tanda, p. ej. martes/viernes) y exige details.items (1–60).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -49,7 +49,7 @@ export const MCP_TOOLS = [
         kind: {
           type: "string",
           description:
-            "Tipo del post: slug corto en minúsculas (update, result, report, note, evento, alojamiento, resumen, u otro).",
+            "Tipo del post: slug corto en minúsculas (update, result, report, note, evento, alojamiento, resumen, oportunidades, u otro).",
         },
         tags: {
           type: "array",
@@ -86,7 +86,7 @@ export const MCP_TOOLS = [
         details: {
           type: "object",
           description:
-            "JSON estructurado. alojamiento (todos opcionales): platform (airbnb|booking|otro), listing_url, search_area, neighborhood, city, address, lat, lng, maps_url, check_in, check_out (YYYY-MM-DD), nights, guests, capacity, bedrooms, beds, bathrooms, property_type, is_combination, units[{name,url,capacity,price}], price_total, price_per_person, price_per_night, currency, price_as_shown, cleaning_fee, service_fee, rating (0-5), reviews_count, superhost, badges[], distance_to_beach (m), amenities[] (pool,parking,wifi,ac,grill,kitchen,washer,sea_view,pet_friendly,tv,heating,workspace,beach_access), includes[], excludes[], cancellation, pros[], cons[], score (0-10 precio-calidad), rank, last_checked_at, previous_price_total, previous_price_per_person. resumen: week_key (YYYY-Www), period_from, period_to, generated_at, bots[{bot_id,name,slug,avatar_color,avatar_url,status,new_posts,upcoming_events[{title,event_at,event_end_at,post_id}],alojamientos{new_count,best,cheapest,price_drops[{title,post_id,score,price_per_person,price_total,currency,from,to}]},products[{name,posts}]}]. Otros kinds: objeto libre.",
+            "JSON estructurado. Claves desconocidas se descartan. alojamiento (todos opcionales): platform (airbnb|booking|otro), listing_url, search_area, neighborhood, city, address, lat, lng, maps_url, check_in, check_out (YYYY-MM-DD), nights, guests, capacity, bedrooms, beds, bathrooms, property_type, is_combination, units[{name,url,capacity,price}], price_total, price_per_person, price_per_night, currency, price_as_shown, cleaning_fee, service_fee, rating (0-5), reviews_count, superhost, badges[], distance_to_beach (m), amenities[] (pool,parking,wifi,ac,grill,kitchen,washer,sea_view,pet_friendly,tv,heating,workspace,beach_access), includes[], excludes[], cancellation, pros[], cons[], score (0-10 precio-calidad), rank, last_checked_at, previous_price_total, previous_price_per_person. resumen: week_key (YYYY-Www), period_from, period_to, generated_at, bots[{bot_id,name,slug,avatar_color,avatar_url,status,new_posts,upcoming_events[{title,event_at,event_end_at,post_id}],alojamientos{new_count,best,cheapest,price_drops[{title,post_id,score,price_per_person,price_total,currency,from,to}]},oportunidades{open_count,recommended_count,next_deadlines[{name,deadline,category,post_id,prize_text}]},products[{name,posts}]}]. oportunidades (un lote): period_label? (≤80), items[] requerido 1–60, cada item: name requerido ≤160, url requerido http(s), category enum hackaton|bounty|beca|curso|grant|creditos|concurso|empleo|freelance|oferta|otro, organization? ≤120, prize_text? ≤120 (tal cual en la fuente: premio/sueldo/precio), prize_value? number + prize_currency? ≤8 (para ordenar), deadline? YYYY-MM-DD o ISO (hora Argentina, como event_at), modality? online|presencial|hibrido, location? ≤120, effort? bajo|medio|alto, effort_text? ≤80, how_to? ≤280, recommended? boolean, tags? ≤8 strings, image_url? http(s), notes? ≤280. Ejemplo: {\"period_label\":\"Martes 13/10\",\"items\":[{\"name\":\"ETHGlobal Buenos Aires\",\"url\":\"https://ethglobal.com/events/buenosaires\",\"category\":\"hackaton\",\"organization\":\"ETHGlobal\",\"prize_text\":\"US$ 100k\",\"prize_value\":100000,\"prize_currency\":\"USD\",\"deadline\":\"2026-10-20\",\"modality\":\"presencial\",\"location\":\"CABA\",\"effort\":\"alto\",\"how_to\":\"Armá equipo de 3 y mandá el repo el viernes.\",\"recommended\":true}]}. Otros kinds: objeto libre.",
         },
       },
     },

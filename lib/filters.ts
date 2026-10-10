@@ -1,4 +1,9 @@
-import { asAlojamiento } from "@/lib/details";
+import {
+  asAlojamiento,
+  asOportunidades,
+  filterOportunidadItems,
+  isOportunidadCategory,
+} from "@/lib/details";
 import {
   baEndOfDay,
   baStartOfDay,
@@ -31,6 +36,9 @@ export type PostFilters = {
   neighborhood?: string;
   max_price_pp?: number;
   amenities?: string[];
+  category?: string;
+  recommended?: boolean;
+  openOnly?: boolean;
   view?: FeedView;
   bot?: string;
   q?: string;
@@ -49,6 +57,7 @@ const ALOJAMIENTO_SORTS: FeedSort[] = [
   "newest",
   "oldest",
 ];
+const OPORTUNIDAD_SORTS: FeedSort[] = ["newest", "oldest", "deadline", "prize"];
 
 function firstString(
   value: string | string[] | undefined,
@@ -87,6 +96,9 @@ export function parsePostFilters(
   const maxRaw = firstString(searchParams.max_price_pp)?.trim();
   const maxPrice = maxRaw ? Number(maxRaw) : NaN;
   const viewRaw = firstString(searchParams.view);
+  const categoryRaw = firstString(searchParams.category)?.trim().toLowerCase();
+  const recommendedRaw = firstString(searchParams.recommended);
+  const openRaw = firstString(searchParams.open);
 
   return {
     from: asDate(firstString(searchParams.from)),
@@ -101,13 +113,16 @@ export function parsePostFilters(
     neighborhood: neighborhood || undefined,
     max_price_pp: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : undefined,
     amenities: parseAmenities(searchParams.amenities),
+    category: categoryRaw && isOportunidadCategory(categoryRaw) ? categoryRaw : undefined,
+    recommended: recommendedRaw === "1" || recommendedRaw === "true" ? true : undefined,
+    openOnly: openRaw === "1" || openRaw === "true" ? true : undefined,
     view: viewRaw === "table" ? "table" : undefined,
   };
 }
 
 export function parseSort(
   searchParams: Record<string, string | string[] | undefined>,
-  options: { hasAlojamientos?: boolean } = {},
+  options: { hasAlojamientos?: boolean; hasOportunidades?: boolean } = {},
 ): FeedSort {
   const raw = firstString(searchParams.sort);
   if (options.hasAlojamientos) {
@@ -115,6 +130,12 @@ export function parseSort(
       return raw as FeedSort;
     }
     return "score";
+  }
+  if (options.hasOportunidades) {
+    if (raw && (OPORTUNIDAD_SORTS as string[]).includes(raw)) {
+      return raw as FeedSort;
+    }
+    return "newest";
   }
   return raw === "oldest" ? "oldest" : "newest";
 }
@@ -132,14 +153,20 @@ export function parseWhen(
 
 export function parseFeedQuery(
   searchParams: Record<string, string | string[] | undefined>,
-  options: { hasEvents?: boolean; hasAlojamientos?: boolean } = {},
+  options: {
+    hasEvents?: boolean;
+    hasAlojamientos?: boolean;
+    hasOportunidades?: boolean;
+  } = {},
 ): FeedQuery {
   const hasEvents = Boolean(options.hasEvents);
   const hasAlojamientos = Boolean(options.hasAlojamientos) && !hasEvents;
+  const hasOportunidades =
+    Boolean(options.hasOportunidades) && !hasEvents && !hasAlojamientos;
   const when = parseWhen(searchParams, hasEvents);
   return {
     ...parsePostFilters(searchParams),
-    sort: parseSort(searchParams, { hasAlojamientos }),
+    sort: parseSort(searchParams, { hasAlojamientos, hasOportunidades }),
     when,
     dateBasis: hasEvents ? "event" : "created",
     eventsOnly: hasEvents,
@@ -164,6 +191,9 @@ export function filtersToSearchParams(
   if (filters.neighborhood) params.set("neighborhood", filters.neighborhood);
   if (filters.max_price_pp != null) params.set("max_price_pp", String(filters.max_price_pp));
   if (filters.amenities?.length) params.set("amenities", filters.amenities.join(","));
+  if (filters.category) params.set("category", filters.category);
+  if (filters.recommended) params.set("recommended", "1");
+  if (filters.openOnly) params.set("open", "1");
   if (filters.view && filters.view !== "cards") params.set("view", filters.view);
   if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
   return params;
@@ -185,6 +215,9 @@ export function countActiveFilters(filters: PostFilters): number {
     filters.neighborhood,
     filters.max_price_pp,
     filters.amenities?.length ? "amenities" : null,
+    filters.category,
+    filters.recommended ? "recommended" : null,
+    filters.openOnly ? "open" : null,
   ].filter(Boolean).length;
 }
 
@@ -200,6 +233,14 @@ export function hasAlojamientoFilters(filters: PostFilters = {}): boolean {
 
 export function isAlojamientoSort(sort?: FeedSort): boolean {
   return sort === "score" || sort === "price_pp" || sort === "price_total" || sort === "rating";
+}
+
+export function hasOportunidadesFilters(filters: PostFilters = {}): boolean {
+  return Boolean(filters.category || filters.recommended || filters.openOnly);
+}
+
+export function isOportunidadesSort(sort?: FeedSort): boolean {
+  return sort === "deadline" || sort === "prize";
 }
 
 export function dayStartIso(date: string): string {
@@ -322,6 +363,22 @@ export function matchesFilters(post: Post, filters: PostFilters): boolean {
     }
   }
 
+  if (hasOportunidadesFilters(filters)) {
+    const details = asOportunidades(post.details);
+    if (!details || post.kind !== "oportunidades") {
+      return false;
+    }
+    if (
+      filterOportunidadItems(details.items, {
+        category: filters.category,
+        recommended: filters.recommended,
+        openOnly: filters.openOnly,
+      }).length === 0
+    ) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -335,10 +392,39 @@ function alojamientoSortValue(post: Post, sort: FeedSort): number | null {
   return null;
 }
 
+function oportunidadSortValue(
+  post: Post,
+  sort: FeedSort,
+  filters: PostFilters = {},
+): number | null {
+  const details = asOportunidades(post.details);
+  if (!details) return null;
+  const items = filterOportunidadItems(details.items, {
+    category: filters.category,
+    recommended: filters.recommended,
+    openOnly: filters.openOnly,
+  });
+  if (items.length === 0) return null;
+  if (sort === "deadline") {
+    const times = items
+      .map((item) => (item.deadline ? new Date(item.deadline).getTime() : null))
+      .filter((value): value is number => value != null);
+    return times.length ? Math.min(...times) : null;
+  }
+  if (sort === "prize") {
+    const values = items
+      .map((item) => item.prize_value)
+      .filter((value): value is number => value != null);
+    return values.length ? Math.max(...values) : null;
+  }
+  return null;
+}
+
 export function sortPosts(
   posts: Post[],
   sort: FeedSort = "newest",
   when?: EventWhen,
+  filters: PostFilters = {},
 ): Post[] {
   const copy = [...posts];
   if (when) {
@@ -363,6 +449,19 @@ export function sortPosts(
       if (va == null) return 1;
       if (vb == null) return -1;
       return cheaperFirst ? va - vb : vb - va;
+    });
+    return copy;
+  }
+
+  if (isOportunidadesSort(sort)) {
+    const soonerFirst = sort === "deadline";
+    copy.sort((a, b) => {
+      const va = oportunidadSortValue(a, sort, filters);
+      const vb = oportunidadSortValue(b, sort, filters);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return soonerFirst ? va - vb : vb - va;
     });
     return copy;
   }

@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useId } from "react";
 import Link from "next/link";
 import {
   Bath,
   BedDouble,
-  ChevronDown,
-  ChevronUp,
   DoorOpen,
   ExternalLink,
   MapPin,
@@ -15,6 +13,13 @@ import {
   Users,
 } from "lucide-react";
 import { AmenityChip } from "@/components/AmenityChip";
+import {
+  cardCollapseProps,
+  ExpandableBody,
+  ExpandableHeader,
+  ExpandChevron,
+  useExpandable,
+} from "@/components/ExpandableCard";
 import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
@@ -43,7 +48,8 @@ export function AlojamientoCard({
   href?: string;
   defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const { open, toggle, headerRef } = useExpandable(defaultOpen);
+  const bodyId = useId();
   const details = asAlojamiento(post.details) ?? {};
   const media = uniquePostMedia(post);
   const cover = media[0] ?? null;
@@ -55,7 +61,8 @@ export function AlojamientoCard({
   return (
     <article
       id={`post-${post.id}`}
-      className="surface group min-w-0 scroll-mt-20 overflow-hidden rounded-3xl transition-transform duration-200"
+      className="surface group min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
+      {...cardCollapseProps(open, toggle)}
     >
       <div className="relative">
         {cover ? (
@@ -94,7 +101,15 @@ export function AlojamientoCard({
         </div>
       </div>
 
-      <div className="p-4 sm:p-5">
+      <ExpandableHeader
+        open={open}
+        onToggle={toggle}
+        headerRef={headerRef}
+        controlsId={bodyId}
+        className="p-4 sm:p-5"
+      >
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <h3 className="min-w-0 text-[1.08rem] font-semibold leading-snug tracking-tight">
             {href ? (
@@ -193,9 +208,12 @@ export function AlojamientoCard({
             ))}
           </div>
         ) : null}
+          </div>
+          <ExpandChevron open={open} />
+        </div>
+      </ExpandableHeader>
 
-        {open ? (
-          <div className="mt-4 space-y-4 border-t border-line pt-4">
+      <ExpandableBody open={open} id={bodyId} className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">
             {media.length > 1 ? (
               <div className="grid grid-cols-2 gap-2">
                 {media.slice(1).map((image) => (
@@ -291,18 +309,7 @@ export function AlojamientoCard({
                 <ExternalLink size={15} strokeWidth={1.75} />
               </a>
             ) : null}
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-accent"
-        >
-          {open ? <ChevronUp size={16} strokeWidth={1.75} /> : <ChevronDown size={16} strokeWidth={1.75} />}
-          {open ? "Ver menos" : "Ver detalle"}
-        </button>
-      </div>
+      </ExpandableBody>
     </article>
   );
 }
