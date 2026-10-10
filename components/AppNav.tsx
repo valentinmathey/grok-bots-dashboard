@@ -311,8 +311,8 @@ function SideCluster({
         <span
           className="tab-indicator"
           style={{
-            width: `${100 / slots}%`,
-            transform: `translateX(${activeIndex * 100}%)`,
+            width: `calc(${100 / slots}% - 0.36rem)`,
+            transform: `translateX(calc(${activeIndex} * 100% + ${activeIndex} * 0.36rem))`,
           }}
         />
       ) : null}
