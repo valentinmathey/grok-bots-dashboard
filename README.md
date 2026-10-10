@@ -25,6 +25,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - **Guardados** (`/favoritos`): estrella en cada card (y en ítems de oportunidades/ranking). Se persiste en el server.
 - **Agenda** (`/agenda`): lista y mes con eventos, cierres y viajes. Export .ics y feed suscribible desde Ajustes.
 - **Pedidos** (`/pedidos`): le pedís algo a un bot desde la card; el bot lista/reclama/responde por REST o MCP.
+- **Estadísticas** (`/estadisticas`): posts por bot, por día, heatmap horario (Argentina), mix de kinds, tags e insights. Filtro 30/90 días y por bot.
 
 ## Requisitos
 
@@ -123,6 +124,9 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
 
    Para pedidos ejecutá
    **`supabase/migrations/20261011000000_bot_requests.sql`**.
+
+   Para estadísticas ejecutá
+   **`supabase/migrations/20261011010000_bot_stats.sql`**.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 

@@ -117,6 +117,9 @@ export type BotsRepository = {
   listAgendaPosts(): Promise<
     Array<import("@/lib/types").Post & { bot: Pick<import("@/lib/types").Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url"> }>
   >;
+  listStatsPosts(days?: number): Promise<
+    Array<import("@/lib/types").Post & { bot: Pick<import("@/lib/types").Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url"> }>
+  >;
   listProducts(botId?: string): Promise<string[]>;
   latestPostByBotIds(
     botIds: string[],

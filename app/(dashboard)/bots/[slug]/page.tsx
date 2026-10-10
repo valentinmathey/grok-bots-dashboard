@@ -63,6 +63,11 @@ export default async function BotPage({
                 {bot.description}
               </p>
             ) : null}
+            <p className="mt-2">
+              <Link href={`/estadisticas?bot=${bot.slug}`} className="text-xs font-medium text-accent">
+                Estadísticas
+              </Link>
+            </p>
           </div>
         </div>
       </div>
