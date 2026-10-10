@@ -64,14 +64,22 @@ export function useExpandable(defaultOpen = false) {
   return { open, setOpen, headerRef, toggle: () => setOpen((value) => !value) };
 }
 
-export function ExpandChevron({ open }: { open: boolean }) {
+export function ExpandChevron({
+  open,
+  compact = false,
+}: {
+  open: boolean;
+  compact?: boolean;
+}) {
   return (
     <span
-      className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted"
+      className={`grid shrink-0 place-items-center rounded-full text-muted ${
+        compact ? "h-8 w-8" : "h-11 w-11"
+      }`}
       aria-hidden
     >
       <ChevronDown
-        size={20}
+        size={compact ? 16 : 20}
         strokeWidth={1.75}
         className={`transition-transform duration-[220ms] ease-out motion-reduce:transition-none ${
           open ? "rotate-180" : ""

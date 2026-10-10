@@ -8,6 +8,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 
 - Login con magic link de Supabase. Solo entra el email de `OWNER_EMAIL`.
 - Home = panel de bots con avatar redondo (color + foto opcional), estado, cantidad de publicaciones y última actividad.
+- Home: cards de bots. El dueño puede **Ordenar** (arrastrar en desktop, long-press ~200 ms en el celu). El orden se guarda en `bots.sort_order` y también ordena el resumen en vivo y Ajustes. Los bots nuevos van al final.
 - Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito. Si hay `event_at`, el default es **próximos** (hoy primero) y hay una pestaña **Ya pasaron**. Si el bot publica `alojamiento`, el default es **score** (precio-calidad) con filtros de ciudad, precio y amenities, más una vista tabla. Si publica `oportunidades` (un post = un lote, p. ej. martes/viernes de **cazador-oportunidades**), hay chips de categoría, solo recomendadas, abiertas, y orden por cierre o premio. En todas las cards, tocá el encabezado para abrir; con la card abierta, tocá el recuadro (no links ni botones) para cerrarla. Portadas y galerías si el post trae URLs.
 - Home: el último `resumen` semanal arriba de la grilla de bots.
 - Filtros por **fecha**, **producto**, **tipo** y **etiqueta** según lo que ese bot publicó. Van en la query string. En el celular se abren como hoja inferior.
@@ -95,6 +96,10 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    Para `details` JSONB (alojamiento / resumen) ejecutá
    **`supabase/migrations/20261010120000_posts_details.sql`**.
    Recrea `bot_home` con `drop view if exists` (seguro).
+
+   Para el orden de bots en el home (`sort_order`) ejecutá
+   **`supabase/migrations/20261010190000_bots_sort_order.sql`**.
+   Recrea `bot_home` otra vez.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
