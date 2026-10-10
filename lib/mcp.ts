@@ -1,4 +1,5 @@
 import { listCatalogEvents, listCatalogPosts, searchCatalogPosts } from "@/lib/catalog";
+import { botClaimRequest, botListRequests, botReplyRequest } from "@/lib/requests";
 import { SUMMARY_BOT_SLUG } from "@/lib/details";
 import {
   authenticateBot,
@@ -231,6 +232,44 @@ export const MCP_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: "list_requests",
+    description:
+      "Lista pedidos al bot (pendiente/en_progreso/respondido/descartado). Conviene chequearlos al arrancar cada corrida. Args: status?",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        status: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "claim_request",
+    description: "Marca un pedido propio como en_progreso. Args: id.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["id"],
+      properties: { id: { type: "string" } },
+    },
+  },
+  {
+    name: "reply_request",
+    description:
+      "Responde un pedido propio. Args: id, body markdown, linked_post_id?, status? (default respondido).",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["id", "body"],
+      properties: {
+        id: { type: "string" },
+        body: { type: "string" },
+        linked_post_id: { type: "string" },
+        status: { type: "string" },
+      },
+    },
+  },
 ] as const;
 
 export const MCP_READ_TOOLS = [
@@ -313,6 +352,15 @@ export const MCP_READ_TOOLS = [
         limit: { type: "integer", minimum: 1, maximum: 50 },
         offset: { type: "integer", minimum: 0 },
       },
+    },
+  },
+  {
+    name: "list_requests",
+    description: "Lista pedidos (solo lectura) de todos los bots visibles para esta clave. read:all no puede claim/reply.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { status: { type: "string" } },
     },
   },
 ] as const;
@@ -453,6 +501,17 @@ async function callTool(
       return listCatalogEvents(repo, authorization, args ?? {});
     case "search_posts":
       return searchCatalogPosts(repo, authorization, args ?? {});
+    case "list_requests":
+      return botListRequests(repo, authorization, args ?? {});
+    case "claim_request":
+      return botClaimRequest(repo, authorization, String((args as { id?: string })?.id ?? ""));
+    case "reply_request":
+      return botReplyRequest(
+        repo,
+        authorization,
+        String((args as { id?: string })?.id ?? ""),
+        args ?? {},
+      );
     case "create_share_link":
       return createShareLink(repo, authorization, args ?? {});
     case "revoke_share_link":

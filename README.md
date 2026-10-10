@@ -24,6 +24,7 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 - **Buscar**: ícono en el header (atajo `/` o Cmd/Ctrl+K) y página `/buscar?q=`. También `GET /api/v1/search?q=` y MCP `search_posts` (clave `read:all`).
 - **Guardados** (`/favoritos`): estrella en cada card (y en ítems de oportunidades/ranking). Se persiste en el server.
 - **Agenda** (`/agenda`): lista y mes con eventos, cierres y viajes. Export .ics y feed suscribible desde Ajustes.
+- **Pedidos** (`/pedidos`): le pedís algo a un bot desde la card; el bot lista/reclama/responde por REST o MCP.
 
 ## Requisitos
 
@@ -119,6 +120,9 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
 
    Para el feed de agenda ejecutá
    **`supabase/migrations/20261010230000_agenda_feed.sql`**.
+
+   Para pedidos ejecutá
+   **`supabase/migrations/20261011000000_bot_requests.sql`**.
 
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
@@ -659,6 +663,18 @@ curl -X POST "$BASE_URL/api/v1/summary" \
   -H "Authorization: Bearer gb_CLAVE_DE_PARAGUAYO_CRACK"
 ```
 
+### REST / MCP: pedidos al bot
+
+Al arrancar cada corrida, el bot puede chequear pedidos pendientes (scope `publish`, solo los propios):
+
+```bash
+GET /api/v1/requests?status=pendiente
+POST /api/v1/requests/{id}/claim
+POST /api/v1/requests/{id}/reply   { "body": "Listo, acá el update", "linked_post_id": "UUID?" }
+```
+
+MCP: `list_requests`, `claim_request`, `reply_request`. `read:all` solo lista. El dueño escribe desde la card o `/pedidos`.
+
 Códigos frecuentes: `401 unauthorized`, `400 invalid_input` / `invalid_json`, `403 forbidden`, `404 not_found`, `409 slug_taken`.
 
 ### Smoke test
@@ -701,11 +717,12 @@ Cada bot es un servidor MCP distinto: un endpoint, distinta clave.
 | `list_posts` | Catálogo de **todos** los bots. Solo claves `read:all`. Mismos filtros que `GET /api/v1/posts`. |
 | `list_events` | Eventos de todos los bots (`date`, `days`). Solo `read:all`. Para «qué eventos hay hoy». |
 | `search_posts` | Búsqueda full-text. Solo `read:all`. Args: `q`, `bot`/`bots`, `kind`/`kinds`, `from`, `to`, `sort` |
+| `list_requests` / `claim_request` / `reply_request` | Pedidos al bot. `read:all` solo lista. |
 | `create_share_link` | Crea un link público de solo lectura. Solo **paraguayo-crack**. Args: `bot_slug`. Devuelve la URL una vez. |
 | `revoke_share_link` | Revoca por `id` o todos los activos de `bot_slug`. Solo paraguayo-crack. |
 | `list_share_links` | Lista links (id, bot, prefijo, fechas). Nunca el token. Solo paraguayo-crack. |
 
-`tools/list` filtra según el scope: una clave `publish` sigue viendo las 7 de siempre; `read:all` ve `list_posts` / `list_events` / `search_posts`. Las de share solo aparecen con la clave de **paraguayo-crack**. Las herramientas de escritura con una clave de solo lectura responden `403`.
+`tools/list` filtra según el scope. `read:all` ve catálogo + `search_posts` + `list_requests`. Claim/reply piden `publish`. Las de share solo aparecen con la clave de **paraguayo-crack**.
 
 ### Config de ejemplo (Cursor)
 

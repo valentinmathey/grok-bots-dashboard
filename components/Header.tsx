@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, CalendarDays, LogOut, Settings, Star } from "lucide-react";
+import { Bell, CalendarDays, LogOut, MessageSquare, Settings, Star } from "lucide-react";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -25,6 +25,14 @@ export function Header({ email }: { email: string }) {
             className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
           >
             <CalendarDays size={18} strokeWidth={1.75} />
+          </Link>
+          <Link
+            href="/pedidos"
+            aria-label="Pedidos"
+            title="Pedidos"
+            className="grid h-10 w-10 place-items-center rounded-full text-muted transition-colors hover:bg-chip hover:text-foreground"
+          >
+            <MessageSquare size={18} strokeWidth={1.75} />
           </Link>
           <Link
             href="/favoritos"

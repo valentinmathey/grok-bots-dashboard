@@ -4,6 +4,7 @@ import { useId } from "react";
 import Link from "next/link";
 import { CalendarDays, Hash, Package } from "lucide-react";
 import { FavoriteStar } from "@/components/FavoriteStar";
+import { RequestComposer } from "@/components/RequestComposer";
 import { AlojamientoCard } from "@/components/AlojamientoCard";
 import {
   cardCollapseProps,
@@ -86,6 +87,7 @@ export function PostCard({
         <FavoriteStar postId={post.id} />
       </div>
       {card}
+      <RequestComposer botId={post.bot_id} postId={post.id} />
     </div>
   );
 }
