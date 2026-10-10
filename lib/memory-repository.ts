@@ -1,5 +1,6 @@
-import { eventSortAscending, isEventUpcoming } from "@/lib/event-time";
-import { matchesFilters, type PostFilters } from "@/lib/filters";
+import { collectAlojamientoFacets, emptyDetails } from "@/lib/details";
+import { isEventUpcoming } from "@/lib/event-time";
+import { matchesFilters, sortPosts, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind } from "@/lib/types";
 
@@ -43,6 +44,7 @@ export class MemoryRepository implements BotsRepository {
     images: Post["images"];
     event_at: string | null;
     event_end_at: string | null;
+    details?: Record<string, unknown>;
   }) {
     const post: Post = {
       id: crypto.randomUUID(),
@@ -58,6 +60,7 @@ export class MemoryRepository implements BotsRepository {
       images: input.images ?? [],
       event_at: input.event_at,
       event_end_at: input.event_end_at,
+      details: input.details ?? emptyDetails(),
     };
     this.posts.unshift(post);
     return {
@@ -72,6 +75,7 @@ export class MemoryRepository implements BotsRepository {
       images: post.images,
       event_at: post.event_at,
       event_end_at: post.event_end_at,
+      details: post.details ?? emptyDetails(),
     };
   }
 
@@ -91,6 +95,7 @@ export class MemoryRepository implements BotsRepository {
       images?: Post["images"];
       event_at?: string | null;
       event_end_at?: string | null;
+      details?: Record<string, unknown>;
     },
   ) {
     const post = this.posts.find((item) => item.id === id);
@@ -106,6 +111,7 @@ export class MemoryRepository implements BotsRepository {
     if (patch.images !== undefined) post.images = patch.images;
     if (patch.event_at !== undefined) post.event_at = patch.event_at;
     if (patch.event_end_at !== undefined) post.event_end_at = patch.event_end_at;
+    if (patch.details !== undefined) post.details = patch.details;
     post.updated_at = new Date().toISOString();
     return post;
   }
@@ -188,17 +194,7 @@ export class MemoryRepository implements BotsRepository {
     const matched = this.posts.filter(
       (post) => post.bot_id === botId && matchesFilters(post, filters ?? {}),
     );
-    const scope = filters?.when;
-    const ordered = [...matched].sort((a, b) => {
-      if (scope && a.event_at && b.event_at) {
-        const delta =
-          new Date(a.event_at).getTime() - new Date(b.event_at).getTime();
-        return eventSortAscending(options.sort ?? "newest", scope) ? delta : -delta;
-      }
-      const delta =
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      return options.sort === "oldest" ? delta : -delta;
-    });
+    const ordered = sortPosts(matched, options.sort ?? "newest", filters?.when);
     const offset = options.offset ?? 0;
     const limit = options.limit ?? ordered.length;
     return {
@@ -225,6 +221,10 @@ export class MemoryRepository implements BotsRepository {
       kinds: [...kinds].sort(),
       tags: [...tags].sort(),
       has_events: this.posts.some((post) => post.bot_id === botId && Boolean(post.event_at)),
+      has_alojamientos: this.posts.some(
+        (post) => post.bot_id === botId && post.kind === "alojamiento",
+      ),
+      ...collectAlojamientoFacets(this.posts.filter((post) => post.bot_id === botId)),
     };
   }
 

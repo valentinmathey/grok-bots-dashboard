@@ -79,6 +79,27 @@ select {
   background: var(--bg-card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--chip) 0%,
+    color-mix(in srgb, var(--chip) 35%, var(--bg-card)) 50%,
+    var(--chip) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .bot-skin {
@@ -92,6 +113,14 @@ select {
 
 .bot-skin .bot-tint {
   background: color-mix(in srgb, var(--bot-fill, var(--accent)) 10%, var(--bg-card));
+}
+
+.bot-wash {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bot-fill, var(--accent)) 22%, transparent),
+    transparent 78%
+  );
 }
 
 .markdown {

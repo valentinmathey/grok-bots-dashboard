@@ -1,11 +1,11 @@
 import { resultToResponse } from "@/lib/http";
+import { getRepository } from "@/lib/data";
 import { authenticateBot } from "@/lib/publishing";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const repo = createSupabaseRepository();
+  const repo = getRepository();
   const result = await authenticateBot(
     repo,
     request.headers.get("authorization"),

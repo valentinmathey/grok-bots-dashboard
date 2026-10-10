@@ -1,4 +1,5 @@
 import { generateApiKey, hashApiKey, parseBearerToken } from "@/lib/api-keys";
+import { emptyDetails, parsePostDetails } from "@/lib/details";
 import { fail } from "@/lib/http";
 import { normalizeEventInstant } from "@/lib/event-time";
 import type { PostFilters } from "@/lib/filters";
@@ -42,6 +43,7 @@ export type BotsRepository = {
     images: CreatedPost["images"];
     event_at: string | null;
     event_end_at: string | null;
+    details?: Record<string, unknown>;
   }): Promise<CreatedPost>;
   getPostById(id: string): Promise<Post | null>;
   updatePost(
@@ -56,6 +58,7 @@ export type BotsRepository = {
       images?: CreatedPost["images"];
       event_at?: string | null;
       event_end_at?: string | null;
+      details?: Record<string, unknown>;
     },
   ): Promise<Post>;
   deletePost(id: string): Promise<void>;
@@ -144,6 +147,11 @@ export async function publishPost(
     return eventTimes;
   }
 
+  const details = resolveDetails(parsed.data.kind, parsed.data.details);
+  if (!details.ok) {
+    return details;
+  }
+
   const post = await repo.insertPost({
     botId: auth.data.botId,
     title: parsed.data.title,
@@ -155,6 +163,7 @@ export async function publishPost(
     images: normalizePostImages(parsed.data.images),
     event_at: eventTimes.data.event_at,
     event_end_at: eventTimes.data.event_end_at,
+    details: details.data,
   });
 
   return { ok: true, status: 201, data: { post, bot: auth.data } };
@@ -173,7 +182,22 @@ function toCreatedPost(post: Post): CreatedPost {
     images: post.images ?? [],
     event_at: post.event_at ?? null,
     event_end_at: post.event_end_at ?? null,
+    details: (post.details as Record<string, unknown> | null) ?? emptyDetails(),
   };
+}
+
+function resolveDetails(
+  kind: string,
+  raw: unknown,
+): Result<Record<string, unknown>> {
+  const parsed = parsePostDetails(kind, raw);
+  if (!parsed.ok) {
+    return fail(400, "invalid_input", parsed.message, parsed.issues);
+  }
+  if (!parsed.details) {
+    return { ok: true, data: emptyDetails() };
+  }
+  return { ok: true, data: parsed.details as Record<string, unknown> };
 }
 
 function resolveEventTimes(
@@ -250,8 +274,10 @@ function patchFromUpdateFields(
     images?: Array<{ url: string; alt: string }>;
     event_at?: string | null;
     event_end_at?: string | null;
+    details?: unknown;
   },
   eventTimes?: { event_at: string | null; event_end_at: string | null },
+  details?: Record<string, unknown>,
 ) {
   const patch: Parameters<BotsRepository["updatePost"]>[1] = {};
   if (parsed.title !== undefined) patch.title = parsed.title;
@@ -269,6 +295,7 @@ function patchFromUpdateFields(
       patch.event_end_at = eventTimes.event_end_at;
     }
   }
+  if (details !== undefined) patch.details = details;
   return patch;
 }
 
@@ -307,9 +334,21 @@ export async function updateOwnPost(
     return eventTimes;
   }
 
+  let nextDetails: Record<string, unknown> | undefined;
+  if (parsed.data.details !== undefined || parsed.data.kind !== undefined) {
+    const kind = parsed.data.kind ?? owned.data.kind;
+    const raw =
+      parsed.data.details !== undefined ? parsed.data.details : owned.data.details;
+    const details = resolveDetails(kind, raw);
+    if (!details.ok) {
+      return details;
+    }
+    nextDetails = details.data;
+  }
+
   const post = await repo.updatePost(
     owned.data.id,
-    patchFromUpdateFields(parsed.data, eventTimes.data),
+    patchFromUpdateFields(parsed.data, eventTimes.data, nextDetails),
   );
   return { ok: true, data: { post: toCreatedPost(post), bot: auth.data } };
 }

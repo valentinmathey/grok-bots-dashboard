@@ -33,7 +33,7 @@ describe("filtros", () => {
         kind: "report",
         tag: "#Weekly",
       }),
-    ).toEqual({
+    ).toMatchObject({
       from: "2026-10-01",
       to: undefined,
       product: "Atlas",

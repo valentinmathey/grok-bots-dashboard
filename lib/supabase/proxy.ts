@@ -8,7 +8,8 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/v1") ||
-    pathname.startsWith("/api/mcp")
+    pathname.startsWith("/api/mcp") ||
+    pathname.startsWith("/api/cron")
   );
 }
 
@@ -73,7 +74,11 @@ export async function updateSession(request: NextRequest) {
     typeof data?.claims?.email === "string" ? data.claims.email : null;
   const pathname = request.nextUrl.pathname;
 
-  if (pathname.startsWith("/api/v1") || pathname.startsWith("/api/mcp")) {
+  if (
+    pathname.startsWith("/api/v1") ||
+    pathname.startsWith("/api/mcp") ||
+    pathname.startsWith("/api/cron")
+  ) {
     return supabaseResponse;
   }
 

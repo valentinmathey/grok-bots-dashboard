@@ -10,11 +10,15 @@ import {
   Package,
   SlidersHorizontal,
   Sparkles,
+  Star,
+  Wallet,
 } from "lucide-react";
+import { amenityLabel } from "@/lib/details";
 import {
   countActiveFilters,
   filtersToSearchParams,
   type FeedQuery,
+  type FeedSort,
   type SortOrder,
 } from "@/lib/filters";
 import { kindLabel } from "@/lib/format";
@@ -58,6 +62,7 @@ export function FilterSheet({
   const [draft, setDraft] = useState<FeedQuery>(query);
   const active = countActiveFilters(query);
 
+  const alojamiento = facets.has_alojamientos && !facets.has_events;
   const chipFilters = useMemo(
     () =>
       [
@@ -69,6 +74,15 @@ export function FilterSheet({
               key: "dates",
               label: [query.from, query.to].filter(Boolean).join(" → "),
             }
+          : null,
+        query.city ? { key: "city", label: query.city } : null,
+        query.search_area ? { key: "search_area", label: query.search_area } : null,
+        query.neighborhood ? { key: "neighborhood", label: query.neighborhood } : null,
+        query.max_price_pp != null
+          ? { key: "max_price_pp", label: `Hasta ${query.max_price_pp}/pers.` }
+          : null,
+        query.amenities?.length
+          ? { key: "amenities", label: query.amenities.map(amenityLabel).join(" + ") }
           : null,
       ].filter(Boolean) as Array<{ key: string; label: string }>,
     [query],
@@ -92,7 +106,7 @@ export function FilterSheet({
     setOpen(false);
   }
 
-  function toggleSort(sort: SortOrder) {
+  function toggleSort(sort: FeedSort | SortOrder) {
     push({ ...query, sort });
   }
 
@@ -105,19 +119,24 @@ export function FilterSheet({
       next.from = undefined;
       next.to = undefined;
     }
+    if (key === "city") next.city = undefined;
+    if (key === "search_area") next.search_area = undefined;
+    if (key === "neighborhood") next.neighborhood = undefined;
+    if (key === "max_price_pp") next.max_price_pp = undefined;
+    if (key === "amenities") next.amenities = undefined;
     push(next);
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={() => {
             setDraft(query);
             setOpen(true);
           }}
-          className="inline-flex min-h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:flex-none sm:px-4"
+          className="inline-flex min-h-10 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:w-auto sm:px-4"
         >
           <SlidersHorizontal size={16} strokeWidth={1.75} />
           Filtros
@@ -127,36 +146,60 @@ export function FilterSheet({
             </span>
           ) : null}
         </button>
-        <div className="flex shrink-0 rounded-full bg-chip p-1">
-          <button
-            type="button"
-            onClick={() => toggleSort("newest")}
-            className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
-              query.sort === "newest" ? "bg-card text-foreground shadow-sm" : "text-muted"
-            }`}
-          >
-            <ArrowDownNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
-            {facets.has_events
-              ? query.when === "past"
-                ? "Recientes"
-                : "Próximos"
-              : "Nuevas"}
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleSort("oldest")}
-            className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
-              query.sort === "oldest" ? "bg-card text-foreground shadow-sm" : "text-muted"
-            }`}
-          >
-            <ArrowUpNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
-            {facets.has_events
-              ? query.when === "past"
-                ? "Antiguos"
-                : "Lejanos"
-              : "Antiguas"}
-          </button>
-        </div>
+        {alojamiento ? (
+          <div className="flex w-full min-w-0 rounded-full bg-chip p-1 sm:flex-1">
+            {(
+              [
+                ["score", "Score"],
+                ["price_pp", "$/pers."],
+                ["price_total", "Total"],
+                ["rating", "Nota"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => toggleSort(value)}
+                className={`min-h-8 flex-1 rounded-full px-1.5 text-[11px] font-medium sm:px-2.5 sm:text-xs ${
+                  query.sort === value ? "bg-card text-foreground shadow-sm" : "text-muted"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex shrink-0 rounded-full bg-chip p-1">
+            <button
+              type="button"
+              onClick={() => toggleSort("newest")}
+              className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
+                query.sort === "newest" ? "bg-card text-foreground shadow-sm" : "text-muted"
+              }`}
+            >
+              <ArrowDownNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
+              {facets.has_events
+                ? query.when === "past"
+                  ? "Recientes"
+                  : "Próximos"
+                : "Nuevas"}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort("oldest")}
+              className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
+                query.sort === "oldest" ? "bg-card text-foreground shadow-sm" : "text-muted"
+              }`}
+            >
+              <ArrowUpNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
+              {facets.has_events
+                ? query.when === "past"
+                  ? "Antiguos"
+                  : "Lejanos"
+                : "Antiguas"}
+            </button>
+          </div>
+        )}
       </div>
 
       {chipFilters.length > 0 ? (
@@ -267,6 +310,127 @@ export function FilterSheet({
                       #{tag}
                     </Chip>
                   ))}
+                </div>
+              </section>
+            ) : null}
+
+            {alojamiento && (facets.cities.length > 0 || facets.search_areas.length > 0) ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  Ciudad / zona
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {facets.cities.map((city) => (
+                    <Chip
+                      key={city}
+                      active={draft.city === city}
+                      onClick={() =>
+                        setDraft((current) => ({
+                          ...current,
+                          city: current.city === city ? undefined : city,
+                        }))
+                      }
+                    >
+                      {city}
+                    </Chip>
+                  ))}
+                  {facets.search_areas.map((area) => (
+                    <Chip
+                      key={area}
+                      active={draft.search_area === area}
+                      onClick={() =>
+                        setDraft((current) => ({
+                          ...current,
+                          search_area: current.search_area === area ? undefined : area,
+                        }))
+                      }
+                    >
+                      {area}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {alojamiento && facets.neighborhoods.length > 0 ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  Barrio
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {facets.neighborhoods.map((neighborhood) => (
+                    <Chip
+                      key={neighborhood}
+                      active={draft.neighborhood === neighborhood}
+                      onClick={() =>
+                        setDraft((current) => ({
+                          ...current,
+                          neighborhood:
+                            current.neighborhood === neighborhood ? undefined : neighborhood,
+                        }))
+                      }
+                    >
+                      {neighborhood}
+                    </Chip>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {alojamiento ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  <Wallet size={12} strokeWidth={1.75} className="mr-1 inline" />
+                  Precio máximo por persona
+                </p>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="Ej. 400"
+                  value={draft.max_price_pp ?? ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      max_price_pp: event.target.value
+                        ? Number(event.target.value)
+                        : undefined,
+                    }))
+                  }
+                  className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-sm"
+                />
+              </section>
+            ) : null}
+
+            {alojamiento && facets.amenities.length > 0 ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  <Star size={12} strokeWidth={1.75} className="mr-1 inline" />
+                  Amenities
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {facets.amenities.map((amenity) => {
+                    const active = draft.amenities?.includes(amenity);
+                    return (
+                      <Chip
+                        key={amenity}
+                        active={Boolean(active)}
+                        onClick={() =>
+                          setDraft((current) => {
+                            const have = new Set(current.amenities ?? []);
+                            if (have.has(amenity)) have.delete(amenity);
+                            else have.add(amenity);
+                            return {
+                              ...current,
+                              amenities: have.size ? [...have] : undefined,
+                            };
+                          })
+                        }
+                      >
+                        {amenityLabel(amenity)}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </section>
             ) : null}

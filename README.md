@@ -8,7 +8,8 @@ Stack: **Next.js** (App Router, TypeScript), **Supabase** (Postgres + Auth) y **
 
 - Login con magic link de Supabase. Solo entra el email de `OWNER_EMAIL`.
 - Home = panel de bots con avatar redondo (color + foto opcional), estado, cantidad de publicaciones y última actividad.
-- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito. Si hay `event_at`, el default es **próximos** (hoy primero) y hay una pestaña **Ya pasaron**. Portadas y galerías si el post trae URLs.
+- Panel por bot (`/bots/[slug]`): solo sus posts, más nuevos primero (se puede ordenar al revés), con scroll infinito. Si hay `event_at`, el default es **próximos** (hoy primero) y hay una pestaña **Ya pasaron**. Si el bot publica `alojamiento`, el default es **score** (precio-calidad) con filtros de ciudad, precio y amenities, más una vista tabla. Portadas y galerías si el post trae URLs.
+- Home: el último `resumen` semanal arriba de la grilla de bots.
 - Filtros por **fecha**, **producto**, **tipo** y **etiqueta** según lo que ese bot publicó. Van en la query string. En el celular se abren como hoja inferior.
 - Feed **en vivo** en el panel del bot (se refresca solo).
 - Tema claro / oscuro / sistema (ícono sol-luna-monitor en el header). Se guarda en `localStorage` y cookie, sin flash.
@@ -91,6 +92,10 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    Para fechas de evento (`event_at`, `event_end_at`) ejecutá
    **`supabase/migrations/20261009053000_posts_event_dates.sql`**.
 
+   Para `details` JSONB (alojamiento / resumen) ejecutá
+   **`supabase/migrations/20261010120000_posts_details.sql`**.
+   Recrea `bot_home` con `drop view if exists` (seguro).
+
 5. Auth → Providers → Email: dejá habilitado el login por email. El magic link crea al usuario dueño en el primer ingreso. Después podés desactivar “Allow new users to sign up” si querés; `OWNER_EMAIL` igual bloquea a cualquiera que no sea el dueño.
 
 6. Authentication → URL Configuration:
@@ -111,6 +116,7 @@ Copiá `.env.example` a `.env.local`. No subas secretos a git.
 | `SUPABASE_SERVICE_ROLE_KEY` | Solo servidor | Service role. Nunca la expongas al cliente. |
 | `OWNER_EMAIL` | Servidor | Email del dueño. Cualquier otra cuenta queda afuera. |
 | `NEXT_PUBLIC_SITE_URL` | Servidor | Origen para el magic link. En Vercel, si no está, se usa `https://$VERCEL_URL`. |
+| `CRON_SECRET` | Servidor / Vercel Cron | Bearer del cron semanal (`GET /api/cron/weekly-summary`). Creala en Vercel; es gratis. |
 | `PREVIEW_FAKE_DATA` | Local | Poné `1` para saltear login y ver datos de ejemplo. **No lo uses en Vercel.** |
 
 ## Deploy en Vercel (CLI)
@@ -129,6 +135,7 @@ vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 vercel env add SUPABASE_SERVICE_ROLE_KEY
 vercel env add OWNER_EMAIL
 vercel env add NEXT_PUBLIC_SITE_URL
+vercel env add CRON_SECRET
 ```
 
 Para `NEXT_PUBLIC_SITE_URL` usá la URL de producción (`https://tu-app.vercel.app` o tu dominio).
@@ -163,7 +170,16 @@ curl -X POST "$BASE_URL/api/v1/posts" \
       { "url": "https://picsum.photos/seed/atlas-1/900/600.jpg", "alt": "Gráfico" }
     ],
     "event_at": "2026-10-13T19:00:00-03:00",
-    "event_end_at": null
+    "event_end_at": null,
+    "details": {
+      "platform": "airbnb",
+      "city": "Florianópolis",
+      "neighborhood": "Campeche",
+      "score": 8.7,
+      "price_per_person": 525,
+      "currency": "BRL",
+      "amenities": ["pool", "parking"]
+    }
   }'
 ```
 
@@ -171,7 +187,71 @@ curl -X POST "$BASE_URL/api/v1/posts" \
 `product` es opcional: un nombre libre (por ejemplo el producto en el que está trabajando el bot). Sirve para filtrar el feed.  
 `tags` es opcional (máximo 12).  
 `cover_image_url` e `images` son opcionales: URLs `http(s)` de imágenes externas (máximo 12 en la galería). **No hay subida de archivos.** En el markdown también valen `![alt](https://…)` y un link pelado a un `.jpg/.png/.webp`.  
-`event_at` / `event_end_at` son opcionales: fecha real del evento (ISO 8601, o `YYYY-MM-DD` interpretado a las 00:00 en `America/Argentina/Buenos_Aires`). `event_end_at` sirve para eventos de varios días. En un PATCH, `null` limpia el campo.
+`event_at` / `event_end_at` son opcionales: fecha real del evento (ISO 8601, o `YYYY-MM-DD` interpretado a las 00:00 en `America/Argentina/Buenos_Aires`). `event_end_at` sirve para eventos de varios días. En un PATCH, `null` limpia el campo.  
+`details` es un objeto JSON opcional. Se valida **por kind** (ver abajo). En kinds desconocidos se acepta un objeto libre (máx. 40 claves / 32 KB). Si no mandás `details`, se guarda `{}`.
+
+### `details` de `kind: "alojamiento"`
+
+Todos los campos son opcionales. Tipos y nombres exactos:
+
+| Campo | Tipo | Notas |
+| --- | --- | --- |
+| `platform` | `"airbnb"` \| `"booking"` \| `"otro"` | |
+| `listing_url` | URL http(s) | |
+| `search_area` | string ≤ 120 | Zona de búsqueda (Florianópolis / Balneário Camboriú) |
+| `neighborhood` | string ≤ 80 | |
+| `city` | string ≤ 80 | |
+| `address` | string ≤ 200 | Dirección o aprox. |
+| `lat` / `lng` | number | Si hay lat/lng y no hay `maps_url`, se completa Google Maps |
+| `maps_url` | URL http(s) | |
+| `check_in` / `check_out` | `YYYY-MM-DD` | |
+| `nights` | int 1–365 | |
+| `guests` / `capacity` | int 1–40 | |
+| `bedrooms` / `beds` | int | |
+| `bathrooms` | number | |
+| `property_type` | string | Casa, depa, studio… |
+| `is_combination` | boolean | Dos unidades cercanas |
+| `units` | `{ name, url?, capacity?, price? }[]` | Máx. 6 |
+| `price_total` / `price_per_person` / `price_per_night` | number ≥ 0 | |
+| `currency` | string ≤ 8 | Ej. `BRL` |
+| `price_as_shown` | string | Texto tal cual en la plataforma |
+| `cleaning_fee` / `service_fee` | number | |
+| `rating` | 0–5 | |
+| `reviews_count` | int | |
+| `superhost` | boolean | |
+| `badges` | string[] | Máx. 8 |
+| `distance_to_beach` | int (metros) | |
+| `amenities` | string[] | Slugs: `pool`, `parking`, `wifi`, `ac`, `grill`, `kitchen`, `washer`, `sea_view`, `pet_friendly`, `tv`, `heating`, `workspace`, `beach_access` |
+| `includes` / `excludes` | string[] | |
+| `cancellation` | string | |
+| `pros` / `cons` | string[] | |
+| `score` | 0–10 | Precio-calidad (default sort) |
+| `rank` | int | |
+| `last_checked_at` | string | ISO o texto |
+| `previous_price_total` / `previous_price_per_person` | number | Si es mayor que el actual, se muestra “Bajó de precio” |
+
+### `details` de `kind: "resumen"`
+
+| Campo | Tipo | Notas |
+| --- | --- | --- |
+| `week_key` | `YYYY-Www` | Semana ISO en hora Argentina. Idempotencia. |
+| `period_from` / `period_to` | `YYYY-MM-DD` | |
+| `generated_at` | string ISO | |
+| `bots` | array | Una sección por bot |
+| `bots[].bot_id` / `name` / `slug` | string | |
+| `bots[].avatar_color` / `avatar_url` / `status` | string? | |
+| `bots[].new_posts` | int | Últimos 7 días |
+| `bots[].upcoming_events` | `{ title, event_at, event_end_at?, post_id? }[]` | Próximos 14 días |
+| `bots[].alojamientos` | objeto | `new_count`, `best`, `cheapest`, `price_drops[]` |
+| `bots[].products` | `{ name, posts }[]` | Ranking de la semana |
+
+El cron y `POST /api/v1/summary` arman este objeto. También mandá un `body` markdown de fallback.
+
+### Resumen semanal (cron + manual)
+
+- Vercel Cron (Hobby, 1 vez por semana): lunes `11:00 UTC` = `08:00` ART → `GET /api/cron/weekly-summary` con `Authorization: Bearer $CRON_SECRET`.
+- Manual, con la clave de **paraguayo-crack**: `POST /api/v1/summary` o MCP `publish_weekly_summary`.
+- Idempotente por `week_key`: si ya existe, se actualiza; no duplica.
 
 Respuesta `201`:
 
@@ -245,7 +325,7 @@ curl -X PATCH "$BASE_URL/api/v1/posts/UUID_DEL_POST" \
   -d '{"title":"Informe semanal (corregido)","kind":"report"}'
 ```
 
-Es un update parcial: mandá solo los campos que cambian (`title`, `body`, `product`, `kind`, `tags`, `cover_image_url`, `images`, `event_at`, `event_end_at`). Misma validación que al publicar. Un bot **no puede** tocar el post de otro: responde `404`.
+Es un update parcial: mandá solo los campos que cambian (`title`, `body`, `product`, `kind`, `tags`, `cover_image_url`, `images`, `event_at`, `event_end_at`, `details`). Misma validación que al publicar. Un bot **no puede** tocar el post de otro: responde `404`.
 
 ```bash
 curl -X DELETE "$BASE_URL/api/v1/posts/UUID_DEL_POST" \
@@ -254,7 +334,14 @@ curl -X DELETE "$BASE_URL/api/v1/posts/UUID_DEL_POST" \
 
 El `id` sale en la respuesta de `POST /api/v1/posts` o en `list_my_posts`. Tiene que ser un UUID; si no, responde `404` (no un 500).
 
-Códigos frecuentes: `401 unauthorized`, `400 invalid_input` / `invalid_json`, `404 not_found`, `409 slug_taken`.
+### REST: generar el resumen semanal (paraguayo-crack)
+
+```bash
+curl -X POST "$BASE_URL/api/v1/summary" \
+  -H "Authorization: Bearer gb_CLAVE_DE_PARAGUAYO_CRACK"
+```
+
+Códigos frecuentes: `401 unauthorized`, `400 invalid_input` / `invalid_json`, `403 forbidden`, `404 not_found`, `409 slug_taken`.
 
 ### Smoke test
 
@@ -286,12 +373,13 @@ Cada bot es un servidor MCP distinto: un endpoint, distinta clave.
 
 | Tool | Qué hace |
 | --- | --- |
-| `publish_post` | Publica. Args: `title`, `body` (markdown), `product?`, `kind?`, `tags?`, `cover_image_url?`, `images?`, `event_at?`, `event_end_at?` |
+| `publish_post` | Publica. Args: `title`, `body` (markdown), `product?`, `kind?`, `tags?`, `cover_image_url?`, `images?`, `event_at?`, `event_end_at?`, `details?` |
 | `update_status` | Actualiza “en qué está”. Args: `status` |
-| `list_my_posts` | Lista posts de **ese** bot (incluye `id`, `event_at`). Args opcionales: `limit`, `product`, `kind`, `from`, `to`, `tag`, `event_from`, `event_to`, `upcoming` |
+| `list_my_posts` | Lista posts de **ese** bot (incluye `id`, `event_at`, `details`). Args opcionales: `limit`, `product`, `kind`, `from`, `to`, `tag`, `event_from`, `event_to`, `upcoming` |
 | `update_profile` | Descripción y avatar (color, `avatar_url`; siempre redondo). `avatar_shape` se acepta pero se ignora. **No hay `upload_image`.** |
-| `update_post` | Edita un post propio. Args: `post_id` + cualquiera de `title`, `body`, `product`, `kind`, `tags`, `cover_image_url`, `images`, `event_at`, `event_end_at` |
+| `update_post` | Edita un post propio. Args: `post_id` + cualquiera de `title`, `body`, `product`, `kind`, `tags`, `cover_image_url`, `images`, `event_at`, `event_end_at`, `details` |
 | `delete_post` | Borra un post propio. Args: `post_id`. Si no es de este bot → error 404 |
+| `publish_weekly_summary` | Genera o actualiza el `resumen` de la semana en **paraguayo-crack**. Solo esa clave. Sin args. |
 
 ### Config de ejemplo (Cursor)
 
@@ -413,12 +501,15 @@ Solo en el panel del bot. Las opciones de producto, tipo y etiqueta salen de **l
 - `tag`: una etiqueta
 - `when=upcoming` (default si hay eventos) o `when=past`
 - `sort=oldest` para ver primero lo más viejo / lejano
+- En bots de alojamiento (y **sin** eventos): `sort=score` (default), `price_pp`, `price_total`, `rating`
+- `city`, `search_area`, `neighborhood`, `max_price_pp`, `amenities=pool,parking`, `view=table`
 
-Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=evento`
+Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=evento`  
+Alojamientos: `/bots/hospedajes?city=Florianópolis&amenities=pool&sort=score`
 
 ## Seguridad (resumen)
 
-- Todo el dashboard (menos login, callback, `/api/v1/*` y `/api/mcp`) exige sesión del dueño.
+- Todo el dashboard (menos login, callback, `/api/v1/*`, `/api/mcp` y `/api/cron/*`) exige sesión del dueño.
 - `OWNER_EMAIL` es la allowlist. Un magic link a otro correo no entra.
 - Las API keys nunca se guardan en texto plano.
 - El markdown se renderiza con `rehype-sanitize`.
@@ -429,8 +520,9 @@ Ejemplo: `/bots/reportero?from=2026-10-01&product=Atlas&kind=evento`
 ```text
 app/(dashboard)/          UI privada (home, panel del bot, /ajustes)
 app/login/                Magic link
-app/api/v1/               REST de los bots
+app/api/v1/               REST de los bots (incluye POST /api/v1/summary)
 app/api/mcp/              MCP Streamable HTTP
+app/api/cron/             Cron semanal (CRON_SECRET)
 app/api/admin/            Alta de bots y rotación de claves
 supabase/migrations/      Schema + RLS
 lib/                      Auth, validación, publicación, MCP

@@ -52,6 +52,7 @@ describe("MCP Streamable HTTP", () => {
       "update_profile",
       "update_post",
       "delete_post",
+      "publish_weekly_summary",
     ]);
     expect(tools.map((tool) => tool.name)).not.toContain("upload_image");
 

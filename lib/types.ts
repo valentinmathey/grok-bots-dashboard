@@ -4,6 +4,8 @@ export const KNOWN_KINDS = [
   "report",
   "note",
   "evento",
+  "alojamiento",
+  "resumen",
 ] as const;
 
 export type KnownKind = (typeof KNOWN_KINDS)[number];
@@ -52,6 +54,7 @@ export type Post = {
   images?: PostImage[];
   event_at?: string | null;
   event_end_at?: string | null;
+  details?: Record<string, unknown> | null;
 };
 
 export type PostWithBot = Post & {
@@ -77,6 +80,7 @@ export type CreatedPost = {
   images?: PostImage[];
   event_at?: string | null;
   event_end_at?: string | null;
+  details?: Record<string, unknown> | null;
 };
 
 export type BotProfile = {
@@ -91,10 +95,23 @@ export type PostFacets = {
   kinds: string[];
   tags: string[];
   has_events: boolean;
+  has_alojamientos: boolean;
+  cities: string[];
+  neighborhoods: string[];
+  search_areas: string[];
+  amenities: string[];
 };
 
+export type FeedSort =
+  | "newest"
+  | "oldest"
+  | "score"
+  | "price_pp"
+  | "price_total"
+  | "rating";
+
 export type PageOptions = {
-  sort?: "newest" | "oldest";
+  sort?: FeedSort;
   limit?: number;
   offset?: number;
 };

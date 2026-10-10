@@ -13,14 +13,15 @@ export function BotCard({ bot }: { bot: BotSummary }) {
   return (
     <Link
       href={`/bots/${bot.slug}`}
-      className="bot-skin surface group flex min-h-[168px] min-w-0 flex-col overflow-hidden rounded-3xl p-4 sm:p-5 transition-[transform,border-color] hover:-translate-y-0.5 active:translate-y-0"
+      className="bot-skin surface group relative flex min-h-[176px] min-w-0 flex-col overflow-hidden rounded-3xl p-4 sm:p-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
       style={{ "--bot-fill": avatar.fill } as React.CSSProperties}
     >
-      <div className="flex items-start gap-3">
+      <div className="bot-wash pointer-events-none absolute inset-x-0 top-0 h-24" />
+      <div className="relative flex items-start gap-3">
         <BotAvatar bot={bot} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="line-clamp-2 text-lg font-semibold tracking-tight">
+            <h2 className="line-clamp-2 text-[1.15rem] font-semibold tracking-tight">
               {bot.name}
             </h2>
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-chip px-2.5 py-1 text-[11px] font-medium text-muted">
@@ -36,7 +37,7 @@ export function BotCard({ bot }: { bot: BotSummary }) {
         </div>
       </div>
 
-      <div className="mt-auto min-w-0 pt-4">
+      <div className="relative mt-auto min-w-0 pt-4">
         {lead.tone === "live" ? (
           <p className="flex items-start gap-2 text-sm leading-6">
             <span

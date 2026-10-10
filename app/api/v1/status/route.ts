@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { readJsonBody, resultToResponse } from "@/lib/http";
+import { getRepository } from "@/lib/data";
 import { publishStatus } from "@/lib/publishing";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function PATCH(request: Request) {
     return resultToResponse(body);
   }
 
-  const repo = createSupabaseRepository();
+  const repo = getRepository();
   const result = await publishStatus(
     repo,
     request.headers.get("authorization"),

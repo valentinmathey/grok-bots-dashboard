@@ -49,6 +49,10 @@ export function isPreviewMode(): boolean {
   return read("PREVIEW_FAKE_DATA") === "1";
 }
 
+export function getCronSecret(): string | undefined {
+  return read("CRON_SECRET");
+}
+
 export function isSupabaseConfigured(): boolean {
   try {
     getPublicSupabaseEnv();
