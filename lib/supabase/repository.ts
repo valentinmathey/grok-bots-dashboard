@@ -1,7 +1,16 @@
 import "server-only";
 
+import { collectAlojamientoFacets } from "@/lib/details";
 import { baEndOfDay, baStartOfDay, baStartOfToday, eventSortAscending } from "@/lib/event-time";
-import { dayEndIso, dayStartIso, type PostFilters } from "@/lib/filters";
+import {
+  dayEndIso,
+  dayStartIso,
+  hasAlojamientoFilters,
+  isAlojamientoSort,
+  matchesFilters,
+  sortPosts,
+  type PostFilters,
+} from "@/lib/filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotSummary, Post, PostImage, PostKind } from "@/lib/types";
@@ -163,8 +172,9 @@ export function createSupabaseRepository(): BotsRepository {
           images: input.images ?? [],
           event_at: input.event_at,
           event_end_at: input.event_end_at,
+          details: input.details ?? {},
         })
-        .select("id, title, kind, product, tags, created_at, updated_at, cover_image_url, images, event_at, event_end_at")
+        .select("id, title, kind, product, tags, created_at, updated_at, cover_image_url, images, event_at, event_end_at, details")
         .single();
 
       if (error) {
@@ -183,6 +193,7 @@ export function createSupabaseRepository(): BotsRepository {
         images: (data.images as PostImage[] | null) ?? [],
         event_at: (data.event_at as string | null) ?? null,
         event_end_at: (data.event_end_at as string | null) ?? null,
+        details: (data.details as Record<string, unknown> | null) ?? {},
       };
     },
 
@@ -212,6 +223,7 @@ export function createSupabaseRepository(): BotsRepository {
       if (patch.images !== undefined) fields.images = patch.images;
       if (patch.event_at !== undefined) fields.event_at = patch.event_at;
       if (patch.event_end_at !== undefined) fields.event_end_at = patch.event_end_at;
+      if (patch.details !== undefined) fields.details = patch.details;
       const { data, error } = await admin
         .from("posts")
         .update(fields)
@@ -380,9 +392,28 @@ export function createSupabaseRepository(): BotsRepository {
     async listPostsPage(botId, filters, options) {
       const limit = options.limit ?? 12;
       const offset = options.offset ?? 0;
+      const needsJs =
+        isAlojamientoSort(options.sort) || hasAlojamientoFilters(filters);
+      if (needsJs) {
+        const { data, error } = await applyFilters(
+          admin.from("posts").select("*").eq("bot_id", botId),
+          filters,
+        );
+        if (error) {
+          throw error;
+        }
+        const matched = ((data ?? []) as Post[]).filter((post) =>
+          matchesFilters(post, filters ?? {}),
+        );
+        const ordered = sortPosts(matched, options.sort ?? "newest", filters?.when);
+        return {
+          posts: ordered.slice(offset, offset + limit),
+          total: ordered.length,
+        };
+      }
       const scope = filters?.when;
       const ascending = scope
-        ? eventSortAscending(options.sort ?? "newest", scope)
+        ? eventSortAscending(options.sort === "oldest" ? "oldest" : "newest", scope)
         : options.sort === "oldest";
       const sortColumn = scope ? "event_at" : "created_at";
       const filtered = applyFilters(
@@ -408,7 +439,7 @@ export function createSupabaseRepository(): BotsRepository {
     async listFacets(botId) {
       const { data, error } = await admin
         .from("posts")
-        .select("kind, product, tags, event_at")
+        .select("kind, product, tags, event_at, details")
         .eq("bot_id", botId);
 
       if (error) {
@@ -430,11 +461,17 @@ export function createSupabaseRepository(): BotsRepository {
         }
         if (row.event_at) hasEvents = true;
       }
+      const rows = (data ?? []) as Array<{
+        kind?: string;
+        details?: unknown;
+      }>;
       return {
         products: [...products.values()].sort((a, b) => a.localeCompare(b, "es")),
         kinds: [...kinds].sort(),
         tags: [...tags].sort(),
         has_events: hasEvents,
+        has_alojamientos: rows.some((row) => row.kind === "alojamiento"),
+        ...collectAlojamientoFacets(rows),
       };
     },
 

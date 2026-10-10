@@ -3,6 +3,7 @@ import {
   CircleDot,
   FileText,
   Flag,
+  Home,
   NotebookPen,
   Sparkles,
 } from "lucide-react";
@@ -29,6 +30,14 @@ const KNOWN: Record<string, { className: string; Icon: typeof Sparkles }> = {
   evento: {
     className: "bg-rose-500/12 text-rose-800 dark:text-rose-200",
     Icon: CalendarDays,
+  },
+  alojamiento: {
+    className: "bg-teal-500/14 text-teal-800 dark:text-teal-200",
+    Icon: Home,
+  },
+  resumen: {
+    className: "bg-indigo-500/14 text-indigo-800 dark:text-indigo-200",
+    Icon: Sparkles,
   },
 };
 

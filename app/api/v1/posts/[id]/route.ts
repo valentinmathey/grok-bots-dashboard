@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { readJsonBody, resultToResponse } from "@/lib/http";
+import { getRepository } from "@/lib/data";
 import { deleteOwnPost, updateOwnPost } from "@/lib/publishing";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const repo = createSupabaseRepository();
+  const repo = getRepository();
   const result = await updateOwnPost(
     repo,
     request.headers.get("authorization"),
@@ -36,7 +36,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const repo = createSupabaseRepository();
+  const repo = getRepository();
   const result = await deleteOwnPost(
     repo,
     request.headers.get("authorization"),

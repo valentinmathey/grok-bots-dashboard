@@ -8,6 +8,7 @@ import {
   updateOwnPostFromMcp,
   type BotsRepository,
 } from "@/lib/publishing";
+import { publishWeeklySummaryForBot } from "@/lib/summary";
 export const MCP_PROTOCOL_VERSIONS = [
   "2024-11-05",
   "2025-03-26",
@@ -22,7 +23,7 @@ export const MCP_TOOLS = [
   {
     name: "publish_post",
     description:
-      "Publica un post en el panel del bot (título, markdown, producto opcional, tipo, etiquetas y fecha de evento).",
+      "Publica un post en el panel del bot (título, markdown, producto opcional, tipo, etiquetas, fecha de evento y details JSON). kind=alojamiento o resumen validan details; otros kinds aceptan un objeto libre (máx. 40 claves / 32 KB) o lo omiten.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -40,7 +41,7 @@ export const MCP_TOOLS = [
         kind: {
           type: "string",
           description:
-            "Tipo del post: slug corto en minúsculas (update, result, report, note, evento, u otro).",
+            "Tipo del post: slug corto en minúsculas (update, result, report, note, evento, alojamiento, resumen, u otro).",
         },
         tags: {
           type: "array",
@@ -74,6 +75,11 @@ export const MCP_TOOLS = [
           description:
             "Fin opcional del evento (ISO 8601 o YYYY-MM-DD, hora Argentina). Para eventos de varios días.",
         },
+        details: {
+          type: "object",
+          description:
+            "JSON estructurado. alojamiento (todos opcionales): platform (airbnb|booking|otro), listing_url, search_area, neighborhood, city, address, lat, lng, maps_url, check_in, check_out (YYYY-MM-DD), nights, guests, capacity, bedrooms, beds, bathrooms, property_type, is_combination, units[{name,url,capacity,price}], price_total, price_per_person, price_per_night, currency, price_as_shown, cleaning_fee, service_fee, rating (0-5), reviews_count, superhost, badges[], distance_to_beach (m), amenities[] (pool,parking,wifi,ac,grill,kitchen,washer,sea_view,pet_friendly,tv,heating,workspace,beach_access), includes[], excludes[], cancellation, pros[], cons[], score (0-10 precio-calidad), rank, last_checked_at, previous_price_total, previous_price_per_person. resumen: week_key (YYYY-Www), period_from, period_to, generated_at, bots[{bot_id,name,slug,avatar_color,avatar_url,status,new_posts,upcoming_events[{title,event_at,event_end_at,post_id}],alojamientos{new_count,best,cheapest,price_drops[{title,post_id,score,price_per_person,price_total,currency,from,to}]},products[{name,posts}]}]. Otros kinds: objeto libre.",
+        },
       },
     },
   },
@@ -95,7 +101,7 @@ export const MCP_TOOLS = [
   {
     name: "list_my_posts",
     description:
-      "Lista las publicaciones recientes de este bot, más nuevas primero. Cada post incluye id, event_at y event_end_at (para update_post / delete_post).",
+      "Lista las publicaciones recientes de este bot, más nuevas primero. Cada post incluye id, event_at, event_end_at y details (para update_post / delete_post).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -154,7 +160,7 @@ export const MCP_TOOLS = [
   {
     name: "update_post",
     description:
-      "Edita un post propio (parcial). Args: post_id y cualquiera de title, body, product, kind, tags, cover_image_url, images, event_at, event_end_at. Misma validación que publish_post. Null en event_at limpia la fecha. No toca posts de otro bot.",
+      "Edita un post propio (parcial). Args: post_id y cualquiera de title, body, product, kind, tags, cover_image_url, images, event_at, event_end_at, details. Misma validación que publish_post. Null en event_at limpia la fecha. No toca posts de otro bot.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -174,6 +180,11 @@ export const MCP_TOOLS = [
         event_end_at: {
           type: "string",
           description: "Fin opcional del evento. Null limpia.",
+        },
+        details: {
+          type: "object",
+          description:
+            "Mismo schema que publish_post. Se valida según kind (nuevo o el actual).",
         },
         images: {
           type: "array",
@@ -200,6 +211,16 @@ export const MCP_TOOLS = [
       properties: {
         post_id: { type: "string" },
       },
+    },
+  },
+  {
+    name: "publish_weekly_summary",
+    description:
+      "Genera (o actualiza) el resumen semanal kind=resumen en el panel de paraguayo-crack. Solo esa clave. Idempotente por week_key (YYYY-Www, semana ISO en hora Argentina). No pide args.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {},
     },
   },
 ] as const;
@@ -268,6 +289,8 @@ async function callTool(
       return updateOwnPostFromMcp(repo, authorization, args ?? {});
     case "delete_post":
       return deleteOwnPostFromMcp(repo, authorization, args ?? {});
+    case "publish_weekly_summary":
+      return publishWeeklySummaryForBot(repo, authorization);
     default:
       return {
         ok: false as const,

@@ -52,6 +52,7 @@ describe("MCP Streamable HTTP", () => {
       "update_profile",
       "update_post",
       "delete_post",
+      "publish_weekly_summary",
     ]);
     expect(tools.map((tool) => tool.name)).not.toContain("upload_image");
 
@@ -66,6 +67,15 @@ describe("MCP Streamable HTTP", () => {
     expect(profile?.inputSchema?.properties?.avatar_shape?.description).toMatch(
       /deprecated/i,
     );
+
+    const publish = tools.find((tool) => tool.name === "publish_post") as
+      | { description?: string; inputSchema?: { properties?: { details?: { description?: string } } } }
+      | undefined;
+    expect(publish?.description).toMatch(/alojamiento/i);
+    expect(publish?.inputSchema?.properties?.details?.description).toMatch(
+      /price_per_person/,
+    );
+    expect(publish?.inputSchema?.properties?.details?.description).toMatch(/week_key/);
   });
 
   it("update_profile sigue aceptando avatar_shape", async () => {
@@ -205,5 +215,39 @@ describe("MCP Streamable HTTP", () => {
     });
     const deletePayload = removed.body?.result as { isError?: boolean };
     expect(deletePayload.isError).toBe(true);
+  });
+
+  it("publica details de alojamiento y list_my_posts los devuelve", async () => {
+    const { repo, authorization } = repoWithBot();
+    await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 11,
+      method: "tools/call",
+      params: {
+        name: "publish_post",
+        arguments: {
+          title: "Casa",
+          body: "Floripa",
+          kind: "alojamiento",
+          details: { city: "Florianópolis", score: 8.2, lat: -27.6, lng: -48.5 },
+        },
+      },
+    });
+    expect(repo.posts[0]?.details).toMatchObject({
+      city: "Florianópolis",
+      score: 8.2,
+    });
+    const listed = await dispatchMcpRequest(repo, authorization, {
+      jsonrpc: "2.0",
+      id: 12,
+      method: "tools/call",
+      params: { name: "list_my_posts", arguments: { kind: "alojamiento" } },
+    });
+    const text =
+      listed.body && "result" in listed.body
+        ? (listed.body.result as { content: Array<{ text: string }> }).content[0]?.text
+        : "";
+    expect(text).toContain("Florianópolis");
+    expect(text).toContain("maps");
   });
 });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticateBot } from "@/lib/publishing";
 import { dispatchMcpRequest, type JsonRpcRequest } from "@/lib/mcp";
 import { jsonError } from "@/lib/http";
-import { createSupabaseRepository } from "@/lib/supabase/repository";
+import { getRepository } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,7 +47,7 @@ export async function DELETE() {
 }
 
 export async function POST(request: Request) {
-  const repo = createSupabaseRepository();
+  const repo = getRepository();
   const authorization = request.headers.get("authorization");
   const auth = await authenticateBot(repo, authorization);
   if (!auth.ok) {

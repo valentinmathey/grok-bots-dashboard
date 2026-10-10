@@ -7,6 +7,8 @@ const KIND_LABELS: Record<string, string> = {
   report: "Informe",
   note: "Nota",
   evento: "Evento",
+  alojamiento: "Alojamiento",
+  resumen: "Resumen",
 };
 
 export function kindLabel(kind: PostKind): string {
@@ -150,6 +152,20 @@ export function formatRelative(iso: string, now = new Date()): string {
     return days === 1 ? "ayer" : `hace ${days} días`;
   }
   return formatDate(iso);
+}
+
+export function formatMoney(amount: number, currency = "BRL"): string {
+  try {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    })
+      .format(amount)
+      .replace(/[\u00a0\u202f\u2007\u2009]/g, " ");
+  } catch {
+    return `${amount} ${currency}`;
+  }
 }
 
 export function previewPlain(markdown: string, max = 160): string {

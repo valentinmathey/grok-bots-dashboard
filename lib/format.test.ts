@@ -3,7 +3,9 @@ import {
   botCardLead,
   formatDateTime,
   formatEventWhen,
+  formatMoney,
   formatPublicationCount,
+  kindLabel,
 } from "@/lib/format";
 
 describe("formatDateTime", () => {
@@ -21,6 +23,16 @@ describe("formatEventWhen", () => {
     expect(text).toMatch(/oct/i);
     expect(text).toMatch(/19:00/);
     expect(text).not.toMatch(/[\u00a0\u202f\u2007\u2009]/);
+  });
+});
+
+describe("formatMoney y kinds nuevos", () => {
+  it("formatea BRL sin espacios raros", () => {
+    const text = formatMoney(4200, "BRL");
+    expect(text).toMatch(/4/);
+    expect(text).not.toMatch(/[\u00a0\u202f\u2007\u2009]/);
+    expect(kindLabel("alojamiento")).toBe("Alojamiento");
+    expect(kindLabel("resumen")).toBe("Resumen");
   });
 });
 

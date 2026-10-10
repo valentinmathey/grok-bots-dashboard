@@ -20,6 +20,20 @@ describe("validaciones", () => {
     expect(parsed.tags).toEqual([]);
   });
 
+  it("acepta details sueltos y los deja para validar por kind", () => {
+    const parsed = createPostSchema.parse({
+      title: "Casa",
+      body: "Floripa",
+      kind: "alojamiento",
+      details: { city: "Florianópolis", score: 8.2 },
+    });
+    expect(parsed.kind).toBe("alojamiento");
+    expect(parsed.details).toEqual({ city: "Florianópolis", score: 8.2 });
+    expect(updatePostFieldsSchema.parse({ details: { score: 9 } }).details).toEqual({
+      score: 9,
+    });
+  });
+
   it("acepta event_at y event_end_at opcionales", () => {
     const parsed = createPostSchema.parse({
       title: "Meetup",

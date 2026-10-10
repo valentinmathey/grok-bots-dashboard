@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { LayoutGrid, Table2 } from "lucide-react";
+import { AlojamientoTable } from "@/components/AlojamientoTable";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterSheet } from "@/components/FilterSheet";
 import { PostCard } from "@/components/PostCard";
+import { PostCardSkeleton } from "@/components/Skeleton";
 import {
   PAGE_SIZE,
   filtersToSearchParams,
@@ -31,6 +34,8 @@ export function PostFeed({
   const sentinel = useRef<HTMLDivElement | null>(null);
   const lock = useRef(false);
   const path = `/bots/${slug}`;
+  const alojamiento = facets.has_alojamientos && !facets.has_events;
+  const view = query.view === "table" && alojamiento ? "table" : "cards";
 
   const loadMore = useCallback(async () => {
     if (lock.current) {
@@ -82,7 +87,7 @@ export function PostFeed({
         <div className="flex rounded-full bg-chip p-1">
           <Link
             href={`${path}?${filtersToSearchParams({ ...query, when: "upcoming" }).toString()}`}
-            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-medium ${
+            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-medium transition-colors ${
               when === "upcoming" ? "bg-card text-foreground shadow-sm" : "text-muted"
             }`}
           >
@@ -90,7 +95,7 @@ export function PostFeed({
           </Link>
           <Link
             href={`${path}?${filtersToSearchParams({ ...query, when: "past" }).toString()}`}
-            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-medium ${
+            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-medium transition-colors ${
               when === "past" ? "bg-card text-foreground shadow-sm" : "text-muted"
             }`}
           >
@@ -99,6 +104,28 @@ export function PostFeed({
         </div>
       ) : null}
       <FilterSheet action={path} facets={facets} query={query} />
+      {alojamiento ? (
+        <div className="flex rounded-full bg-chip p-1">
+          <Link
+            href={`${path}?${filtersToSearchParams({ ...query, view: "cards" }).toString()}`}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium ${
+              view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted"
+            }`}
+          >
+            <LayoutGrid size={14} strokeWidth={1.75} />
+            Cards
+          </Link>
+          <Link
+            href={`${path}?${filtersToSearchParams({ ...query, view: "table" }).toString()}`}
+            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium ${
+              view === "table" ? "bg-card text-foreground shadow-sm" : "text-muted"
+            }`}
+          >
+            <Table2 size={14} strokeWidth={1.75} />
+            Comparar
+          </Link>
+        </div>
+      ) : null}
       {posts.length === 0 ? (
         <EmptyState
           title={
@@ -108,41 +135,52 @@ export function PostFeed({
                 ? "No hay eventos próximos"
                 : when === "past"
                   ? "Todavía no hay eventos pasados"
-                  : "Sin publicaciones"
+                  : alojamiento
+                    ? "Sin alojamientos"
+                    : "Sin publicaciones"
           }
           body={
             hasActiveFilters(query)
-              ? "Probá otro producto, tipo o rango de fechas."
+              ? "Probá otra ciudad, precio o amenity."
               : when === "upcoming"
                 ? "Cuando haya un evento con fecha, aparece acá."
                 : when === "past"
                   ? "Los eventos que ya ocurrieron se listan acá."
-                  : "Cuando este bot publique, los posts aparecen acá."
+                  : alojamiento
+                    ? "Cuando este bot publique un alojamiento, aparece acá."
+                    : "Cuando este bot publique, los posts aparecen acá."
           }
         />
+      ) : view === "table" ? (
+        <AlojamientoTable posts={posts} />
       ) : (
         <div className="space-y-3">
           {posts.map((post) => (
             <PostCard key={post.id} post={post} filterBasePath={path} />
           ))}
-          {posts.length < total ? (
-            <div ref={sentinel} className="flex justify-center py-4">
-              <button
-                type="button"
-                onClick={() => void loadMore()}
-                className="text-sm font-medium text-accent"
-                disabled={loading}
-              >
-                {loading ? "Cargando…" : "Cargar más"}
-              </button>
-            </div>
-          ) : (
-            <p className="pb-4 text-center text-xs text-muted">
-              {total} {total === 1 ? "publicación" : "publicaciones"}
-            </p>
-          )}
         </div>
       )}
+      {posts.length > 0 && posts.length < total ? (
+        <div ref={sentinel} className="flex justify-center py-4">
+          {loading ? (
+            <div className="w-full space-y-3">
+              <PostCardSkeleton />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              className="text-sm font-medium text-accent"
+            >
+              Cargar más
+            </button>
+          )}
+        </div>
+      ) : posts.length > 0 ? (
+        <p className="pb-4 text-center text-xs text-muted">
+          {total} {total === 1 ? "publicación" : "publicaciones"}
+        </p>
+      ) : null}
     </div>
   );
 }

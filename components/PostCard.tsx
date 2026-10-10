@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CalendarDays, ChevronDown, ChevronUp, Hash, Package } from "lucide-react";
+import { AlojamientoCard } from "@/components/AlojamientoCard";
 import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
+import { ResumenCard } from "@/components/ResumenCard";
 import { isEventPast, isEventToday } from "@/lib/event-time";
 import { filtersToSearchParams } from "@/lib/filters";
 import { formatDateTime, formatEventWhen, previewPlain } from "@/lib/format";
@@ -13,6 +15,22 @@ import { uniquePostMedia } from "@/lib/images";
 import type { Post, PostKind } from "@/lib/types";
 
 export function PostCard({
+  post,
+  filterBasePath,
+}: {
+  post: Post;
+  filterBasePath: string;
+}) {
+  if (post.kind === "alojamiento") {
+    return <AlojamientoCard post={post} />;
+  }
+  if (post.kind === "resumen") {
+    return <ResumenCard post={post} />;
+  }
+  return <StandardPostCard post={post} filterBasePath={filterBasePath} />;
+}
+
+function StandardPostCard({
   post,
   filterBasePath,
 }: {

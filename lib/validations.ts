@@ -59,6 +59,7 @@ export const createPostSchema = z.object({
   images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional().default([]),
   event_at: z.union([z.string(), z.null()]).optional(),
   event_end_at: z.union([z.string(), z.null()]).optional(),
+  details: z.unknown().optional(),
 });
 
 export const listPostsQuerySchema = z.object({
@@ -132,6 +133,7 @@ export const updatePostFieldsSchema = z
     images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional(),
     event_at: z.union([z.string(), z.null()]).optional(),
     event_end_at: z.union([z.string(), z.null()]).optional(),
+    details: z.unknown().optional(),
   })
   .refine(
     (value) =>
@@ -143,7 +145,8 @@ export const updatePostFieldsSchema = z
       value.cover_image_url !== undefined ||
       value.images !== undefined ||
       value.event_at !== undefined ||
-      value.event_end_at !== undefined,
+      value.event_end_at !== undefined ||
+      value.details !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 
@@ -171,6 +174,7 @@ export const updatePostMcpSchema = z
     images: z.array(postImageSchema).max(12, "Máximo 12 imágenes").optional(),
     event_at: z.union([z.string(), z.null()]).optional(),
     event_end_at: z.union([z.string(), z.null()]).optional(),
+    details: z.unknown().optional(),
   })
   .refine(
     (value) =>
@@ -182,7 +186,8 @@ export const updatePostMcpSchema = z
       value.cover_image_url !== undefined ||
       value.images !== undefined ||
       value.event_at !== undefined ||
-      value.event_end_at !== undefined,
+      value.event_end_at !== undefined ||
+      value.details !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 
