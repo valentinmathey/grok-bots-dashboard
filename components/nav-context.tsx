@@ -14,8 +14,6 @@ type NavContextValue = {
   setTitle: (title: string | null) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
-  moreOpen: boolean;
-  setMoreOpen: (open: boolean) => void;
   unreadPedidos: number;
 };
 
@@ -30,18 +28,15 @@ export function NavProvider({
 }) {
   const [title, setTitle] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const value = useMemo(
     () => ({
       title,
       setTitle,
       searchOpen,
       setSearchOpen,
-      moreOpen,
-      setMoreOpen,
       unreadPedidos,
     }),
-    [title, searchOpen, moreOpen, unreadPedidos],
+    [title, searchOpen, unreadPedidos],
   );
   return <NavContext.Provider value={value}>{children}</NavContext.Provider>;
 }

@@ -91,14 +91,31 @@ html {
   display: none;
 }
 
-.page-heading {
-  display: none;
+@media (max-width: 1023px) {
+  .page-heading {
+    display: none !important;
+  }
 }
 
-@media (min-width: 1024px) {
-  .page-heading {
-    display: block;
-  }
+.more-sheet {
+  position: fixed;
+  inset: unset;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  transform: none;
+}
+
+.more-sheet::backdrop {
+  background: rgba(0, 0, 0, 0.4);
 }
 
 body {

@@ -56,11 +56,17 @@ const MORE_LINKS = [
 
 export function AppNav({ email }: { email: string }) {
   const pathname = usePathname() || "/";
-  const { title, searchOpen, setSearchOpen, moreOpen, setMoreOpen, unreadPedidos } = useNav();
+  const { title, searchOpen, setSearchOpen, unreadPedidos } = useNav();
   const [compact, setCompact] = useState(false);
   const [hideBar, setHideBar] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const heading = title ?? titleFromPathname(pathname);
   const activeTab = primaryTabFromPathname(pathname);
+
+  function closeMore() {
+    document.getElementById("more-menu")?.hidePopover();
+    setMoreOpen(false);
+  }
 
   useEffect(() => {
     let last = window.scrollY;
@@ -81,9 +87,8 @@ export function AppNav({ email }: { email: string }) {
   }, [moreOpen, searchOpen]);
 
   useEffect(() => {
-    setMoreOpen(false);
     setSearchOpen(false);
-  }, [pathname, setMoreOpen, setSearchOpen]);
+  }, [pathname, setSearchOpen]);
 
   return (
     <>
@@ -92,21 +97,17 @@ export function AppNav({ email }: { email: string }) {
       <DesktopSidebar email={email} pathname={pathname} unread={unreadPedidos} />
       <MobileHeader title={heading} compact={compact} />
       <MobileTabBar
-        activeTab={searchOpen ? "buscar" : activeTab}
+        activeTab={activeTab}
         hidden={hideBar}
         unread={unreadPedidos}
         moreOpen={moreOpen}
-        onMore={() => setMoreOpen(true)}
-        onSearch={() => setSearchOpen(true)}
       />
-      {moreOpen ? (
-        <MoreSheet
-          email={email}
-          unread={unreadPedidos}
-          pathname={pathname}
-          onClose={() => setMoreOpen(false)}
-        />
-      ) : null}
+      <MoreSheet
+        email={email}
+        unread={unreadPedidos}
+        pathname={pathname}
+        onClose={closeMore}
+      />
     </>
   );
 }
@@ -206,15 +207,11 @@ function MobileTabBar({
   hidden,
   unread,
   moreOpen,
-  onMore,
-  onSearch,
 }: {
   activeTab: ReturnType<typeof primaryTabFromPathname>;
   hidden: boolean;
   unread: number;
   moreOpen: boolean;
-  onMore: () => void;
-  onSearch: () => void;
 }) {
   return (
     <nav
@@ -229,49 +226,35 @@ function MobileTabBar({
           const active = activeTab === tab.id;
           return (
             <li key={tab.id}>
-              {tab.id === "buscar" ? (
-                <button
-                  type="button"
-                  onClick={onSearch}
-                  className={`flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 ${
-                    active ? "text-accent" : "text-muted"
-                  }`}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon size={20} strokeWidth={active ? 2.2 : 1.75} />
-                  <span className="text-[10px] font-medium">{tab.label}</span>
-                </button>
-              ) : (
-                <Link
-                  href={tab.href}
-                  className={`flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 ${
-                    active ? "text-accent" : "text-muted"
-                  }`}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon size={20} strokeWidth={active ? 2.2 : 1.75} />
-                  <span className="text-[10px] font-medium">{tab.label}</span>
-                </Link>
-              )}
+              <Link
+                href={tab.href}
+                className={`flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 ${
+                  active ? "text-accent" : "text-muted"
+                }`}
+                aria-current={active ? "page" : undefined}
+              >
+                <Icon size={20} strokeWidth={active ? 2.2 : 1.75} className="pointer-events-none" />
+                <span className="pointer-events-none text-[10px] font-medium">{tab.label}</span>
+              </Link>
             </li>
           );
         })}
         <li>
           <button
             type="button"
-            onClick={onMore}
+            popoverTarget="more-menu"
             className={`relative flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 ${
               moreOpen || activeTab === "mas" ? "text-accent" : "text-muted"
             }`}
             aria-expanded={moreOpen}
           >
-            <span className="relative">
+            <span className="pointer-events-none relative">
               <Menu size={20} strokeWidth={moreOpen || activeTab === "mas" ? 2.2 : 1.75} />
               {unread > 0 ? (
                 <span className="absolute -right-1.5 -top-1 h-2 w-2 rounded-full bg-accent" />
               ) : null}
             </span>
-            <span className="text-[10px] font-medium">Más</span>
+            <span className="pointer-events-none text-[10px] font-medium">Más</span>
           </button>
         </li>
       </ul>
@@ -307,19 +290,13 @@ function MoreSheet({
   const showInstall = !isStandaloneDisplay() && (installable || isIosDevice()) && !wasInstallDismissed();
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/40"
-        aria-label="Cerrar menú"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal
-        aria-labelledby={titleId}
-        className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-3xl bg-card px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
-      >
+    <div
+      id="more-menu"
+      popover="auto"
+      aria-labelledby={titleId}
+      className="more-sheet lg:hidden"
+    >
+      <div className="mx-auto max-h-[88vh] overflow-y-auto rounded-t-3xl bg-card px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
         <h2 id={titleId} className="px-1 text-lg font-semibold tracking-tight">
           Más
