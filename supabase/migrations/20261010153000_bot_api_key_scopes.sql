@@ -14,3 +14,10 @@ alter table public.bot_api_keys
   );
 
 drop index if exists public.bot_api_keys_one_active_per_bot;
+
+-- Sigue habiendo como máximo UNA clave activa con publish por bot
+-- (regenerar revoca y crea; dos regeneraciones concurrentes no dejan dos activas).
+-- Las claves read:all quedan fuera del índice, así conviven con la de publish.
+create unique index if not exists bot_api_keys_one_active_publish_per_bot
+  on public.bot_api_keys (bot_id)
+  where revoked_at is null and scopes @> array['publish']::text[];
