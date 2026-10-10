@@ -12,6 +12,9 @@ import { authenticateBot, requireWrite, type BotsRepository } from "@/lib/publis
 import type { Bot, Post, Result } from "@/lib/types";
 
 const MS_DAY = 86_400_000;
+export const SUMMARY_LOOKBACK_DAYS = 7;
+export const SUMMARY_EVENT_HORIZON_DAYS = 14;
+const GENERIC_KIND_SKIP = new Set(["resumen", "alojamiento", "evento"]);
 
 export function baIsoWeekKey(now = new Date()): string {
   const ymd = baCalendarDate(now);
@@ -26,9 +29,29 @@ export function baIsoWeekKey(now = new Date()): string {
 }
 
 export function weekPeriod(now = new Date()): { from: string; to: string } {
-  const to = baCalendarDate(now);
-  const from = baCalendarDate(new Date(now.getTime() - 7 * MS_DAY));
-  return { from, to };
+  const since = summarySince(now);
+  return { from: baCalendarDate(since), to: baCalendarDate(now) };
+}
+
+export function summarySince(now = new Date()): Date {
+  return new Date(now.getTime() - SUMMARY_LOOKBACK_DAYS * MS_DAY);
+}
+
+export function groupPostsByBot(posts: Post[]): Record<string, Post[]> {
+  const map: Record<string, Post[]> = {};
+  for (const post of posts) {
+    (map[post.bot_id] ??= []).push(post);
+  }
+  return map;
+}
+
+export function latestActivityAt(posts: Post[]): string | null {
+  let best: string | null = null;
+  for (const post of posts) {
+    if (post.kind === "resumen") continue;
+    if (!best || post.created_at > best) best = post.created_at;
+  }
+  return best;
 }
 
 function highlightFromPost(post: Post): ResumenHighlight {
@@ -60,6 +83,27 @@ function upcomingInWindow(posts: Post[], now: Date, days = 14): Post[] {
     .slice(0, 8);
 }
 
+function kindBreakdown(posts: Post[]) {
+  const groups = new Map<string, Post[]>();
+  for (const post of posts) {
+    if (GENERIC_KIND_SKIP.has(post.kind)) continue;
+    const list = groups.get(post.kind) ?? [];
+    list.push(post);
+    groups.set(post.kind, list);
+  }
+  return [...groups.entries()]
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "es"))
+    .slice(0, 12)
+    .map(([kind, items]) => ({
+      kind,
+      count: items.length,
+      latest: items.slice(0, 3).map((post) => ({
+        title: post.title,
+        post_id: post.id,
+      })),
+    }));
+}
+
 function productRank(posts: Post[]) {
   const counts = new Map<string, number>();
   for (const post of posts) {
@@ -79,6 +123,7 @@ export function buildResumenDetails(input: {
 }): ResumenDetails {
   const now = input.now ?? new Date();
   const period = weekPeriod(now);
+  const since = summarySince(now).getTime();
   return {
     week_key: baIsoWeekKey(now),
     period_from: period.from,
@@ -89,10 +134,7 @@ export function buildResumenDetails(input: {
       const recent = posts.filter((post) => {
         if (post.kind === "resumen") return false;
         const created = new Date(post.created_at).getTime();
-        return (
-          created >= new Date(`${period.from}T00:00:00.000Z`).getTime() &&
-          created <= now.getTime()
-        );
+        return created >= since && created <= now.getTime();
       });
       const aloj = recent.filter((post) => post.kind === "alojamiento");
       const withScore = aloj
@@ -136,6 +178,7 @@ export function buildResumenDetails(input: {
               }
             : undefined,
         products: productRank(recent),
+        kinds: kindBreakdown(recent),
       };
     }),
   };
@@ -174,6 +217,11 @@ export function resumenMarkdown(details: ResumenDetails): string {
         lines.push(`  - Bajaron de precio: ${bot.alojamientos.price_drops.length}`);
       }
     }
+    if (bot.kinds?.length) {
+      lines.push(
+        `- Tipos: ${bot.kinds.map((item) => `${item.kind} (${item.count})`).join(", ")}`,
+      );
+    }
     if (bot.products?.length) {
       lines.push(
         `- Productos: ${bot.products.map((item) => `${item.name} (${item.posts})`).join(", ")}`,
@@ -208,19 +256,24 @@ export async function upsertWeeklySummary(
     );
   }
 
-  const bots = await repo.listBots();
-  const postsByBot: Record<string, Post[]> = {};
-  for (const bot of bots) {
-    postsByBot[bot.id] = await repo.listPostsByBot(bot.id);
-  }
+  const [bots, windowPosts] = await Promise.all([
+    repo.listBots(),
+    repo.listPostsForSummary(now),
+  ]);
+  const postsByBot = groupPostsByBot(windowPosts);
 
   const details = buildResumenDetails({ bots, postsByBot, now });
   const title = resumenTitle(details);
   const body = resumenMarkdown(details);
 
-  const existing = (postsByBot[publisher.id] ?? []).find(
-    (post) => post.kind === "resumen" && asResumen(post.details)?.week_key === details.week_key,
-  );
+  const existing =
+    (postsByBot[publisher.id] ?? []).find(
+      (post) =>
+        post.kind === "resumen" && asResumen(post.details)?.week_key === details.week_key,
+    ) ??
+    (await repo.listPostsByBot(publisher.id, { kind: "resumen" })).find(
+      (post) => asResumen(post.details)?.week_key === details.week_key,
+    );
 
   if (existing) {
     const updated = await repo.updatePost(existing.id, {

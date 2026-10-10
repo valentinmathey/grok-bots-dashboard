@@ -67,7 +67,7 @@ function StandardPostCard({
   }
 
   return (
-    <article className="surface min-w-0 overflow-hidden rounded-3xl">
+    <article id={`post-${post.id}`} className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl">
       {cover && !open ? (
         <MediaImage src={cover.url} alt={cover.alt || post.title} className="max-h-52" />
       ) : null}

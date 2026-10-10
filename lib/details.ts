@@ -155,6 +155,25 @@ export const resumenBotSchema = z.object({
     )
     .max(20)
     .optional(),
+  kinds: z
+    .array(
+      z.object({
+        kind: z.string().trim().min(1).max(32),
+        count: z.coerce.number().int().min(0).max(10_000),
+        latest: z
+          .array(
+            z.object({
+              title: z.string().trim().min(1).max(200),
+              post_id: z.string().trim().max(64),
+            }),
+          )
+          .max(5)
+          .optional()
+          .default([]),
+      }),
+    )
+    .max(24)
+    .optional(),
 });
 
 export const resumenDetailsSchema = z.object({

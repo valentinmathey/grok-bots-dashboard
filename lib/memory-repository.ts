@@ -2,7 +2,9 @@ import { collectAlojamientoFacets, emptyDetails } from "@/lib/details";
 import { isEventUpcoming } from "@/lib/event-time";
 import { matchesFilters, sortPosts, type PostFilters } from "@/lib/filters";
 import type { BotsRepository } from "@/lib/publishing";
+import { baStartOfToday } from "@/lib/event-time";
 import { canWrite, normalizeScopes } from "@/lib/scopes";
+import { SUMMARY_EVENT_HORIZON_DAYS, SUMMARY_LOOKBACK_DAYS } from "@/lib/summary";
 import type { Bot, BotProfile, BotSummary, PageOptions, Post, PostFacets, PostKind, ShareLink } from "@/lib/types";
 
 type StoredKey = {
@@ -230,6 +232,23 @@ export class MemoryRepository implements BotsRepository {
       ),
       ...collectAlojamientoFacets(this.posts.filter((post) => post.bot_id === botId)),
     };
+  }
+
+  async listPostsForSummary(now = new Date()) {
+    const since = now.getTime() - SUMMARY_LOOKBACK_DAYS * 86_400_000;
+    const today = baStartOfToday(now).getTime();
+    const horizon = now.getTime() + SUMMARY_EVENT_HORIZON_DAYS * 86_400_000;
+    return this.posts.filter((post) => {
+      const created = new Date(post.created_at).getTime();
+      if (created >= since && created <= now.getTime()) {
+        return true;
+      }
+      if (!post.event_at) {
+        return false;
+      }
+      const start = new Date(post.event_at).getTime();
+      return start >= today && start <= horizon;
+    });
   }
 
   async listRecentPosts(limit: number, filters: PostFilters = {}) {

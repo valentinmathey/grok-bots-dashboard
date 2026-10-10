@@ -12,6 +12,10 @@ import {
   type PostFilters,
 } from "@/lib/filters";
 import { canWrite, normalizeScopes } from "@/lib/scopes";
+import {
+  SUMMARY_EVENT_HORIZON_DAYS,
+  SUMMARY_LOOKBACK_DAYS,
+} from "@/lib/summary";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotSummary, Post, PostImage, PostKind, ShareLink } from "@/lib/types";
@@ -475,6 +479,28 @@ export function createSupabaseRepository(): BotsRepository {
         has_alojamientos: rows.some((row) => row.kind === "alojamiento"),
         ...collectAlojamientoFacets(rows),
       };
+    },
+
+    async listPostsForSummary(now = new Date()) {
+      const since = new Date(
+        now.getTime() - SUMMARY_LOOKBACK_DAYS * 86_400_000,
+      ).toISOString();
+      const today = baStartOfToday(now).toISOString();
+      const horizon = new Date(
+        now.getTime() + SUMMARY_EVENT_HORIZON_DAYS * 86_400_000,
+      ).toISOString();
+      const { data, error } = await admin
+        .from("posts")
+        .select("*")
+        .or(
+          `created_at.gte.${since},and(event_at.gte.${today},event_at.lte.${horizon})`,
+        )
+        .order("created_at", { ascending: false })
+        .limit(800);
+      if (error) {
+        throw error;
+      }
+      return (data ?? []) as Post[];
     },
 
     async listRecentPosts(limit, filters) {

@@ -43,6 +43,7 @@ describe("resumen semanal", () => {
     expect(details.week_key).toMatch(/^\d{4}-W\d{2}$/);
     expect(details.bots[0]?.alojamientos?.best?.title).toBe("Casa en Campeche");
     expect(details.bots[0]?.alojamientos?.price_drops).toHaveLength(1);
+    expect(details.bots[0]?.kinds).toEqual([]);
   });
 
   it("es idempotente por week_key", async () => {

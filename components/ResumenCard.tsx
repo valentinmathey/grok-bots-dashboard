@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CalendarDays, ChevronDown, ChevronUp, Home, Newspaper, Sparkles } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { MarkdownBody } from "@/components/MarkdownBody";
+import { TimeStamp } from "@/components/TimeStamp";
 import { asResumen, type ResumenDetails } from "@/lib/details";
-import { formatDate, formatEventWhen, formatMoney } from "@/lib/format";
+import { formatDate, formatEventWhen, formatMoney, kindLabel } from "@/lib/format";
 import type { Post } from "@/lib/types";
 
 function Stat({
@@ -28,29 +30,51 @@ function Stat({
   );
 }
 
+function postHref(slug: string, postId?: string | null) {
+  return postId ? `/bots/${slug}#post-${postId}` : `/bots/${slug}`;
+}
+
 export function ResumenCard({
   post,
+  details: detailsProp,
   compact = false,
+  live = false,
+  updatedAt,
+  archiveHref,
 }: {
-  post: Post;
+  post?: Post;
+  details?: ResumenDetails | null;
   compact?: boolean;
+  live?: boolean;
+  updatedAt?: string;
+  archiveHref?: string;
 }) {
-  const [open, setOpen] = useState(!compact);
-  const details = asResumen(post.details);
+  const [open, setOpen] = useState(live || !compact);
+  const details = detailsProp ?? (post ? asResumen(post.details) : null);
+  const updated = updatedAt ?? details?.generated_at;
 
   return (
-    <article className="surface min-w-0 overflow-hidden rounded-3xl">
+    <article
+      id={post ? `post-${post.id}` : undefined}
+      className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
+    >
       <div className="bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_70%)] p-4 sm:p-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
-          Resumen semanal
+          {live ? "En vivo" : "Resumen semanal"}
         </p>
         <h2 className="mt-1 text-[1.35rem] font-semibold tracking-tight sm:text-2xl">
-          {post.title}
+          {live ? "Esta semana · últimos 7 días" : (post?.title ?? "Resumen")}
         </h2>
         {details ? (
           <p className="mt-1 text-sm text-muted">
             {formatDate(`${details.period_from}T12:00:00.000Z`)} —{" "}
             {formatDate(`${details.period_to}T12:00:00.000Z`)}
+            {updated ? (
+              <>
+                {" · Actualizado "}
+                <TimeStamp iso={updated} />
+              </>
+            ) : null}
           </p>
         ) : null}
       </div>
@@ -60,17 +84,23 @@ export function ResumenCard({
           {details.bots.map((bot) => (
             <section key={bot.bot_id} className="rounded-2xl border border-line/80 p-3 sm:p-4">
               <div className="flex items-start gap-3">
-                <BotAvatar
-                  bot={{
-                    slug: bot.slug,
-                    name: bot.name,
-                    avatar_color: bot.avatar_color,
-                    avatar_url: bot.avatar_url,
-                  }}
-                  size="md"
-                />
+                <Link href={`/bots/${bot.slug}`} className="shrink-0">
+                  <BotAvatar
+                    bot={{
+                      slug: bot.slug,
+                      name: bot.name,
+                      avatar_color: bot.avatar_color,
+                      avatar_url: bot.avatar_url,
+                    }}
+                    size="md"
+                  />
+                </Link>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold tracking-tight">{bot.name}</h3>
+                  <h3 className="font-semibold tracking-tight">
+                    <Link href={`/bots/${bot.slug}`} className="hover:underline">
+                      {bot.name}
+                    </Link>
+                  </h3>
                   {bot.status ? (
                     <p className="mt-0.5 line-clamp-2 text-sm text-muted">{bot.status}</p>
                   ) : (
@@ -99,7 +129,12 @@ export function ResumenCard({
                 <ul className="mt-3 space-y-1.5 text-sm">
                   {bot.upcoming_events.slice(0, 4).map((event) => (
                     <li key={`${event.title}-${event.event_at}`} className="flex justify-between gap-3">
-                      <span className="min-w-0 truncate">{event.title}</span>
+                      <Link
+                        href={postHref(bot.slug, event.post_id)}
+                        className="min-w-0 truncate font-medium hover:underline"
+                      >
+                        {event.title}
+                      </Link>
                       <span className="shrink-0 text-xs text-muted">
                         {formatEventWhen(event.event_at, event.event_end_at)}
                       </span>
@@ -112,7 +147,13 @@ export function ResumenCard({
                   {bot.alojamientos.best ? (
                     <p>
                       <Sparkles size={12} strokeWidth={1.75} className="mr-1 inline text-accent" />
-                      Mejor score: {bot.alojamientos.best.title}
+                      Mejor score:{" "}
+                      <Link
+                        href={postHref(bot.slug, bot.alojamientos.best.post_id)}
+                        className="font-medium hover:underline"
+                      >
+                        {bot.alojamientos.best.title}
+                      </Link>
                       {bot.alojamientos.best.score != null
                         ? ` (${bot.alojamientos.best.score.toFixed(1)})`
                         : ""}
@@ -120,7 +161,13 @@ export function ResumenCard({
                   ) : null}
                   {bot.alojamientos.cheapest ? (
                     <p className="text-muted">
-                      Más barato: {bot.alojamientos.cheapest.title}
+                      Más barato:{" "}
+                      <Link
+                        href={postHref(bot.slug, bot.alojamientos.cheapest.post_id)}
+                        className="hover:underline"
+                      >
+                        {bot.alojamientos.cheapest.title}
+                      </Link>
                       {bot.alojamientos.cheapest.price_per_person != null
                         ? ` · ${formatMoney(bot.alojamientos.cheapest.price_per_person, bot.alojamientos.cheapest.currency || "BRL")} / pers.`
                         : ""}
@@ -133,9 +180,58 @@ export function ResumenCard({
                   ) : null}
                 </div>
               ) : null}
+              {bot.kinds?.length ? (
+                <div className="mt-3 space-y-2">
+                  {bot.kinds.map((item) => (
+                    <div key={item.kind}>
+                      <p className="text-xs font-medium text-muted">
+                        <Link
+                          href={`/bots/${bot.slug}?kind=${encodeURIComponent(item.kind)}`}
+                          className="hover:underline"
+                        >
+                          {kindLabel(item.kind)}
+                        </Link>
+                        {" · "}
+                        {item.count}
+                      </p>
+                      {item.latest?.length ? (
+                        <ul className="mt-1 space-y-0.5 text-sm">
+                          {item.latest.map((entry) => (
+                            <li key={entry.post_id} className="truncate">
+                              <Link
+                                href={postHref(bot.slug, entry.post_id)}
+                                className="hover:underline"
+                              >
+                                {entry.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {bot.products?.length ? (
+                <p className="mt-3 text-sm text-muted">
+                  Productos:{" "}
+                  {bot.products.map((item, index) => (
+                    <span key={item.name}>
+                      {index > 0 ? ", " : null}
+                      <Link
+                        href={`/bots/${bot.slug}?product=${encodeURIComponent(item.name)}`}
+                        className="hover:underline"
+                      >
+                        {item.name}
+                      </Link>
+                      {` (${item.posts})`}
+                    </span>
+                  ))}
+                </p>
+              ) : null}
             </section>
           ))}
-          {post.body_markdown?.trim() ? (
+          {post?.body_markdown?.trim() && !live ? (
             <details className="text-sm text-muted">
               <summary className="cursor-pointer font-medium text-foreground">
                 Ver en markdown
@@ -145,14 +241,21 @@ export function ResumenCard({
               </div>
             </details>
           ) : null}
+          {archiveHref ? (
+            <p className="text-right text-xs">
+              <Link href={archiveHref} className="font-medium text-accent">
+                Ver resúmenes anteriores
+              </Link>
+            </p>
+          ) : null}
         </div>
-      ) : compact ? (
+      ) : compact && !live ? (
         <p className="px-4 pb-4 text-sm leading-6 text-muted sm:px-5">
           Lo que publicaron tus bots esta semana, con eventos y alojamientos destacados.
         </p>
       ) : null}
 
-      {compact ? (
+      {compact && !live ? (
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}

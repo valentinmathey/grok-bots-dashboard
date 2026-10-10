@@ -81,6 +81,7 @@ export type BotsRepository = {
     limit: number,
     filters?: PostFilters,
   ): Promise<Array<Post & { bot: Pick<Bot, "id" | "name" | "slug"> }>>;
+  listPostsForSummary(now?: Date): Promise<Post[]>;
   listCatalogPosts(
     filters: PostFilters,
     options: { limit: number; offset: number; sortEvents: boolean },
