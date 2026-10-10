@@ -123,7 +123,7 @@ npm run smoke     # requiere la app corriendo y BOT_API_KEY
    **`supabase/migrations/20261010230000_agenda_feed.sql`**.
 
    Para pedidos ejecutá
-   **`supabase/migrations/20261010240000_bot_requests.sql`**.
+   **`supabase/migrations/20261011000000_bot_requests.sql`**.
 
    Para estadísticas ejecutá
    **`supabase/migrations/20261010250000_bot_stats.sql`**.

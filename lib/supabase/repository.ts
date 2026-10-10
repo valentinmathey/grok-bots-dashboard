@@ -632,7 +632,13 @@ export function createSupabaseRepository(): BotsRepository {
       }
       if (filters.from) query = query.gte("created_at", `${filters.from}T00:00:00.000Z`);
       if (filters.to) query = query.lte("created_at", `${filters.to}T23:59:59.999Z`);
-      const ts = q.replace(/[':()&|!]/g, " ").replace(/\s+/g, " ").trim();
+      // search_tsv se guarda sin acentos: normalizamos la consulta igual.
+      const ts = q
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .replace(/[':()&|!]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
       let { data, error, count } = await query
         .textSearch("search_tsv", ts, { type: "websearch", config: "simple" })
         .order("created_at", { ascending: false })
