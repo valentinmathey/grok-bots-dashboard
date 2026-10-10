@@ -24,7 +24,7 @@ export function PostFeed({
   facets,
   basePath,
   postsApi,
-  postHref,
+  postHrefBase,
 }: {
   slug: string;
   query: FeedQuery;
@@ -33,8 +33,12 @@ export function PostFeed({
   facets: PostFacets;
   basePath?: string;
   postsApi?: string;
-  postHref?: (post: Post) => string;
+  /** Base de la URL de detalle (ej. /compartir/<token>). String para poder pasarlo desde un Server Component. */
+  postHrefBase?: string;
 }) {
+  const postHref = postHrefBase
+    ? (post: Post) => `${postHrefBase}/${post.id}`
+    : undefined;
   const [posts, setPosts] = useState(initialPosts);
   const [loading, setLoading] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
