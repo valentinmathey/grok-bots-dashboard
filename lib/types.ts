@@ -61,6 +61,15 @@ export type PostWithBot = Post & {
   bot: Pick<Bot, "id" | "name" | "slug">;
 };
 
+export type ShareLink = {
+  id: string;
+  bot_id: string;
+  token_hash: string;
+  token_prefix: string;
+  created_at: string;
+  revoked_at: string | null;
+};
+
 export type AuthenticatedBot = {
   botId: string;
   name: string;

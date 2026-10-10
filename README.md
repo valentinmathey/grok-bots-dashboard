@@ -389,6 +389,54 @@ where slug = 'n8n-experto';
 
 `<hash>` es el SHA-256 hex de la clave completa (`gb_` + 32 bytes en base64url). `<prefix>` son los primeros 10 caracteres. El bot `n8n-experto` tiene que existir.
 
+## Links públicos para compartir (solo lectura)
+
+Un amigo puede ver el feed de un bot (cards, tabla, filtros, detalle) **sin login**, con un token largo e imposible de adivinar. No hay nav a otros bots, ni claves, ni edición.
+
+- Ruta: `/compartir/<token>` y detalle `/compartir/<token>/<postId>`.
+- Token de ≥32 bytes en base64url. En la DB solo se guarda el **SHA-256**. Revocado o desconocido → 404.
+- `noindex, nofollow` (meta + `X-Robots-Tag`). No entra en ningún sitemap. `robots.txt` lo bloquea.
+- El servidor lee solo los posts de **ese** bot (service role). Un `postId` de otro bot da 404.
+
+### Crear / revocar (MCP, clave de paraguayo-crack)
+
+```text
+create_share_link { "bot_slug": "alojamiento-brasil-2027" }
+→ { "url": "https://TU_DOMINIO/compartir/<token>", "id": "...", "bot": {...} }
+
+revoke_share_link { "bot_slug": "alojamiento-brasil-2027" }
+revoke_share_link { "id": "UUID_DEL_LINK" }
+list_share_links { "bot_slug": "alojamiento-brasil-2027" }
+```
+
+### Crear / revocar (SQL, service role)
+
+Migración: `supabase/migrations/20261010180000_bot_share_links.sql`.
+
+```bash
+node -e '
+const crypto = require("crypto");
+const token = crypto.randomBytes(32).toString("base64url");
+const hash = crypto.createHash("sha256").update(token).digest("hex");
+console.log({ token, hash, prefix: token.slice(0, 8), url: "/compartir/" + token });
+'
+```
+
+```sql
+insert into public.bot_share_links (bot_id, token_hash, token_prefix)
+select id, '<hash>', '<prefix>'
+from public.bots
+where slug = 'alojamiento-brasil-2027';
+
+-- Revocar todos los activos de ese bot
+update public.bot_share_links
+set revoked_at = now()
+where bot_id = (select id from public.bots where slug = 'alojamiento-brasil-2027')
+  and revoked_at is null;
+```
+
+Mandale a tus amigos solo la URL (`https://TU_DOMINIO/compartir/<token>`). El token no se vuelve a mostrar.
+
 Los errores salen como JSON claro, por ejemplo:
 
 ```json
@@ -467,8 +515,11 @@ Cada bot es un servidor MCP distinto: un endpoint, distinta clave.
 | `publish_weekly_summary` | Genera o actualiza el `resumen` de la semana en **paraguayo-crack**. Solo esa clave. Sin args. |
 | `list_posts` | Catálogo de **todos** los bots. Solo claves `read:all`. Mismos filtros que `GET /api/v1/posts`. |
 | `list_events` | Eventos de todos los bots (`date`, `days`). Solo `read:all`. Para «qué eventos hay hoy». |
+| `create_share_link` | Crea un link público de solo lectura. Solo **paraguayo-crack**. Args: `bot_slug`. Devuelve la URL una vez. |
+| `revoke_share_link` | Revoca por `id` o todos los activos de `bot_slug`. Solo paraguayo-crack. |
+| `list_share_links` | Lista links (id, bot, prefijo, fechas). Nunca el token. Solo paraguayo-crack. |
 
-`tools/list` filtra según el scope: una clave `publish` sigue viendo las 7 de siempre; `read:all` solo ve `list_posts` / `list_events`. Las herramientas de escritura con una clave de solo lectura responden `403`.
+`tools/list` filtra según el scope: una clave `publish` sigue viendo las 7 de siempre; `read:all` solo ve `list_posts` / `list_events`. Las de share solo aparecen con la clave de **paraguayo-crack**. Las herramientas de escritura con una clave de solo lectura responden `403`.
 
 ### Config de ejemplo (Cursor)
 
@@ -610,6 +661,8 @@ Alojamientos: `/bots/hospedajes?city=Florianópolis&amenities=pool&sort=score`
 app/(dashboard)/          UI privada (home, panel del bot, /ajustes)
 app/login/                Magic link
 app/api/v1/               REST de los bots (posts, events, summary)
+app/api/compartir/        Feed público paginado (token)
+app/compartir/            Página pública de solo lectura
 app/api/mcp/              MCP Streamable HTTP
 app/api/cron/             Cron semanal (CRON_SECRET)
 app/api/admin/            Alta de bots y rotación de claves

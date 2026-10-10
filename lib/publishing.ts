@@ -16,6 +16,7 @@ import type {
   Post,
   PostFacets,
   Result,
+  ShareLink,
 } from "@/lib/types";
 import {
   createBotSchema,
@@ -107,6 +108,15 @@ export type BotsRepository = {
     keyPrefix: string,
   ): Promise<void>;
   getActiveKeyPrefix(botId: string): Promise<string | null>;
+  insertShareLink(input: {
+    botId: string;
+    tokenHash: string;
+    tokenPrefix: string;
+  }): Promise<ShareLink>;
+  findShareLinkByTokenHash(hash: string): Promise<ShareLink | null>;
+  revokeShareLink(id: string): Promise<ShareLink | null>;
+  revokeShareLinksByBot(botId: string): Promise<number>;
+  listShareLinks(botId?: string): Promise<ShareLink[]>;
 };
 
 export async function authenticateBot(

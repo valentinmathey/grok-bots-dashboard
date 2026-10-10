@@ -14,7 +14,7 @@ import {
 import { canWrite, normalizeScopes } from "@/lib/scopes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BotsRepository } from "@/lib/publishing";
-import type { Bot, BotSummary, Post, PostImage, PostKind } from "@/lib/types";
+import type { Bot, BotSummary, Post, PostImage, PostKind, ShareLink } from "@/lib/types";
 import { isPostId } from "@/lib/validations";
 
 function applyFilters<T>(query: T, filters: PostFilters = {}): T {
@@ -671,6 +671,87 @@ export function createSupabaseRepository(): BotsRepository {
       const rows = (data ?? []) as Array<{ key_prefix: string; scopes?: string[] }>;
       const publish = rows.find((row) => canWrite(row.scopes));
       return (publish ?? rows[0])?.key_prefix ?? null;
+    },
+
+    async insertShareLink(input) {
+      const { data, error } = await admin
+        .from("bot_share_links")
+        .insert({
+          bot_id: input.botId,
+          token_hash: input.tokenHash,
+          token_prefix: input.tokenPrefix,
+        })
+        .select("*")
+        .single();
+      if (error) {
+        throw error;
+      }
+      return data as ShareLink;
+    },
+
+    async findShareLinkByTokenHash(hash) {
+      const { data, error } = await admin
+        .from("bot_share_links")
+        .select("*")
+        .eq("token_hash", hash)
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+      return data ? (data as ShareLink) : null;
+    },
+
+    async revokeShareLink(id) {
+      const { data, error } = await admin
+        .from("bot_share_links")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", id)
+        .is("revoked_at", null)
+        .select("*")
+        .maybeSingle();
+      if (error) {
+        throw error;
+      }
+      if (data) {
+        return data as ShareLink;
+      }
+      const existing = await admin
+        .from("bot_share_links")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (existing.error) {
+        throw existing.error;
+      }
+      return existing.data ? (existing.data as ShareLink) : null;
+    },
+
+    async revokeShareLinksByBot(botId) {
+      const { data, error } = await admin
+        .from("bot_share_links")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("bot_id", botId)
+        .is("revoked_at", null)
+        .select("id");
+      if (error) {
+        throw error;
+      }
+      return (data ?? []).length;
+    },
+
+    async listShareLinks(botId) {
+      let query = admin
+        .from("bot_share_links")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (botId) {
+        query = query.eq("bot_id", botId);
+      }
+      const { data, error } = await query;
+      if (error) {
+        throw error;
+      }
+      return (data ?? []) as ShareLink[];
     },
   };
 }

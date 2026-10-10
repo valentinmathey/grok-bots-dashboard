@@ -1,4 +1,5 @@
 import { listCatalogEvents, listCatalogPosts } from "@/lib/catalog";
+import { SUMMARY_BOT_SLUG } from "@/lib/details";
 import {
   authenticateBot,
   deleteOwnPostFromMcp,
@@ -10,6 +11,11 @@ import {
   type BotsRepository,
 } from "@/lib/publishing";
 import { canReadAll, canWrite } from "@/lib/scopes";
+import {
+  createShareLink,
+  listShareLinks,
+  revokeShareLink,
+} from "@/lib/share";
 import { publishWeeklySummaryForBot } from "@/lib/summary";
 export const MCP_PROTOCOL_VERSIONS = [
   "2024-11-05",
@@ -288,6 +294,50 @@ export const MCP_READ_TOOLS = [
   },
 ] as const;
 
+export const MCP_SHARE_TOOLS = [
+  {
+    name: "create_share_link",
+    description:
+      "Crea un link público de solo lectura para un bot (ej. alojamiento-brasil-2027). Solo la clave de paraguayo-crack. Devuelve la URL una sola vez. Args: bot_slug.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["bot_slug"],
+      properties: {
+        bot_slug: {
+          type: "string",
+          description: "Slug del bot a compartir",
+        },
+      },
+    },
+  },
+  {
+    name: "revoke_share_link",
+    description:
+      "Revoca un link público. Mandá id (un link) o bot_slug (todos los activos de ese bot). Solo paraguayo-crack.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        bot_slug: { type: "string" },
+        id: { type: "string", description: "UUID del link" },
+      },
+    },
+  },
+  {
+    name: "list_share_links",
+    description:
+      "Lista links para compartir (id, bot, prefijo, created_at, revoked_at). Nunca devuelve el token. Solo paraguayo-crack. Args opcionales: bot_slug.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        bot_slug: { type: "string" },
+      },
+    },
+  },
+] as const;
+
 export function toolsForScopes(scopes?: string[] | null) {
   const write = canWrite(scopes);
   const read = canReadAll(scopes);
@@ -298,6 +348,14 @@ export function toolsForScopes(scopes?: string[] | null) {
     return [...MCP_READ_TOOLS];
   }
   return [...MCP_TOOLS];
+}
+
+export function toolsForBot(bot: { slug?: string; scopes?: string[] | null }) {
+  const scoped = toolsForScopes(bot.scopes);
+  if (canWrite(bot.scopes) && bot.slug === SUMMARY_BOT_SLUG) {
+    return [...scoped, ...MCP_SHARE_TOOLS];
+  }
+  return scoped;
 }
 
 type JsonRpcId = string | number | null;
@@ -370,6 +428,12 @@ async function callTool(
       return listCatalogPosts(repo, authorization, args ?? {});
     case "list_events":
       return listCatalogEvents(repo, authorization, args ?? {});
+    case "create_share_link":
+      return createShareLink(repo, authorization, args ?? {});
+    case "revoke_share_link":
+      return revokeShareLink(repo, authorization, args ?? {});
+    case "list_share_links":
+      return listShareLinks(repo, authorization, args ?? {});
     default:
       return {
         ok: false as const,
@@ -426,7 +490,7 @@ export async function dispatchMcpRequest(
       return { status: 200, body: ok(id, {}) };
     case "tools/list": {
       const auth = await authenticateBot(repo, authorization);
-      const tools = auth.ok ? toolsForScopes(auth.data.scopes) : [...MCP_TOOLS];
+      const tools = auth.ok ? toolsForBot(auth.data) : [...MCP_TOOLS];
       return { status: 200, body: ok(id, { tools }) };
     }
     case "tools/call": {
@@ -449,7 +513,7 @@ export async function dispatchMcpRequest(
         };
       }
 
-      const allowed = toolsForScopes(auth.data.scopes).some(
+      const allowed = toolsForBot(auth.data).some(
         (tool) => tool.name === params.name,
       );
       if (!allowed) {

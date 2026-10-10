@@ -17,27 +17,42 @@ import type { Post, PostKind } from "@/lib/types";
 export function PostCard({
   post,
   filterBasePath,
+  href,
+  defaultOpen = false,
 }: {
   post: Post;
   filterBasePath: string;
+  href?: string;
+  defaultOpen?: boolean;
 }) {
   if (post.kind === "alojamiento") {
-    return <AlojamientoCard post={post} />;
+    return <AlojamientoCard post={post} href={href} defaultOpen={defaultOpen} />;
   }
   if (post.kind === "resumen") {
     return <ResumenCard post={post} />;
   }
-  return <StandardPostCard post={post} filterBasePath={filterBasePath} />;
+  return (
+    <StandardPostCard
+      post={post}
+      filterBasePath={filterBasePath}
+      href={href}
+      defaultOpen={defaultOpen}
+    />
+  );
 }
 
 function StandardPostCard({
   post,
   filterBasePath,
+  href,
+  defaultOpen = false,
 }: {
   post: Post;
   filterBasePath: string;
+  href?: string;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const preview = previewPlain(post.body_markdown);
   const media = uniquePostMedia(post);
   const cover = media[0] ?? null;
@@ -46,7 +61,7 @@ function StandardPostCard({
   const today = eventIso ? isEventToday(post) : false;
   const past = eventIso ? isEventPast(post) : false;
 
-  function href(next: { kind?: PostKind; product?: string; tag?: string }) {
+  function filterHref(next: { kind?: PostKind; product?: string; tag?: string }) {
     const query = filtersToSearchParams(next).toString();
     return query ? `${filterBasePath}?${query}` : filterBasePath;
   }
@@ -59,7 +74,13 @@ function StandardPostCard({
       <div className="p-4 sm:p-5">
         <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <h3 className="min-w-0 text-[1.05rem] font-semibold leading-snug tracking-tight break-words">
-            {post.title}
+            {href ? (
+              <Link href={href} className="hover:underline">
+                {post.title}
+              </Link>
+            ) : (
+              post.title
+            )}
           </h3>
           {eventIso ? (
             <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
@@ -95,12 +116,12 @@ function StandardPostCard({
         </div>
 
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          <Link href={href({ kind: post.kind })} className="hover:opacity-80">
+          <Link href={filterHref({ kind: post.kind })} className="hover:opacity-80">
             <KindBadge kind={post.kind} />
           </Link>
           {post.product ? (
             <Link
-              href={href({ product: post.product })}
+              href={filterHref({ product: post.product })}
               className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium text-foreground/80 hover:bg-accent/15"
             >
               <Package size={11} strokeWidth={1.75} />
@@ -110,7 +131,7 @@ function StandardPostCard({
           {post.tags.map((tag) => (
             <Link
               key={tag}
-              href={href({ tag })}
+              href={filterHref({ tag })}
               className="inline-flex items-center gap-0.5 text-[11px] text-muted hover:text-foreground"
             >
               <Hash size={10} strokeWidth={1.75} />

@@ -22,18 +22,24 @@ export function PostFeed({
   initialPosts,
   total,
   facets,
+  basePath,
+  postsApi,
+  postHref,
 }: {
   slug: string;
   query: FeedQuery;
   initialPosts: Post[];
   total: number;
   facets: PostFacets;
+  basePath?: string;
+  postsApi?: string;
+  postHref?: (post: Post) => string;
 }) {
   const [posts, setPosts] = useState(initialPosts);
   const [loading, setLoading] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
   const lock = useRef(false);
-  const path = `/bots/${slug}`;
+  const path = basePath ?? `/bots/${slug}`;
   const alojamiento = facets.has_alojamientos && !facets.has_events;
   const view = query.view === "table" && alojamiento ? "table" : "cards";
 
@@ -47,8 +53,10 @@ export function PostFeed({
       const params = filtersToSearchParams(query);
       params.set("offset", String(posts.length));
       params.set("limit", String(PAGE_SIZE));
-      params.set("slug", slug);
-      const response = await fetch(`/api/admin/posts?${params}`);
+      if (!postsApi) {
+        params.set("slug", slug);
+      }
+      const response = await fetch(`${postsApi ?? "/api/admin/posts"}?${params}`);
       const payload = (await response.json()) as { posts?: Post[] };
       setPosts((current) => {
         const seen = new Set(current.map((post) => post.id));
@@ -59,7 +67,7 @@ export function PostFeed({
       lock.current = false;
       setLoading(false);
     }
-  }, [posts.length, query, slug]);
+  }, [posts.length, postsApi, query, slug]);
 
   useEffect(() => {
     const node = sentinel.current;
@@ -152,11 +160,19 @@ export function PostFeed({
           }
         />
       ) : view === "table" ? (
-        <AlojamientoTable posts={posts} />
+        <AlojamientoTable
+          posts={posts}
+          postHref={postHref}
+        />
       ) : (
         <div className="space-y-3">
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} filterBasePath={path} />
+            <PostCard
+              key={post.id}
+              post={post}
+              filterBasePath={path}
+              href={postHref?.(post)}
+            />
           ))}
         </div>
       )}

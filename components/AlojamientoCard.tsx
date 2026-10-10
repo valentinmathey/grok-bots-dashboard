@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Bath,
   BedDouble,
@@ -33,8 +34,16 @@ function platformCta(details: AlojamientoDetails): string {
   return "Ver el anuncio";
 }
 
-export function AlojamientoCard({ post }: { post: Post }) {
-  const [open, setOpen] = useState(false);
+export function AlojamientoCard({
+  post,
+  href,
+  defaultOpen = false,
+}: {
+  post: Post;
+  href?: string;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const details = asAlojamiento(post.details) ?? {};
   const media = uniquePostMedia(post);
   const cover = media[0] ?? null;
@@ -85,7 +94,13 @@ export function AlojamientoCard({ post }: { post: Post }) {
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <h3 className="min-w-0 text-[1.08rem] font-semibold leading-snug tracking-tight">
-            {post.title}
+            {href ? (
+              <Link href={href} className="hover:underline">
+                {post.title}
+              </Link>
+            ) : (
+              post.title
+            )}
           </h3>
           <KindBadge kind={post.kind} />
         </div>
