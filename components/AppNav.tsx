@@ -196,13 +196,14 @@ function DesktopSidebar({
           );
         })}
       </nav>
-      <div className="space-y-1 border-t border-line px-3 py-3">
+      <div className="border-t border-line px-3 py-3">
         <ThemeRow />
+        <div className="my-2 h-px bg-line" />
         <form action="/auth/sign-out" method="post">
           <button
             type="submit"
             title={email}
-            className="inline-flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-sm text-muted hover:bg-chip hover:text-foreground"
+            className="inline-flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-sm font-medium text-muted hover:bg-chip hover:text-foreground"
           >
             <LogOut size={18} strokeWidth={1.75} />
             Salir
@@ -459,7 +460,11 @@ function ThemeRow({ className = "" }: { className?: string }) {
     { id: "system", icon: Monitor, label: "Sistema" },
   ];
   return (
-    <div className={`grid grid-cols-3 gap-1 rounded-2xl bg-chip p-1 ${className}`}>
+    <div
+      className={`grid w-full min-w-0 grid-cols-3 gap-1 rounded-2xl bg-chip p-1 ${className}`}
+      role="group"
+      aria-label="Tema"
+    >
       {options.map((option) => {
         const Icon = option.icon;
         const active = mode === option.id;
@@ -468,14 +473,17 @@ function ThemeRow({ className = "" }: { className?: string }) {
             key={option.id}
             type="button"
             onClick={() => persistThemeMode(option.id)}
-            className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl text-xs font-medium ${
-              active ? "bg-card text-foreground shadow-sm" : "text-muted"
+            title={themeLabel(option.id)}
+            className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[11px] leading-none ${
+              active
+                ? "bg-card font-semibold text-foreground shadow-sm"
+                : "font-medium text-muted hover:text-foreground"
             }`}
             aria-pressed={active}
             aria-label={`Tema ${themeLabel(option.id)}`}
           >
-            <Icon size={14} strokeWidth={1.75} />
-            {option.label}
+            <Icon size={18} strokeWidth={active ? 2.1 : 1.75} />
+            <span className="max-w-full truncate">{option.label}</span>
           </button>
         );
       })}
