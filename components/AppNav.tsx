@@ -15,25 +15,17 @@ import {
   Moon,
   Search,
   Settings,
-  Share,
-  Smartphone,
   Star,
   Sun,
 } from "lucide-react";
+import { InstallAppButton } from "@/components/InstallAppButton";
 import { SearchOverlay } from "@/components/SearchOverlay";
 import { Sheet } from "@/components/Sheet";
 import { ThemeColorSync } from "@/components/ThemeColorSync";
 import { useNav } from "@/components/nav-context";
 import { primaryTabFromPathname, titleFromPathname } from "@/lib/nav";
+import { isIosDevice, isStandaloneDisplay } from "@/lib/pwa-install";
 import { shouldAutoHideTabBar, syncVisualViewportInset } from "@/lib/viewport";
-import {
-  canNativeInstall,
-  isIosDevice,
-  isStandaloneDisplay,
-  promptNativeInstall,
-  subscribeInstall,
-  wasInstallDismissed,
-} from "@/lib/pwa-install";
 import {
   persistThemeMode,
   readStoredTheme,
@@ -199,6 +191,7 @@ function DesktopSidebar({
       <div className="border-t border-line px-3 py-3">
         <ThemeRow />
         <div className="my-2 h-px bg-line" />
+        <InstallAppButton className="inline-flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 text-sm font-medium text-muted hover:bg-chip hover:text-foreground" />
         <form action="/auth/sign-out" method="post">
           <button
             type="submit"
@@ -374,21 +367,6 @@ function MoreSheet({
   pathname: string;
   onClose: () => void;
 }) {
-  const [iosHelp, setIosHelp] = useState(false);
-  const [installable, setInstallable] = useState(false);
-
-  useEffect(() => {
-    setInstallable(canNativeInstall());
-    return subscribeInstall(() => setInstallable(canNativeInstall()));
-  }, []);
-
-  async function install() {
-    if (await promptNativeInstall()) return;
-    if (isIosDevice() && !isStandaloneDisplay()) setIosHelp(true);
-  }
-
-  const showInstall = !isStandaloneDisplay() && (installable || isIosDevice()) && !wasInstallDismissed();
-
   return (
     <Sheet open={open} onClose={onClose} title="Más" mobileOnly>
       <div>
@@ -417,22 +395,7 @@ function MoreSheet({
           Apariencia
         </p>
         <ThemeRow className="mt-2" />
-        {showInstall ? (
-          <button
-            type="button"
-            onClick={() => void install()}
-            className="mt-2 flex min-h-12 w-full items-center gap-3 rounded-2xl px-3 text-sm font-medium hover:bg-chip"
-          >
-            <Smartphone size={18} strokeWidth={1.75} />
-            Instalar app
-          </button>
-        ) : null}
-        {iosHelp ? (
-          <p className="mt-2 px-3 text-xs leading-5 text-muted">
-            En Safari: tocá <Share size={12} className="inline" strokeWidth={1.75} /> Compartir y
-            después <span className="font-medium text-foreground">Agregar a inicio</span>.
-          </p>
-        ) : null}
+        <InstallAppButton className="mt-2 flex min-h-12 w-full items-center gap-3 rounded-2xl px-3 text-sm font-medium hover:bg-chip" />
         <form action="/auth/sign-out" method="post" className="mt-2">
           <button
             type="submit"

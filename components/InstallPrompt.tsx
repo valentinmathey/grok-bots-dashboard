@@ -4,39 +4,95 @@ import { useEffect, useState } from "react";
 import { Share, X } from "lucide-react";
 import {
   captureInstallPrompt,
-  dismissInstall,
+  hasInstalledRelatedApp,
+  INSTALL_ENGAGE_MS,
+  isAppInstalled,
+  isInstallDone,
   isIosDevice,
-  isStandaloneDisplay,
+  markBannerShownThisSession,
+  markInstallDone,
   promptNativeInstall,
+  readSnoozeUntil,
+  recordVisit,
+  shouldOfferInstallBanner,
+  snoozeInstall,
   type BeforeInstallPromptEvent,
-  wasInstallDismissed,
+  wasBannerShownThisSession,
 } from "@/lib/pwa-install";
 
 export function InstallPrompt() {
-  const [iosSheet, setIosSheet] = useState(false);
+  const [iosHelp, setIosHelp] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [nativeReady, setNativeReady] = useState(false);
+  const [engaged, setEngaged] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [visits, setVisits] = useState(0);
 
   useEffect(() => {
-    if (wasInstallDismissed()) return;
-    if (isStandaloneDisplay()) return;
-
-    if (isIosDevice()) {
-      setIosSheet(true);
-      setVisible(true);
+    setVisits(recordVisit());
+    if (isAppInstalled()) {
+      setInstalled(true);
       return;
     }
+    let cancelled = false;
+    void hasInstalledRelatedApp().then((related) => {
+      if (!cancelled && related) {
+        setInstalled(true);
+        markInstallDone();
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEngaged(true), INSTALL_ENGAGE_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    function onInstalled() {
+      markInstallDone();
+      setInstalled(true);
+      setVisible(false);
+    }
+    window.addEventListener("appinstalled", onInstalled);
+    return () => window.removeEventListener("appinstalled", onInstalled);
+  }, []);
+
+  useEffect(() => {
+    if (installed) return;
     function onPrompt(event: Event) {
       event.preventDefault();
       captureInstallPrompt(event as BeforeInstallPromptEvent);
-      setVisible(true);
+      setNativeReady(true);
     }
     window.addEventListener("beforeinstallprompt", onPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+  }, [installed]);
+
+  useEffect(() => {
+    if (installed || visible) return;
+    if (isIosDevice()) setIosHelp(true);
+    const offer = shouldOfferInstallBanner({
+      installed,
+      done: isInstallDone(),
+      snoozedUntil: readSnoozeUntil(),
+      shownThisSession: wasBannerShownThisSession(),
+      visitCount: visits,
+      engaged: engaged || nativeReady,
+      now: Date.now(),
+    });
+    if (!offer) return;
+    if (isIosDevice() || nativeReady) {
+      markBannerShownThisSession();
+      setVisible(true);
+    }
+  }, [engaged, nativeReady, installed, visible, visits]);
 
   function close() {
-    dismissInstall();
+    snoozeInstall();
     setVisible(false);
   }
 
@@ -45,10 +101,10 @@ export function InstallPrompt() {
       setVisible(false);
       return;
     }
-    setIosSheet(true);
+    setIosHelp(true);
   }
 
-  if (!visible) return null;
+  if (!visible || installed) return null;
 
   return (
     <div className="safe-px fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom)+var(--vv-bottom,0px))] left-0 right-0 z-40 flex justify-center px-3.5 lg:bottom-[calc(0.75rem+env(safe-area-inset-bottom))]">
@@ -58,7 +114,7 @@ export function InstallPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Instalar app</p>
-          {iosSheet ? (
+          {iosHelp ? (
             <p className="mt-1 text-xs leading-5 text-muted">
               En Safari: tocá <Share size={12} className="inline" strokeWidth={1.75} /> Compartir y
               después <span className="font-medium text-foreground">Agregar a inicio</span>. En iOS
@@ -70,7 +126,7 @@ export function InstallPrompt() {
             </p>
           )}
           <div className="mt-2 flex gap-2">
-            {!iosSheet ? (
+            {!iosHelp ? (
               <button
                 type="button"
                 onClick={() => void install()}
