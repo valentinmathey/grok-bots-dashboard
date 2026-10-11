@@ -9,7 +9,9 @@ import { showToast } from "@/components/Toast";
 import type { PostCardBot } from "@/components/PostCardHeader";
 import type { BotRequest, RequestMessage, RequestStatus } from "@/lib/requests";
 
-const CHIPS = ["Profundizá", "Buscá más así", "Actualizá", "Otra cosa…"] as const;
+const POST_CHIPS = ["Profundizá", "Buscá más así", "Actualizá", "Otra cosa…"] as const;
+const GENERAL_CHIPS = ["Buscame...", "Cambiá cómo publicás...", "Revisá...", "Otra cosa…"] as const;
+const OTHER_CHIP = "Otra cosa…";
 const OPEN_STATUSES: RequestStatus[] = ["pendiente", "en_progreso"];
 
 const STATUS_LABEL: Record<RequestStatus, string> = {
@@ -20,6 +22,11 @@ const STATUS_LABEL: Record<RequestStatus, string> = {
 };
 
 type RequestWithMessages = BotRequest & { messages?: RequestMessage[] };
+
+/** Clave del contador de abiertos: el post, o `general:<botId>` para pedidos generales. */
+function countKey(row: { post_id: string | null; bot_id: string }) {
+  return row.post_id ?? `general:${row.bot_id}`;
+}
 
 const countCache = new Map<string, number>();
 const countListeners = new Set<() => void>();
@@ -35,8 +42,9 @@ function loadOpenCounts() {
     .then((data: { requests?: RequestWithMessages[] }) => {
       countCache.clear();
       for (const row of data.requests ?? []) {
-        if (!row.post_id || !OPEN_STATUSES.includes(row.status)) continue;
-        countCache.set(row.post_id, (countCache.get(row.post_id) ?? 0) + 1);
+        if (!OPEN_STATUSES.includes(row.status)) continue;
+        const key = countKey(row);
+        countCache.set(key, (countCache.get(key) ?? 0) + 1);
       }
       notifyCounts();
     })
@@ -44,22 +52,54 @@ function loadOpenCounts() {
   return countsPromise;
 }
 
-export function useOpenRequestCount(postId: string) {
-  const [count, setCount] = useState(countCache.get(postId) ?? 0);
+export function useOpenRequestCount(key: string) {
+  const [count, setCount] = useState(countCache.get(key) ?? 0);
   useEffect(() => {
-    const sync = () => setCount(countCache.get(postId) ?? 0);
+    const sync = () => setCount(countCache.get(key) ?? 0);
     countListeners.add(sync);
     void loadOpenCounts().then(sync);
     return () => {
       countListeners.delete(sync);
     };
-  }, [postId]);
+  }, [key]);
   return count;
 }
 
-function bumpOpenCount(postId: string) {
-  countCache.set(postId, (countCache.get(postId) ?? 0) + 1);
+function bumpOpenCount(key: string) {
+  countCache.set(key, (countCache.get(key) ?? 0) + 1);
   notifyCounts();
+}
+
+/** Pedido general al bot (sin post): botón con label para el header del panel. */
+export function GeneralRequestButton({
+  bot,
+  className = "",
+}: {
+  bot: PostCardBot;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const count = useOpenRequestCount(`general:${bot.id}`);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={count > 0 ? `Pedirle algo (${count} abiertos)` : "Pedirle algo"}
+        className={`relative min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-card px-3 text-xs font-semibold text-foreground transition-colors hover:bg-chip ${className}`}
+      >
+        <MessageSquarePlus size={15} strokeWidth={1.75} className="text-accent" />
+        Pedirle algo
+        {count > 0 ? (
+          <span className="grid h-4 min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-ink">
+            {count}
+          </span>
+        ) : null}
+      </button>
+      <RequestModal open={open} onClose={() => setOpen(false)} botId={bot.id} bot={bot} />
+    </>
+  );
 }
 
 export function RequestButton({
@@ -111,18 +151,21 @@ export function RequestButton({
 function RequestModal({
   open,
   onClose,
-  postId,
+  postId = null,
   botId,
   postTitle,
   bot,
 }: {
   open: boolean;
   onClose: () => void;
-  postId: string;
+  /** Sin post = pedido general al bot. */
+  postId?: string | null;
   botId: string;
-  postTitle: string;
+  postTitle?: string;
   bot?: PostCardBot | null;
 }) {
+  const general = !postId;
+  const chips = general ? GENERAL_CHIPS : POST_CHIPS;
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,14 +176,17 @@ function RequestModal({
     if (!open) return;
     setError(null);
     const frame = window.requestAnimationFrame(() => textareaRef.current?.focus());
-    void fetch(`/api/admin/requests?post=${encodeURIComponent(postId)}`)
+    const query = postId
+      ? `post=${encodeURIComponent(postId)}`
+      : `bot=${encodeURIComponent(botId)}&scope=general`;
+    void fetch(`/api/admin/requests?${query}`)
       .then((res) => (res.ok ? res.json() : { requests: [] }))
       .then((data: { requests?: RequestWithMessages[] }) => {
         setPrevious(data.requests ?? []);
       })
       .catch(() => undefined);
     return () => window.cancelAnimationFrame(frame);
-  }, [open, postId]);
+  }, [open, postId, botId]);
 
   async function submit() {
     const text = body.trim();
@@ -159,7 +205,7 @@ function RequestModal({
         return;
       }
       setBody("");
-      bumpOpenCount(postId);
+      bumpOpenCount(countKey({ post_id: postId, bot_id: botId }));
       showToast("Pedido enviado");
       onClose();
     } catch {
@@ -170,13 +216,15 @@ function RequestModal({
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Pedirle al bot" desktopDialog>
+    <Sheet open={open} onClose={onClose} title={general ? "Pedirle algo" : "Pedirle al bot"} desktopDialog>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             {bot ? <BotAvatar bot={bot} size="sm" /> : null}
             <div className="min-w-0">
               <p className="text-sm font-semibold">{bot?.name ?? "Bot"}</p>
-              <p className="mt-0.5 text-sm leading-5 text-muted">{postTitle}</p>
+              <p className="mt-0.5 text-sm leading-5 text-muted">
+                {general ? "Pedido general" : postTitle}
+              </p>
             </div>
           </div>
 
@@ -204,12 +252,15 @@ function RequestModal({
           ) : null}
 
           <ChipRow>
-            {CHIPS.map((chip) => (
+            {chips.map((chip) => (
               <FilterChip
                 key={chip}
                 size="sm"
-                selected={chip !== "Otra cosa…" && body === chip}
-                onClick={() => setBody(chip === "Otra cosa…" ? "" : chip)}
+                selected={chip !== OTHER_CHIP && body === chip}
+                onClick={() => {
+                  setBody(chip === OTHER_CHIP ? "" : chip.replace(/\.\.\.$/, " "));
+                  textareaRef.current?.focus();
+                }}
               >
                 {chip}
               </FilterChip>
@@ -222,7 +273,8 @@ function RequestModal({
             onChange={(event) => setBody(event.target.value)}
             rows={4}
             className="w-full rounded-2xl border border-line bg-card px-3 py-2 text-sm"
-            placeholder="profundizame esto…"
+            maxLength={2000}
+            placeholder={general ? "buscame eventos de IA este mes…" : "profundizame esto…"}
           />
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <div className="flex gap-2">

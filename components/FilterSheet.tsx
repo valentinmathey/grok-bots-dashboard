@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   ArrowUpDown,
-  CalendarDays,
   Hash,
   Package,
   SlidersHorizontal,
@@ -13,6 +12,7 @@ import {
   Trophy,
   Wallet,
 } from "lucide-react";
+import { DateRangeField } from "@/components/DateRangeField";
 import { ChipRow, FilterChip, SegmentedControl } from "@/components/FilterChip";
 import { Sheet } from "@/components/Sheet";
 import { amenityLabel, oportunidadCategoryLabel } from "@/lib/details";
@@ -529,41 +529,13 @@ export function FilterSheet({
               </section>
             ) : null}
 
-            <section className="mt-5 grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
-              <label className="text-xs">
-                <span className="mb-1 flex items-center gap-1 font-medium text-muted">
-                  <CalendarDays size={12} strokeWidth={1.75} />
-                  {facets.has_events ? "Desde (evento)" : "Desde"}
-                </span>
-                <input
-                  type="date"
-                  value={draft.from ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      from: event.target.value || undefined,
-                    }))
-                  }
-                  className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-sm"
-                />
-              </label>
-              <label className="text-xs">
-                <span className="mb-1 block font-medium text-muted">
-                  {facets.has_events ? "Hasta (evento)" : "Hasta"}
-                </span>
-                <input
-                  type="date"
-                  value={draft.to ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      to: event.target.value || undefined,
-                    }))
-                  }
-                  className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-sm"
-                />
-              </label>
-            </section>
+            <DateRangeField
+              title={facets.has_events ? "Fecha del evento" : "Fecha"}
+              value={{ from: draft.from, to: draft.to }}
+              onChange={(range) =>
+                setDraft((current) => ({ ...current, from: range.from, to: range.to }))
+              }
+            />
 
             <div className="mt-6 flex gap-2">
               <button
