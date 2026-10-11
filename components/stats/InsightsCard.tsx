@@ -3,13 +3,9 @@ import type { DomainInsights } from "@/lib/stats";
 
 export function InsightsCard({
   domain,
-  collapsed,
-  onToggleCollapse,
   onHide,
 }: {
   domain: DomainInsights;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onHide?: () => void;
 }) {
   const blocks: Array<{ title: string; rows: Array<[string, string]> }> = [];
@@ -30,7 +26,8 @@ export function InsightsCard({
       title: "Alojamientos",
       rows: [
         ["Listados", String(stay.count)],
-        ["Precio pp mín / máx", `${money(stay.minPp)} – ${money(stay.maxPp)}`],
+        ["Mín pp", money(stay.minPp)],
+        ["Máx pp", money(stay.maxPp)],
         ["Mediana pp", money(stay.medianPp)],
       ],
     });
@@ -74,24 +71,31 @@ export function InsightsCard({
       subtitle="Solo se muestran dominios con datos"
       info="Precios y estados se leen de los details de cada post."
       empty={!blocks.length}
-      collapsed={collapsed}
-      onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
-        {blocks.map((block) => (
-          <div key={block.title} className="rounded-2xl bg-raised px-3 py-2.5">
-            <p className="text-xs font-semibold">{block.title}</p>
-            <dl className="mt-1.5 space-y-1">
-              {block.rows.map(([label, value]) => (
-                <div key={label} className="flex items-baseline justify-between gap-3 text-sm">
-                  <dt className="text-muted">{label}</dt>
-                  <dd className="tabular-nums">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+        {blocks.map((block, index) => {
+          const orphan = blocks.length % 2 === 1 && index === blocks.length - 1;
+          return (
+            <div
+              key={block.title}
+              className={`rounded-2xl bg-raised px-3 py-2.5 ${orphan ? "min-[420px]:col-span-2" : ""}`}
+            >
+              <p className="text-xs font-semibold">{block.title}</p>
+              <dl className="mt-1.5 space-y-1.5">
+                {block.rows.map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex items-baseline justify-between gap-3 text-sm"
+                  >
+                    <dt className="min-w-0 text-muted">{label}</dt>
+                    <dd className="shrink-0 whitespace-nowrap tabular-nums">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          );
+        })}
       </div>
     </StatCard>
   );

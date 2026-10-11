@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_STATS_LAYOUT,
+  bubbleRadius,
+  cardSpansFull,
   deltaPct,
   median,
   mergeStatsLayout,
   movingAverage,
   parseStatsBots,
   parseStatsPeriod,
+  spanFullIds,
   statsHref,
   statsSubtitle,
 } from "@/lib/stats-layout";
@@ -20,10 +23,28 @@ describe("layout y filtros de estadísticas", () => {
     });
     expect(merged.order[0]).toBe("insights");
     expect(merged.order).toContain("comparativa");
+    expect(merged.order).toContain("constancia");
     expect(merged.order).not.toContain("ghost");
     expect(merged.hidden).toEqual(["tipos"]);
-    expect(merged.collapsed).toEqual(["horario"]);
+    expect(merged).not.toHaveProperty("collapsed");
     expect(mergeStatsLayout(null).order).toEqual(DEFAULT_STATS_LAYOUT.order);
+  });
+
+  it("inserta Constancia justo después de Posts por bot", () => {
+    const merged = mergeStatsLayout({
+      order: ["kpi", "posts-bot", "actividad", "horario", "tipos", "tags", "insights", "comparativa"],
+    });
+    expect(merged.order.indexOf("constancia")).toBe(merged.order.indexOf("posts-bot") + 1);
+  });
+
+  it("estira la media card huérfana en su fila", () => {
+    expect([...spanFullIds(["kpi", "posts-bot", "actividad"])]).toEqual(["posts-bot"]);
+    expect([...spanFullIds(["posts-bot", "constancia"])]).toEqual([]);
+    expect(cardSpansFull("posts-bot", ["posts-bot", "actividad"])).toBe(true);
+    expect(cardSpansFull("posts-bot", ["posts-bot", "constancia"])).toBe(false);
+    expect(cardSpansFull("kpi", ["kpi"])).toBe(true);
+    expect(bubbleRadius(10, 10)).toBe(26);
+    expect(bubbleRadius(0, 10)).toBe(8);
   });
 
   it("arma la URL y el subtítulo según el filtro real", () => {

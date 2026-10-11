@@ -13,13 +13,9 @@ registerCharts();
 
 export function PostsByBotCard({
   bots,
-  collapsed,
-  onToggleCollapse,
   onHide,
 }: {
   bots: BotStat[];
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onHide?: () => void;
 }) {
   const theme = useChartTheme();
@@ -32,8 +28,6 @@ export function PostsByBotCard({
       subtitle="Tocá una barra para abrir el bot"
       info="Ancho proporcional al total del período. El color es el del avatar."
       empty={!bots.length}
-      collapsed={collapsed}
-      onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
       <ChartFrame height={Math.max(220, bots.length * 36)}>

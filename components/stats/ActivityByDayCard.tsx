@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Line } from "react-chartjs-2";
+import { FilterChip } from "@/components/FilterChip";
 import { Sheet } from "@/components/Sheet";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChartFrame } from "@/components/stats/ChartFrame";
@@ -18,15 +19,11 @@ export function ActivityByDayCard({
   days,
   bots,
   posts,
-  collapsed,
-  onToggleCollapse,
   onHide,
 }: {
   days: Array<{ date: string; counts: Record<string, number> }>;
   bots: BotStat[];
   posts: DayPost[];
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onHide?: () => void;
 }) {
   const theme = useChartTheme();
@@ -70,21 +67,12 @@ export function ActivityByDayCard({
       subtitle="Apilado por bot. Tocá un día para ver los posts."
       info="La media móvil de 7 días se calcula sobre el total diario."
       empty={!days.some((day) => Object.values(day.counts).some(Boolean))}
-      collapsed={collapsed}
-      onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
       <div className="mb-2 flex justify-end">
-        <button
-          type="button"
-          onClick={() => setAverage((value) => !value)}
-          className={`inline-flex min-h-9 items-center rounded-full px-3 text-xs font-medium ${
-            average ? "bg-accent text-accent-ink" : "bg-chip"
-          }`}
-          aria-pressed={average}
-        >
+        <FilterChip size="sm" selected={average} onClick={() => setAverage((value) => !value)}>
           Media 7 días
-        </button>
+        </FilterChip>
       </div>
       <ChartFrame height={256}>
         <Line

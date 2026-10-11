@@ -16,6 +16,31 @@ const KIND_LABELS: Record<string, string> = {
   workflow: "Workflow",
 };
 
+export const KIND_COLORS: Record<string, string> = {
+  evento: "#e11d48",
+  alojamiento: "#0f766e",
+  oportunidades: "#059669",
+  informe: "#7c3aed",
+  newsletter: "#c026d3",
+  workflow: "#475569",
+  resumen: "#4f46e5",
+  update: "#0284c7",
+  result: "#0d9488",
+  note: "#f59e0b",
+  ranking: "#ea580c",
+  report: "#d97706",
+  aviso: "#65a30d",
+};
+
+const FALLBACK_KIND_COLORS = ["#db2777", "#0891b2", "#ca8a04", "#4338ca", "#be123c", "#0e7490"];
+
+export function kindColor(kind: string): string {
+  if (KIND_COLORS[kind]) return KIND_COLORS[kind]!;
+  let hash = 0;
+  for (const ch of kind) hash = (hash + ch.charCodeAt(0) * 17) % FALLBACK_KIND_COLORS.length;
+  return FALLBACK_KIND_COLORS[hash]!;
+}
+
 export function kindLabel(kind: PostKind): string {
   if (KIND_LABELS[kind]) {
     return KIND_LABELS[kind];

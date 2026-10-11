@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { Star } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
+import { ChipRow, FilterChip } from "@/components/FilterChip";
+import { FilterToolbar } from "@/components/FilterToolbar";
 import { KindBadge } from "@/components/KindBadge";
 import { PostCard } from "@/components/PostCard";
 import { getRepository } from "@/lib/data";
@@ -42,23 +43,22 @@ export default async function FavoritosPage({
           Estrellas en las cards. Si borrás el post, desaparece de acá.
         </p>
       </div>
-      <div className="chip-row">
-        <Link
-          href="/favoritos"
-          className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${!params.bot ? "bg-accent text-accent-ink" : "bg-chip"}`}
-        >
-          Todos
-        </Link>
-        {bots.map((bot) => (
-          <Link
-            key={bot.id}
-            href={`/favoritos?bot=${bot.slug}`}
-            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.bot === bot.slug ? "bg-accent text-accent-ink" : "bg-chip"}`}
-          >
-            {bot.name}
-          </Link>
-        ))}
-      </div>
+      <FilterToolbar applied={params.bot ? 1 : 0}>
+        <ChipRow>
+          <FilterChip href="/favoritos" selected={!params.bot}>
+            Todos
+          </FilterChip>
+          {bots.map((bot) => (
+            <FilterChip
+              key={bot.id}
+              href={`/favoritos?bot=${bot.slug}`}
+              selected={params.bot === bot.slug}
+            >
+              <span className="min-w-0 truncate">{bot.name}</span>
+            </FilterChip>
+          ))}
+        </ChipRow>
+      </FilterToolbar>
       {items.length ? (
         <section className="surface rounded-3xl p-4">
           <h2 className="text-sm font-semibold">Ítems guardados</h2>
