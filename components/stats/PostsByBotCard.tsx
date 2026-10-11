@@ -30,7 +30,7 @@ export function PostsByBotCard({
       empty={!bots.length}
       onHide={onHide}
     >
-      <ChartFrame height={Math.max(220, bots.length * 36)}>
+      <ChartFrame fill height={Math.max(220, bots.length * 36)}>
         <Bar
           data={{
             labels: bots.map((row) => row.bot.name),

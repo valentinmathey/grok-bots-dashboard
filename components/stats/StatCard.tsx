@@ -25,8 +25,8 @@ export function StatCard({
   children?: ReactNode;
 }) {
   return (
-    <section className="surface rounded-3xl p-4">
-      <header className="flex items-start gap-2">
+    <section className="surface flex h-full min-h-0 flex-col rounded-3xl p-4">
+      <header className="flex shrink-0 items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <h2 className="text-sm font-semibold">{title}</h2>
@@ -56,7 +56,7 @@ export function StatCard({
       ) : empty ? (
         <p className="mt-4 text-sm text-muted">{emptyText}</p>
       ) : (
-        <div className="mt-3">{children}</div>
+        <div className="mt-3 flex min-h-0 flex-1 flex-col">{children}</div>
       )}
     </section>
   );

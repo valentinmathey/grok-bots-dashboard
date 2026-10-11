@@ -35,7 +35,7 @@ export function TagsCard({
       empty={!tags.length}
       onHide={onHide}
     >
-      <ChipRow className="mb-2">
+      <ChipRow className="mb-2 shrink-0">
         {([10, 20, 0] as const).map((value) => (
           <FilterChip
             key={value}
@@ -47,7 +47,7 @@ export function TagsCard({
           </FilterChip>
         ))}
       </ChipRow>
-      <ChartFrame height={Math.max(200, visible.length * 28)}>
+      <ChartFrame fill height={Math.max(200, visible.length * 28)}>
         <Bar
           data={{
             labels: visible.map((row) => `#${row.tag}`),

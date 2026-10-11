@@ -36,7 +36,7 @@ export function KindsCard({
       empty={!kinds.length}
       onHide={onHide}
     >
-      <div className="space-y-3">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
         <div className="relative mx-auto w-full max-w-[200px]">
           <ChartFrame height={200}>
             <Doughnut

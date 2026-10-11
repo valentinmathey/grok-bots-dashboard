@@ -73,7 +73,7 @@ export function InsightsCard({
       empty={!blocks.length}
       onHide={onHide}
     >
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+      <div className="grid min-h-0 flex-1 grid-cols-1 content-center gap-3 min-[420px]:grid-cols-2">
         {blocks.map((block, index) => {
           const orphan = blocks.length % 2 === 1 && index === blocks.length - 1;
           return (

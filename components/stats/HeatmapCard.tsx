@@ -8,8 +8,8 @@ import { useChartTheme } from "@/components/stats/useChartTheme";
 import { filterHeatByBot, type BotStat, type HeatCell } from "@/lib/stats";
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
-const WEEKDAY_SHORT = ["L", "M", "X", "J", "V", "S", "D"] as const;
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const DAY_COL = "2.5rem";
 
 export function HeatmapCard({
   cells,
@@ -52,7 +52,7 @@ export function HeatmapCard({
       empty={!cells.length}
       onHide={onHide}
     >
-      <ChipRow className="mb-2">
+      <ChipRow className="mb-2 shrink-0">
         <FilterChip size="sm" selected={!bot} onClick={() => setBot(null)}>
           Todos
         </FilterChip>
@@ -68,10 +68,10 @@ export function HeatmapCard({
           </FilterChip>
         ))}
       </ChipRow>
-      <div className="w-full min-w-0">
+      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col justify-center">
         <div
           className="grid w-full gap-px"
-          style={{ gridTemplateColumns: "1.25rem repeat(24, minmax(0, 1fr))" }}
+          style={{ gridTemplateColumns: `${DAY_COL} repeat(24, minmax(0, 1fr))` }}
         >
           <span />
           {Array.from({ length: 24 }, (_, hour) => (
@@ -81,9 +81,8 @@ export function HeatmapCard({
           ))}
           {WEEKDAY_ORDER.map((weekday, index) => (
             <div key={weekday} className="contents">
-              <span className="truncate text-[10px] text-muted">
-                <span className="sm:hidden">{WEEKDAY_SHORT[index]}</span>
-                <span className="hidden sm:inline">{WEEKDAYS[index]}</span>
+              <span className="whitespace-nowrap text-[10px] leading-4 text-muted">
+                {WEEKDAYS[index]}
               </span>
               {Array.from({ length: 24 }, (_, hour) => {
                 const count = lookup.get(`${weekday}-${hour}`) ?? 0;
@@ -103,17 +102,17 @@ export function HeatmapCard({
             </div>
           ))}
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-        <span>Menos</span>
-        {[0.12, 0.3, 0.5, 0.72, 0.95].map((opacity) => (
-          <span
-            key={opacity}
-            className="h-3 w-5 shrink-0 rounded-sm"
-            style={{ background: theme.accent, opacity }}
-          />
-        ))}
-        <span>Más</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+          <span>Menos</span>
+          {[0.12, 0.3, 0.5, 0.72, 0.95].map((opacity) => (
+            <span
+              key={opacity}
+              className="h-3 w-5 shrink-0 rounded-sm"
+              style={{ background: theme.accent, opacity }}
+            />
+          ))}
+          <span>Más</span>
+        </div>
       </div>
       {tip ? (
         <div
