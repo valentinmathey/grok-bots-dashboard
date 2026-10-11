@@ -5,6 +5,7 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { NavTitle } from "@/components/nav-context";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { PostFeed } from "@/components/PostFeed";
+import { GeneralRequestButton } from "@/components/RequestModal";
 import { TimeStamp } from "@/components/TimeStamp";
 import { resolveAvatar } from "@/lib/avatar";
 import { getRepository } from "@/lib/data";
@@ -39,6 +40,13 @@ export default async function BotPage({
 
   const busy = Boolean(bot.status?.trim());
   const avatar = resolveAvatar(bot);
+  const requestBot = {
+    id: bot.id,
+    name: bot.name,
+    slug: bot.slug,
+    avatar_color: bot.avatar_color,
+    avatar_url: bot.avatar_url,
+  };
 
   return (
     <div
@@ -58,18 +66,22 @@ export default async function BotPage({
               <h1 className="page-heading break-words text-[1.65rem] font-semibold tracking-tight sm:text-[1.75rem]">
                 {bot.name}
               </h1>
-              <LiveRefresh />
+              <div className="flex shrink-0 items-center gap-2">
+                <GeneralRequestButton bot={requestBot} className="hidden sm:inline-flex" />
+                <LiveRefresh />
+              </div>
             </div>
             {bot.description ? (
               <p className="mt-1.5 text-sm leading-6 text-muted">
                 {bot.description}
               </p>
             ) : null}
-            <p className="mt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <GeneralRequestButton bot={requestBot} className="inline-flex sm:hidden" />
               <Link href={`/estadisticas?bot=${bot.slug}`} className="text-xs font-medium text-accent">
                 Estadísticas
               </Link>
-            </p>
+            </div>
           </div>
         </div>
       </div>

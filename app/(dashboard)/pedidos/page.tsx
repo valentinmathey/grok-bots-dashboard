@@ -51,9 +51,18 @@ export default async function PedidosPage({
         <ul className="space-y-3">
           {detailed.map((row) => (
             <li key={row.id} className="surface rounded-3xl p-4">
-              <p className="text-xs text-muted">
-                {row.bot?.name ?? row.bot_id} · {row.status}
-                {row.unread ? " · sin leer" : ""}
+              <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    row.scope === "general" ? "bg-accent/15 text-accent" : "bg-chip text-muted"
+                  }`}
+                >
+                  {row.scope === "general" ? "General" : "Post"}
+                </span>
+                <span>
+                  {row.bot?.name ?? row.bot_id} · {row.status}
+                  {row.unread ? " · sin leer" : ""}
+                </span>
               </p>
               <p className="mt-1 text-sm font-medium">{row.body}</p>
               <ul className="mt-2 space-y-1 text-sm">

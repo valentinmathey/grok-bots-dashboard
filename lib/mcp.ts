@@ -235,12 +235,13 @@ export const MCP_TOOLS = [
   {
     name: "list_requests",
     description:
-      "Lista pedidos al bot (pendiente/en_progreso/respondido/descartado). Conviene chequearlos al arrancar cada corrida. Args: status?",
+      "Lista pedidos al bot (pendiente/en_progreso/respondido/descartado). Conviene chequearlos al arrancar cada corrida. Cada pedido trae scope: 'post' (atado a un post, post_id) o 'general' (pedido general al bot, post_id null). Args: status?, scope? (general|post).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         status: { type: "string" },
+        scope: { type: "string", enum: ["general", "post"] },
       },
     },
   },
@@ -356,11 +357,15 @@ export const MCP_READ_TOOLS = [
   },
   {
     name: "list_requests",
-    description: "Lista pedidos (solo lectura) de todos los bots visibles para esta clave. read:all no puede claim/reply.",
+    description:
+      "Lista pedidos (solo lectura) visibles para esta clave, con scope 'post' o 'general' (post_id null). read:all no puede claim/reply. Args: status?, scope? (general|post).",
     inputSchema: {
       type: "object",
       additionalProperties: false,
-      properties: { status: { type: "string" } },
+      properties: {
+        status: { type: "string" },
+        scope: { type: "string", enum: ["general", "post"] },
+      },
     },
   },
 ] as const;

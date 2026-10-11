@@ -6,6 +6,8 @@ import type { Result } from "@/lib/types";
 
 export const REQUEST_STATUSES = ["pendiente", "en_progreso", "respondido", "descartado"] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+export const REQUEST_SCOPES = ["general", "post"] as const;
+export type RequestScope = (typeof REQUEST_SCOPES)[number];
 
 export type BotRequest = {
   id: string;
@@ -20,7 +22,25 @@ export type BotRequest = {
   claimed_at: string | null;
   answered_at: string | null;
   unread: boolean;
+  /** Derivado: `general` si no está atado a un post (`post_id` null). */
+  scope: RequestScope;
 };
+
+type BotRequestRow = Omit<BotRequest, "scope">;
+
+export function requestScope(row: { post_id: string | null }): RequestScope {
+  return row.post_id ? "post" : "general";
+}
+
+export function withScope(row: BotRequestRow | BotRequest): BotRequest {
+  return { ...row, scope: requestScope(row) };
+}
+
+export function parseRequestScope(value: unknown): RequestScope | undefined {
+  return typeof value === "string" && (REQUEST_SCOPES as readonly string[]).includes(value)
+    ? (value as RequestScope)
+    : undefined;
+}
 
 export type RequestMessage = {
   id: string;
@@ -32,7 +52,7 @@ export type RequestMessage = {
 };
 
 const memory = {
-  requests: [] as BotRequest[],
+  requests: [] as BotRequestRow[],
   messages: [] as RequestMessage[],
 };
 
@@ -53,10 +73,10 @@ export async function createRequest(input: {
   body: string;
   kind?: "comment" | "request";
 }): Promise<BotRequest> {
-  const row: BotRequest = {
+  const row: BotRequestRow = {
     id: `req_${memory.requests.length + 1}_${Date.now()}`,
     bot_id: input.bot_id,
-    post_id: input.post_id ?? null,
+    post_id: input.post_id || null,
     item_key: input.item_key ?? null,
     kind: input.kind ?? "request",
     body: input.body.trim(),
@@ -78,7 +98,7 @@ export async function createRequest(input: {
       linked_post_id: null,
       created_at: row.created_at,
     });
-    return row;
+    return withScope(row);
   }
   const { data, error } = await admin
     .from("bot_requests")
@@ -97,30 +117,36 @@ export async function createRequest(input: {
     author: "owner",
     body: row.body,
   });
-  return data as BotRequest;
+  return withScope(data as BotRequestRow);
 }
 
 export async function listRequests(filter: {
   botId?: string;
   status?: RequestStatus;
   postId?: string;
+  scope?: RequestScope;
 }): Promise<BotRequest[]> {
   const admin = await useAdmin();
   if (!admin) {
-    return memory.requests.filter((row) => {
-      if (filter.botId && row.bot_id !== filter.botId) return false;
-      if (filter.status && row.status !== filter.status) return false;
-      if (filter.postId && row.post_id !== filter.postId) return false;
-      return true;
-    });
+    return memory.requests
+      .filter((row) => {
+        if (filter.botId && row.bot_id !== filter.botId) return false;
+        if (filter.status && row.status !== filter.status) return false;
+        if (filter.postId && row.post_id !== filter.postId) return false;
+        if (filter.scope && requestScope(row) !== filter.scope) return false;
+        return true;
+      })
+      .map(withScope);
   }
   let query = admin.from("bot_requests").select("*").order("created_at", { ascending: false });
   if (filter.botId) query = query.eq("bot_id", filter.botId);
   if (filter.status) query = query.eq("status", filter.status);
   if (filter.postId) query = query.eq("post_id", filter.postId);
+  if (filter.scope === "general") query = query.is("post_id", null);
+  if (filter.scope === "post") query = query.not("post_id", "is", null);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as BotRequest[];
+  return ((data ?? []) as BotRequestRow[]).map(withScope);
 }
 
 export async function listMessages(requestId: string): Promise<RequestMessage[]> {
@@ -158,7 +184,7 @@ export async function ownerUpdateRequest(
     }
     row.updated_at = nowIso();
     row.unread = false;
-    return row;
+    return withScope(row);
   }
   const next: Record<string, unknown> = { updated_at: nowIso(), unread: false };
   if (patch.status) next.status = patch.status;
@@ -171,7 +197,7 @@ export async function ownerUpdateRequest(
     });
     await admin.from("bot_requests").update({ status: "pendiente", updated_at: nowIso() }).eq("id", id);
   }
-  return data as BotRequest;
+  return data ? withScope(data as BotRequestRow) : null;
 }
 
 export async function claimRequest(botId: string, id: string): Promise<Result<BotRequest>> {
@@ -184,7 +210,7 @@ export async function claimRequest(botId: string, id: string): Promise<Result<Bo
     row.status = "en_progreso";
     row.claimed_at = nowIso();
     row.updated_at = nowIso();
-    return { ok: true, data: row };
+    return { ok: true, data: withScope(row) };
   }
   const { data } = await admin.from("bot_requests").select("*").eq("id", id).maybeSingle();
   if (!data || data.bot_id !== botId) {
@@ -196,7 +222,7 @@ export async function claimRequest(botId: string, id: string): Promise<Result<Bo
     .eq("id", id)
     .select("*")
     .single();
-  return { ok: true, data: updated as BotRequest };
+  return { ok: true, data: withScope(updated as BotRequestRow) };
 }
 
 export async function replyRequest(
@@ -223,7 +249,7 @@ export async function replyRequest(
       linked_post_id: input.linked_post_id ?? null,
       created_at: nowIso(),
     });
-    return { ok: true, data: row };
+    return { ok: true, data: withScope(row) };
   }
   const { data } = await admin.from("bot_requests").select("*").eq("id", id).maybeSingle();
   if (!data || data.bot_id !== botId) {
@@ -246,7 +272,7 @@ export async function replyRequest(
     .eq("id", id)
     .select("*")
     .single();
-  return { ok: true, data: updated as BotRequest };
+  return { ok: true, data: withScope(updated as BotRequestRow) };
 }
 
 export async function botListRequests(
@@ -263,6 +289,7 @@ export async function botListRequests(
   const rows = await listRequests({
     botId: auth.data.botId,
     status: status && REQUEST_STATUSES.includes(status) ? status : undefined,
+    scope: parseRequestScope((payload as { scope?: unknown } | null)?.scope),
   });
   return { ok: true, data: { requests: rows } };
 }

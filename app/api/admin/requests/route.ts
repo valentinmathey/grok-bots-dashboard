@@ -6,6 +6,7 @@ import {
   listMessages,
   listRequests,
   ownerUpdateRequest,
+  parseRequestScope,
   REQUEST_STATUSES,
   type RequestStatus,
 } from "@/lib/requests";
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
   const rows = await listRequests({
     botId: params.get("bot") ?? undefined,
     postId: params.get("post") ?? undefined,
+    scope: parseRequestScope(params.get("scope")),
     status: status && REQUEST_STATUSES.includes(status) ? status : undefined,
   });
   const withMessages = await Promise.all(
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
   if (!body.ok) return resultToResponse(body);
   const data = body.data as {
     bot_id?: string;
-    post_id?: string;
+    post_id?: string | null;
     body?: string;
     id?: string;
     status?: RequestStatus;
@@ -53,9 +55,12 @@ export async function POST(request: Request) {
   if (!data.bot_id || !data.body?.trim()) {
     return jsonError(400, "invalid_input", "Faltan bot_id y body");
   }
+  if (data.body.trim().length > 2000) {
+    return jsonError(400, "invalid_input", "El pedido puede tener hasta 2000 caracteres");
+  }
   const created = await createRequest({
     bot_id: data.bot_id,
-    post_id: data.post_id,
+    post_id: data.post_id || null,
     body: data.body,
   });
   return NextResponse.json({ request: created }, { status: 201 });
