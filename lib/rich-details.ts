@@ -126,6 +126,181 @@ export const informeIndicatorSchema = z.object({
   as_of: z.string().trim().max(40).optional(),
 });
 
+export const INFORME_RISKS = ["bajo", "medio", "alto"] as const;
+export const INFORME_VERDICTS = ["si", "no", "empata"] as const;
+export const INFORME_PLATFORMS = ["x", "instagram", "youtube", "tiktok", "nota"] as const;
+export const INFORME_PROFILES = ["conservador", "moderado", "arriesgado"] as const;
+export const INFORME_ASSET_TYPES = ["bono", "accion", "cedear"] as const;
+export const INFORME_SECTION_IDS = [
+  "dia_en_3_lineas",
+  "dolar_simple",
+  "vs_inflacion",
+  "idea_prudente",
+  "tecnica_sueldo",
+  "referentes",
+  "palabra_del_dia",
+  "inflation",
+  "rates",
+  "ideas",
+  "assets",
+  "agenda",
+  "highlights",
+  "risks",
+  "outlook",
+  "disclaimer",
+  "otras_secciones",
+] as const;
+
+export type InformeRisk = (typeof INFORME_RISKS)[number];
+export type InformeVerdict = (typeof INFORME_VERDICTS)[number];
+export type InformePlatform = (typeof INFORME_PLATFORMS)[number];
+export type InformeProfile = (typeof INFORME_PROFILES)[number];
+export type InformeAssetType = (typeof INFORME_ASSET_TYPES)[number];
+export type InformeSectionId = (typeof INFORME_SECTION_IDS)[number];
+
+const pct = z.coerce.number().finite().min(-100).max(10_000);
+const amount = z.coerce.number().finite().min(0).max(1_000_000_000_000);
+const riskField = z.enum(INFORME_RISKS);
+const optionalLink = httpUrl.optional().or(z.literal(""));
+
+export const informeDiaEn3LineasSchema = z.object({
+  lines: z.array(z.string().trim().min(1).max(220)).min(1).max(3),
+});
+
+export const informeDolarSimpleSchema = z.object({
+  text: z.string().trim().min(1).max(600),
+});
+
+export const informeVsInflacionSchema = z.object({
+  verdict: z.enum(INFORME_VERDICTS),
+  example_amount: amount,
+  inflation_pct: pct,
+  options: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        monthly_rate_pct: pct,
+        result_amount: amount,
+      }),
+    )
+    .max(8)
+    .optional()
+    .default([]),
+});
+
+export const informeIdeaPrudenteSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  text: z.string().trim().min(1).max(600),
+  risk: riskField,
+  link: optionalLink,
+});
+
+export const informeTecnicaSueldoSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(1).max(600),
+  allocation: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(80),
+        pct: pct,
+      }),
+    )
+    .min(1)
+    .max(8),
+  example: z
+    .object({
+      salary: amount,
+      breakdown: z
+        .array(
+          z.object({
+            label: z.string().trim().min(1).max(80),
+            amount: amount,
+          }),
+        )
+        .max(8)
+        .optional()
+        .default([]),
+    })
+    .optional(),
+  link: optionalLink,
+});
+
+export const informeReferenteSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  role: z.string().trim().max(80).optional(),
+  platform: z.enum(INFORME_PLATFORMS),
+  summary: z.string().trim().min(1).max(400),
+  date: ymd,
+  url: requiredHttpUrl,
+  pinned: z.boolean().optional().default(false),
+});
+
+export const informePalabraDelDiaSchema = z.object({
+  term: z.string().trim().min(1).max(80),
+  definition: z.string().trim().min(1).max(400),
+  link: optionalLink,
+});
+
+export const informeInflationSchema = z.object({
+  month: z.string().trim().min(1).max(40),
+  monthly_pct: pct,
+  yoy_pct: pct,
+  ytd_pct: pct,
+  rem_next_pct: pct.optional(),
+  next_release_date: ymd,
+});
+
+export const informeRateSchema = z.object({
+  instrument: z.string().trim().min(1).max(80),
+  provider: z.string().trim().min(1).max(80),
+  tna_pct: pct,
+  monthly_pct: pct,
+  beats_inflation: z.boolean().optional().default(false),
+  term: z.string().trim().max(80).optional(),
+  risk: riskField,
+  link: optionalLink,
+});
+
+export const informeIdeaSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  what_it_is: z.string().trim().min(1).max(400),
+  profile: z.enum(INFORME_PROFILES),
+  expected_return: z.string().trim().max(80).optional(),
+  risk: riskField,
+  how_to: z.string().trim().min(1).max(400),
+  link: optionalLink,
+});
+
+export const informeAssetSchema = z.object({
+  ticker: z.string().trim().min(1).max(16),
+  name: z.string().trim().min(1).max(80),
+  type: z.enum(INFORME_ASSET_TYPES),
+  price: amount,
+  currency: z.string().trim().min(1).max(8),
+  change_pct: pct,
+  note: z.string().trim().max(200).optional(),
+});
+
+export const informeAgendaItemSchema = z.object({
+  date: ymd,
+  time: z.string().trim().max(16).optional(),
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(280).optional(),
+  link: optionalLink,
+});
+
+export const informeOtraSeccionSchema = z.object({
+  titulo: z.string().trim().min(1).max(120),
+  icono: z.string().trim().max(40).optional(),
+  markdown: z.string().trim().min(1).max(4000),
+});
+
+export const informeSourceSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  url: optionalLink,
+  section: z.enum(INFORME_SECTION_IDS).optional(),
+});
+
 export const informeDetailsSchema = z.object({
   date: ymd.optional(),
   summary_simple: z.string().trim().max(600).optional(),
@@ -135,15 +310,21 @@ export const informeDetailsSchema = z.object({
   highlights: z.array(z.string().trim().min(1).max(200)).max(8).optional(),
   risks: z.array(z.string().trim().min(1).max(200)).max(8).optional(),
   outlook: z.string().trim().max(400).optional(),
-  sources: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1).max(80),
-        url: httpUrl.optional().or(z.literal("")),
-      }),
-    )
-    .max(20)
-    .optional(),
+  sources: z.array(informeSourceSchema).max(40).optional(),
+  dia_en_3_lineas: informeDiaEn3LineasSchema.optional(),
+  dolar_simple: informeDolarSimpleSchema.optional(),
+  vs_inflacion: informeVsInflacionSchema.optional(),
+  idea_prudente: informeIdeaPrudenteSchema.optional(),
+  tecnica_sueldo: informeTecnicaSueldoSchema.optional(),
+  referentes: z.array(informeReferenteSchema).max(20).optional(),
+  palabra_del_dia: informePalabraDelDiaSchema.optional(),
+  inflation: informeInflationSchema.optional(),
+  rates: z.array(informeRateSchema).max(20).optional(),
+  ideas: z.array(informeIdeaSchema).max(12).optional(),
+  assets: z.array(informeAssetSchema).max(30).optional(),
+  agenda: z.array(informeAgendaItemSchema).max(20).optional(),
+  disclaimer: z.string().trim().max(400).optional(),
+  otras_secciones: z.array(informeOtraSeccionSchema).max(8).optional(),
 });
 
 export const workflowNodeSchema = z.object({
@@ -217,9 +398,42 @@ export function asInforme(details: unknown): InformeDetails | null {
       data.summary_technical ||
       data.indicators.length ||
       data.highlights?.length ||
-      data.date,
+      data.date ||
+      data.dia_en_3_lineas ||
+      data.dolar_simple ||
+      data.vs_inflacion ||
+      data.idea_prudente ||
+      data.tecnica_sueldo ||
+      data.referentes?.length ||
+      data.palabra_del_dia ||
+      data.inflation ||
+      data.rates?.length ||
+      data.ideas?.length ||
+      data.assets?.length ||
+      data.agenda?.length ||
+      data.otras_secciones?.length,
   );
-  return hasContent ? data : null;
+  return hasContent ? blankInformeLinks(data) : null;
+}
+
+function blankInformeLinks(details: InformeDetails): InformeDetails {
+  const emptyToUndef = (value?: string) => (value ? value : undefined);
+  return {
+    ...details,
+    idea_prudente: details.idea_prudente
+      ? { ...details.idea_prudente, link: emptyToUndef(details.idea_prudente.link) }
+      : undefined,
+    tecnica_sueldo: details.tecnica_sueldo
+      ? { ...details.tecnica_sueldo, link: emptyToUndef(details.tecnica_sueldo.link) }
+      : undefined,
+    palabra_del_dia: details.palabra_del_dia
+      ? { ...details.palabra_del_dia, link: emptyToUndef(details.palabra_del_dia.link) }
+      : undefined,
+    rates: details.rates?.map((row) => ({ ...row, link: emptyToUndef(row.link) })),
+    ideas: details.ideas?.map((row) => ({ ...row, link: emptyToUndef(row.link) })),
+    agenda: details.agenda?.map((row) => ({ ...row, link: emptyToUndef(row.link) })),
+    sources: details.sources?.map((row) => ({ ...row, url: emptyToUndef(row.url) })),
+  };
 }
 
 export function asWorkflow(details: unknown): WorkflowDetails | null {
