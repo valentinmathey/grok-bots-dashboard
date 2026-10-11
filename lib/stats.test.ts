@@ -49,5 +49,52 @@ describe("agregación de estadísticas", () => {
     expect(stats.insights.eventos).toBe(1);
     expect(stats.tags[0]?.tag).toBeDefined();
     expect(stats.heatmap.some((cell) => cell.count > 0)).toBe(true);
+    expect(stats.kpis.find((row) => row.key === "posts")?.value).toBe(2);
+    expect(stats.domain.eventsNext7).toBe(1);
+  });
+
+  it("compara el período actual contra el anterior", () => {
+    const now = new Date("2026-10-10T15:00:00.000Z");
+    const posts: Array<Post & { bot: typeof bot }> = [
+      {
+        id: "old",
+        bot_id: "b1",
+        title: "Viejo",
+        body_markdown: "x",
+        kind: "update",
+        product: null,
+        tags: [],
+        created_at: "2026-09-28T15:00:00.000Z",
+        updated_at: "2026-09-28T15:00:00.000Z",
+        cover_image_url: null,
+        images: [],
+        event_at: null,
+        event_end_at: null,
+        details: {},
+        bot,
+      },
+      {
+        id: "new",
+        bot_id: "b1",
+        title: "Nuevo",
+        body_markdown: "x",
+        kind: "update",
+        product: null,
+        tags: [],
+        created_at: "2026-10-09T15:00:00.000Z",
+        updated_at: "2026-10-09T15:00:00.000Z",
+        cover_image_url: null,
+        images: [],
+        event_at: null,
+        event_end_at: null,
+        details: {},
+        bot,
+      },
+    ];
+    const stats = buildStats(posts, 7, now);
+    const kpi = stats.kpis.find((row) => row.key === "posts");
+    expect(kpi?.value).toBe(1);
+    expect(kpi?.previous).toBe(1);
+    expect(kpi?.delta).toBe(0);
   });
 });

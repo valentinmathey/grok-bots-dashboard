@@ -355,10 +355,15 @@ export class MemoryRepository implements BotsRepository {
   }
 
   async listStatsPosts(days = 90) {
-    const since = Date.now() - days * 86_400_000;
-    return (await this.listAgendaPosts()).filter(
-      (post) => new Date(post.created_at).getTime() >= since,
-    );
+    const since = days <= 0 ? 0 : Date.now() - days * 86_400_000;
+    return this.posts
+      .map((post) => {
+        const bot = this.bots.find((item) => item.id === post.bot_id);
+        if (!bot) return null;
+        return { ...post, bot };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null)
+      .filter((post) => new Date(post.created_at).getTime() >= since);
   }
 
   async searchPosts(filters: import("@/lib/search").SearchFilters) {
