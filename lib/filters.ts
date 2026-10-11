@@ -235,6 +235,24 @@ export function isAlojamientoSort(sort?: FeedSort): boolean {
   return sort === "score" || sort === "price_pp" || sort === "price_total" || sort === "rating";
 }
 
+export function feedSortLabel(
+  sort: FeedSort,
+  context: { events?: boolean; when?: EventWhen } = {},
+): string {
+  if (sort === "deadline") return "Cierra antes";
+  if (sort === "prize") return "Mayor premio";
+  if (sort === "score") return "Mejor score";
+  if (sort === "price_pp") return "$/pers.";
+  if (sort === "price_total") return "Precio total";
+  if (sort === "rating") return "Mejor nota";
+  if (sort === "oldest") {
+    if (context.events) return context.when === "past" ? "Más antiguos" : "Más lejanos";
+    return "Más antiguas";
+  }
+  if (context.events) return context.when === "past" ? "Más recientes" : "Próximos primero";
+  return "Más nuevas";
+}
+
 export function hasOportunidadesFilters(filters: PostFilters = {}): boolean {
   return Boolean(filters.category || filters.recommended || filters.openOnly);
 }

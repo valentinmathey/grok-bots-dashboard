@@ -85,6 +85,7 @@ export default async function ShareBotPage({
         basePath={basePath}
         postsApi={`/api/compartir/${token}/posts`}
         postHrefBase={basePath}
+        bot={bot}
       />
     </ShareChrome>
   );

@@ -6,7 +6,7 @@ import { AlojamientoTable } from "@/components/AlojamientoTable";
 import { EmptyState } from "@/components/EmptyState";
 import { SegmentedControl } from "@/components/FilterChip";
 import { FilterSheet } from "@/components/FilterSheet";
-import { PostCard } from "@/components/PostCard";
+import { PostCard, type PostCardChrome } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/Skeleton";
 import {
   PAGE_SIZE,
@@ -25,6 +25,7 @@ export function PostFeed({
   basePath,
   postsApi,
   postHrefBase,
+  bot,
 }: {
   slug: string;
   query: FeedQuery;
@@ -35,6 +36,7 @@ export function PostFeed({
   postsApi?: string;
   /** Base de la URL de detalle (ej. /compartir/<token>). String para poder pasarlo desde un Server Component. */
   postHrefBase?: string;
+  bot?: PostCardChrome["bot"];
 }) {
   const postHref = postHrefBase
     ? (post: Post) => `${postHrefBase}/${post.id}`
@@ -206,6 +208,7 @@ export function PostFeed({
               href={postHref?.(post)}
               query={query}
               defaultOpen={post.id === hashPostId}
+              bot={bot}
             />
           ))}
         </div>

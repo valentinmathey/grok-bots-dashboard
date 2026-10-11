@@ -2,35 +2,27 @@
 
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, TrendingDown } from "lucide-react";
+import { ArrowUpDown, ExternalLink, TrendingDown } from "lucide-react";
 import {
   cardCollapseProps,
   ExpandableBody,
   ExpandableHeader,
-  ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
-import { FavoriteStar } from "@/components/FavoriteStar";
-import { KindBadge } from "@/components/KindBadge";
+import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
+import { SegmentedControl } from "@/components/FilterChip";
 import { MarkdownBody } from "@/components/MarkdownBody";
-import { MediaImage } from "@/components/MediaImage";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { formatMoney } from "@/lib/format";
+import { collapsedCover } from "@/lib/images";
 import {
   asRanking,
+  rankingBestCardOffer,
   rankingBestOffer,
   rankingDropPct,
   type RankingOffer,
 } from "@/lib/rich-details";
 import type { Post } from "@/lib/types";
-
-function initials(store: string) {
-  return store
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0] ?? "")
-    .join("")
-    .toUpperCase();
-}
 
 function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) return null;
@@ -53,56 +45,89 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
+function StoreButton({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-line px-3 text-xs font-semibold"
+    >
+      <ExternalLink size={13} strokeWidth={1.75} />
+      Ir a la tienda
+    </a>
+  );
+}
+
+function OfferBadges({
+  best,
+  cardBest,
+}: {
+  best?: boolean;
+  cardBest?: boolean;
+}) {
+  if (!best && !cardBest) return null;
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {best ? (
+        <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-ink">
+          Mejor precio
+        </span>
+      ) : null}
+      {cardBest ? (
+        <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-semibold">
+          Mejor con tarjeta
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function OfferCard({
   offer,
   currency,
   best,
-  postId,
+  cardBest,
 }: {
   offer: RankingOffer;
   currency: string;
   best?: boolean;
-  postId: string;
+  cardBest?: boolean;
 }) {
   return (
-    <article className={`rounded-2xl border p-3 ${best ? "border-accent/40 bg-accent/5" : "border-line"}`}>
-      <div className="flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-chip text-[11px] font-bold">
-          {initials(offer.store)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold">{offer.store}</p>
-            <FavoriteStar
-              postId={postId}
-              itemKey={`offer:${offer.store}`}
-              label={offer.store}
-              url={offer.url}
-              price={offer.price}
-            />
-            <p className="text-sm font-semibold tabular-nums">
-              {formatMoney(offer.price, currency)}
-            </p>
-          </div>
-          <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted">
-            {offer.installments_text ? <span>{offer.installments_text}</span> : null}
-            {offer.shipping_text ? <span>{offer.shipping_text}</span> : null}
-            {offer.in_stock === false ? (
-              <span className="text-danger">Sin stock</span>
-            ) : offer.in_stock ? (
-              <span>En stock</span>
-            ) : null}
-          </div>
-          <a
-            href={offer.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-accent"
-          >
-            Ir a la tienda
-            <ExternalLink size={13} strokeWidth={1.75} />
-          </a>
-        </div>
+    <article
+      className={`rounded-2xl border p-3 ${
+        best ? "border-accent/40 border-l-[3px] border-l-accent bg-accent/5" : "border-line"
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate font-semibold">{offer.store}</p>
+        <p className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">
+          {formatMoney(offer.price, currency)}
+        </p>
+      </div>
+      <OfferBadges best={best} cardBest={cardBest} />
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {offer.installments_text ? (
+          <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+            {offer.installments_text}
+          </span>
+        ) : null}
+        {offer.shipping_text ? (
+          <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+            {offer.shipping_text}
+          </span>
+        ) : null}
+        {offer.in_stock === false ? (
+          <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium text-red-800 dark:text-red-200">
+            Sin stock
+          </span>
+        ) : offer.in_stock ? (
+          <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">En stock</span>
+        ) : null}
+      </div>
+      <div className="mt-3">
+        <StoreButton href={offer.url} />
       </div>
     </article>
   );
@@ -112,10 +137,14 @@ export function RankingCard({
   post,
   href,
   defaultOpen = false,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   href?: string;
   defaultOpen?: boolean;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
@@ -123,7 +152,9 @@ export function RankingCard({
   const [sort, setSort] = useState<"price" | "store">("price");
   const currency = details?.currency || "ARS";
   const best = details ? rankingBestOffer(details) : null;
+  const cardBest = details ? rankingBestCardOffer(details) : null;
   const drop = details ? rankingDropPct(details) : null;
+  const cover = details ? collapsedCover(post, details.product_image_url) : null;
   const offers = useMemo(() => {
     const list = [...(details?.offers ?? [])];
     if (sort === "store") {
@@ -136,126 +167,149 @@ export function RankingCard({
 
   if (!details) return null;
 
+  function isBest(offer: RankingOffer) {
+    return Boolean(best && (offer.url === best.url || offer.store === best.store));
+  }
+  function isCardBest(offer: RankingOffer) {
+    return Boolean(cardBest && offer.url === cardBest.url);
+  }
+
   return (
     <article
       id={`post-${post.id}`}
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
       {...cardCollapseProps(open, toggle)}
     >
+      <CardCover src={cover?.url} alt={details.product_name} fit="contain" />
       <ExpandableHeader
         open={open}
         onToggle={toggle}
         headerRef={headerRef}
         controlsId={bodyId}
-        className="p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            {details.product_image_url ? (
-              <MediaImage
-                src={details.product_image_url}
-                alt={details.product_name}
-                className="mb-3 max-h-40"
-              />
-            ) : null}
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-[1.1rem] font-semibold leading-snug tracking-tight">
-                {href ? (
-                  <Link href={href} className="hover:underline">
-                    {details.product_name}
-                  </Link>
-                ) : (
-                  details.product_name
-                )}
-              </h3>
-              <KindBadge kind="ranking" />
-            </div>
-            {best ? (
-              <p className="mt-2 text-[1.45rem] font-semibold tabular-nums tracking-tight">
-                {formatMoney(best.price, currency)}
-                <span className="ml-1 text-sm font-medium text-muted">mejor precio</span>
-              </p>
-            ) : null}
-            {drop != null ? (
-              <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                <TrendingDown size={14} strokeWidth={1.75} />
-                Bajó {drop}%
-              </p>
-            ) : null}
-            {details.price_history?.length ? (
-              <div className="mt-2">
-                <Sparkline values={details.price_history.map((item) => item.best_price)} />
-              </div>
-            ) : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+        <CardHeaderPad>
+          <PostCardHeader
+            open={open}
+            post={post}
+            bot={bot}
+            allowRequest={allowRequest}
+            kind="ranking"
+            title={
+              href ? (
+                <Link href={href} className="hover:underline">
+                  {details.product_name}
+                </Link>
+              ) : (
+                details.product_name
+              )
+            }
+            titleClassName="text-[1.1rem] font-semibold leading-snug tracking-tight"
+            subtitle={
+              <>
+                {best ? (
+                  <p className="mt-2 text-[1.25rem] font-semibold tabular-nums tracking-tight sm:text-[1.45rem]">
+                    <span className="whitespace-nowrap">{formatMoney(best.price, currency)}</span>
+                    <span className="ml-1 text-sm font-medium text-muted">
+                      mejor precio{best.store ? ` · ${best.store}` : ""}
+                    </span>
+                  </p>
+                ) : null}
+                {drop != null ? (
+                  <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                    <TrendingDown size={14} strokeWidth={1.75} />
+                    Bajó {drop}%
+                  </p>
+                ) : null}
+                {details.price_history?.length ? (
+                  <div className="mt-2">
+                    <Sparkline values={details.price_history.map((item) => item.best_price)} />
+                  </div>
+                ) : null}
+              </>
+            }
+          />
+        </CardHeaderPad>
       </ExpandableHeader>
-      <ExpandableBody open={open} id={bodyId} className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
+      <ExpandableBody open={open} id={bodyId} className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">
         {details.verdict ? (
           <p className="rounded-2xl bg-raised px-3 py-2.5 text-sm leading-6">{details.verdict}</p>
         ) : null}
-        <div className="flex gap-1 rounded-full bg-chip p-1">
-          <button
-            type="button"
-            onClick={() => setSort("price")}
-            className={`min-h-8 flex-1 rounded-full text-xs font-medium ${
-              sort === "price" ? "bg-card shadow-sm" : "text-muted"
-            }`}
-          >
-            Precio
-          </button>
-          <button
-            type="button"
-            onClick={() => setSort("store")}
-            className={`min-h-8 flex-1 rounded-full text-xs font-medium ${
-              sort === "store" ? "bg-card shadow-sm" : "text-muted"
-            }`}
-          >
-            Tienda
-          </button>
+        <div className="flex flex-col gap-2 min-[700px]:flex-row min-[700px]:items-center min-[700px]:justify-end">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            <ArrowUpDown size={13} strokeWidth={1.75} />
+            Ordenar por
+          </p>
+          <SegmentedControl
+            ariaLabel="Ordenar por"
+            className="min-[700px]:w-auto min-[700px]:min-w-[240px]"
+            value={sort}
+            options={[
+              { id: "price", label: "Precio", onClick: () => setSort("price") },
+              { id: "store", label: "Tienda", onClick: () => setSort("store") },
+            ]}
+          />
         </div>
-        <div className="space-y-2 sm:hidden">
+        <div className="space-y-2 min-[700px]:hidden">
           {offers.map((offer) => (
             <OfferCard
               key={`${offer.store}-${offer.url}`}
               offer={offer}
               currency={currency}
-              best={offer === best || offer.url === best?.url}
-              postId={post.id}
+              best={isBest(offer)}
+              cardBest={isCardBest(offer)}
             />
           ))}
         </div>
-        <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full min-w-[520px] text-left text-sm">
+        <div className="hidden overflow-x-auto min-[700px]:block">
+          <table className="w-full table-fixed text-left text-sm">
+            <colgroup>
+              <col className="w-[22%]" />
+              <col className="w-[16%]" />
+              <col className="w-[22%]" />
+              <col className="w-[22%]" />
+              <col className="w-[18%]" />
+            </colgroup>
             <thead className="text-[11px] uppercase tracking-wide text-muted">
               <tr>
                 <th className="pb-2 font-medium">Tienda</th>
                 <th className="pb-2 font-medium">Precio</th>
                 <th className="pb-2 font-medium">Cuotas</th>
                 <th className="pb-2 font-medium">Envío</th>
-                <th className="pb-2 font-medium" />
+                <th className="pb-2 font-medium">
+                  <span className="sr-only">Acción</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {offers.map((offer) => (
-                <tr key={`${offer.store}-${offer.url}`} className="border-t border-line">
-                  <td className="py-2.5 font-medium">{offer.store}</td>
-                  <td className="py-2.5 tabular-nums">{formatMoney(offer.price, currency)}</td>
-                  <td className="py-2.5 text-muted">{offer.installments_text ?? "—"}</td>
-                  <td className="py-2.5 text-muted">{offer.shipping_text ?? "—"}</td>
-                  <td className="py-2.5 text-right">
-                    <a
-                      href={offer.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-accent"
-                    >
-                      Ir a la tienda
-                    </a>
-                  </td>
-                </tr>
-              ))}
+              {offers.map((offer) => {
+                const bestRow = isBest(offer);
+                const cardRow = isCardBest(offer);
+                return (
+                  <tr
+                    key={`${offer.store}-${offer.url}`}
+                    className={`border-t border-line ${
+                      bestRow ? "border-l-[3px] border-l-accent bg-accent/5" : ""
+                    }`}
+                  >
+                    <td className="py-2.5 pr-2 align-top">
+                      <p className="font-medium">{offer.store}</p>
+                      <OfferBadges best={bestRow} cardBest={cardRow} />
+                    </td>
+                    <td className="whitespace-nowrap py-2.5 pr-2 align-top font-semibold tabular-nums">
+                      {formatMoney(offer.price, currency)}
+                    </td>
+                    <td className="py-2.5 pr-2 align-top text-muted">
+                      {offer.installments_text ?? "—"}
+                    </td>
+                    <td className="py-2.5 pr-2 align-top text-muted">
+                      {offer.shipping_text ?? "—"}
+                    </td>
+                    <td className="py-2.5 align-top">
+                      <StoreButton href={offer.url} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

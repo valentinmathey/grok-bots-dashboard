@@ -1,6 +1,7 @@
 import { AppNav } from "@/components/AppNav";
 import { FavoritesProvider } from "@/components/FavoritesProvider";
 import { NavProvider } from "@/components/nav-context";
+import { ToastHost } from "@/components/Toast";
 import { requireOwnerEmail } from "@/lib/auth";
 import { listRequests } from "@/lib/requests";
 
@@ -25,6 +26,7 @@ export default async function DashboardLayout({
           <main className="safe-px safe-pb mx-auto w-full min-w-0 max-w-5xl flex-1 overflow-x-clip pt-4 sm:pt-8">
             {children}
           </main>
+          <ToastHost />
         </NavProvider>
       </FavoritesProvider>
     </div>

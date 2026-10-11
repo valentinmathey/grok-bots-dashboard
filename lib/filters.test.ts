@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { baWallAt } from "@/lib/event-time";
 import {
+  feedSortLabel,
   filtersToSearchParams,
   hasActiveFilters,
   matchesFilters,
@@ -106,5 +107,12 @@ describe("filtros", () => {
     expect(query.eventsOnly).toBe(true);
     expect(query.sort).toBe("oldest");
     expect(filtersToSearchParams(query).get("when")).toBe("past");
+  });
+
+  it("etiqueta el sort como orden, no como filtro", () => {
+    expect(feedSortLabel("newest")).toBe("Más nuevas");
+    expect(feedSortLabel("deadline")).toBe("Cierra antes");
+    expect(feedSortLabel("prize")).toBe("Mayor premio");
+    expect(feedSortLabel("newest", { events: true })).toBe("Próximos primero");
   });
 });

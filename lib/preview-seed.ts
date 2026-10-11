@@ -347,9 +347,15 @@ export function getPreviewRepository(): MemoryRepository {
       kind: "evento" as const,
       product: "Orion",
       tags: ["workshop"],
-      body: "En cinco días, 10:00 ART.",
+      body: `Fecha y hora: en cinco días, 10:00 ART
+Lugar: Oficina Orion, CABA
+Precio: Gratis
+Modalidad: Presencial
+Checklist de comms listo.`,
       created_at: daysAgo(3, 15),
       event_at: baWallAt(5, 10).toISOString(),
+      event_end_at: baWallAt(5, 13).toISOString(),
+      cover_image_url: "https://picsum.photos/seed/orion-workshop/1200/675.jpg",
     },
     {
       bot: "bot_agenda",
@@ -395,7 +401,8 @@ export function getPreviewRepository(): MemoryRepository {
         query: "parlantes logitech z407 nuevos argentina",
         currency: "ARS",
         best_offer_index: 0,
-        verdict: "Mexx es la compra. Reed si querés transferir y no te importa el stock.",
+        verdict:
+          "Mexx tiene el mejor precio pagando en efectivo o por transferencia. Si pagás con tarjeta, conviene Compumundo: 6 cuotas sin interés y envío CABA.",
         score: 8.4,
         previous_best_price: 210000,
         checked_at: hoursAgo(0.12),

@@ -16,12 +16,13 @@ import {
   cardCollapseProps,
   ExpandableBody,
   ExpandableHeader,
-  ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
-import { KindBadge } from "@/components/KindBadge";
+import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
 import { MarkdownBody } from "@/components/MarkdownBody";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { formatDateTime } from "@/lib/format";
+import { collapsedCover } from "@/lib/images";
 import { asWorkflow, WORKFLOW_STATUS_LABELS } from "@/lib/rich-details";
 import type { Post } from "@/lib/types";
 
@@ -47,10 +48,14 @@ export function WorkflowCard({
   post,
   href,
   defaultOpen = false,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   href?: string;
   defaultOpen?: boolean;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
@@ -68,48 +73,56 @@ export function WorkflowCard({
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
       {...cardCollapseProps(open, toggle)}
     >
+      <CardCover src={collapsedCover(post)?.url} alt={details.workflow_name} />
       <ExpandableHeader
         open={open}
         onToggle={toggle}
         headerRef={headerRef}
         controlsId={bodyId}
-        className="p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {details.status ? (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_CLASS[details.status] ?? "bg-chip"}`}
-                >
-                  {WORKFLOW_STATUS_LABELS[details.status]}
-                </span>
-              ) : null}
-              {details.trigger_type ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
-                  <TriggerIcon size={11} strokeWidth={1.75} />
-                  {details.trigger_type}
-                </span>
-              ) : null}
-              <KindBadge kind="workflow" />
-            </div>
-            <h3 className="mt-2 text-[1.1rem] font-semibold leading-snug tracking-tight">
-              {href ? (
+        <CardHeaderPad>
+          <PostCardHeader
+            open={open}
+            post={post}
+            bot={bot}
+            allowRequest={allowRequest}
+            kind="workflow"
+            title={
+              href ? (
                 <Link href={href} className="hover:underline">
                   {details.workflow_name}
                 </Link>
               ) : (
                 details.workflow_name
-              )}
-            </h3>
-            {!open ? (
-              <p className="mt-2 text-sm text-muted">
-                {details.purpose || details.schedule_text || details.trigger_detail || "Workflow n8n"}
-              </p>
-            ) : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+              )
+            }
+            titleClassName="mt-2 text-[1.1rem] font-semibold leading-snug tracking-tight"
+            meta={
+              <>
+                {details.status ? (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_CLASS[details.status] ?? "bg-chip"}`}
+                  >
+                    {WORKFLOW_STATUS_LABELS[details.status]}
+                  </span>
+                ) : null}
+                {details.trigger_type ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+                    <TriggerIcon size={11} strokeWidth={1.75} />
+                    {details.trigger_type}
+                  </span>
+                ) : null}
+              </>
+            }
+            subtitle={
+              !open ? (
+                <p className="mt-2 text-sm text-muted">
+                  {details.purpose || details.schedule_text || details.trigger_detail || "Workflow n8n"}
+                </p>
+              ) : null
+            }
+          />
+        </CardHeaderPad>
       </ExpandableHeader>
       <ExpandableBody open={open} id={bodyId} className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
         {details.purpose ? <p className="text-sm leading-6">{details.purpose}</p> : null}

@@ -17,10 +17,9 @@ import {
   cardCollapseProps,
   ExpandableBody,
   ExpandableHeader,
-  ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
-import { KindBadge } from "@/components/KindBadge";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
 import {
@@ -43,10 +42,14 @@ export function AlojamientoCard({
   post,
   href,
   defaultOpen = false,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   href?: string;
   defaultOpen?: boolean;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
@@ -108,21 +111,24 @@ export function AlojamientoCard({
         controlsId={bodyId}
         className="p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="min-w-0 text-[1.08rem] font-semibold leading-snug tracking-tight">
-            {href ? (
+        <PostCardHeader
+          open={open}
+          post={post}
+          bot={bot}
+          allowRequest={allowRequest}
+          kind={post.kind}
+          title={
+            href ? (
               <Link href={href} className="hover:underline">
                 {post.title}
               </Link>
             ) : (
               post.title
-            )}
-          </h3>
-          <KindBadge kind={post.kind} />
-        </div>
-
+            )
+          }
+          titleClassName="text-[1.08rem] font-semibold leading-snug tracking-tight"
+          extra={
+            <>
         {location || maps ? (
           <p className="mt-2 flex items-start gap-1.5 text-sm text-muted">
             <MapPin size={14} strokeWidth={1.75} className="mt-0.5 shrink-0" />
@@ -208,9 +214,9 @@ export function AlojamientoCard({
             ))}
           </div>
         ) : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+            </>
+          }
+        />
       </ExpandableHeader>
 
       <ExpandableBody open={open} id={bodyId} className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">

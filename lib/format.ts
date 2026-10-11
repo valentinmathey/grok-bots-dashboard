@@ -1,4 +1,4 @@
-import { BA_TIMEZONE, isDateOnlyMidnightBa } from "@/lib/event-time";
+import { BA_TIMEZONE, baCalendarDate, isDateOnlyMidnightBa } from "@/lib/event-time";
 import type { BotSummary, PostKind } from "@/lib/types";
 
 const KIND_LABELS: Record<string, string> = {
@@ -78,6 +78,15 @@ export function formatDate(iso: string): string {
   });
 }
 
+function formatEventTime(iso: string): string {
+  return localeText(new Date(iso), {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: BA_TIMEZONE,
+    hourCycle: "h23",
+  });
+}
+
 function formatEventStamp(iso: string): string {
   const date = new Date(iso);
   const weekday = localeText(date, {
@@ -93,19 +102,25 @@ function formatEventStamp(iso: string): string {
   if (isDateOnlyMidnightBa(iso)) {
     return head;
   }
-  const time = localeText(date, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: BA_TIMEZONE,
-    hourCycle: "h23",
-  });
-  return `${head} · ${time}`;
+  return `${head} · ${formatEventTime(iso)}`;
 }
 
 export function formatEventWhen(iso: string, endIso?: string | null): string {
   const start = formatEventStamp(iso);
   if (!endIso) {
     return start;
+  }
+  if (baCalendarDate(iso) === baCalendarDate(endIso)) {
+    if (isDateOnlyMidnightBa(iso) && isDateOnlyMidnightBa(endIso)) {
+      return start;
+    }
+    if (!isDateOnlyMidnightBa(endIso)) {
+      const endTime = formatEventTime(endIso);
+      if (isDateOnlyMidnightBa(iso)) {
+        return `${start} · ${endTime}`;
+      }
+      return `${start}–${endTime}`;
+    }
   }
   const end = formatEventStamp(endIso);
   return end === start ? start : `${start} – ${end}`;

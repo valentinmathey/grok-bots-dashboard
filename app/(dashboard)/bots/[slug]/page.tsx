@@ -98,6 +98,7 @@ export default async function BotPage({
         initialPosts={page.posts}
         total={page.total}
         facets={facets}
+        bot={bot}
       />
     </div>
   );
