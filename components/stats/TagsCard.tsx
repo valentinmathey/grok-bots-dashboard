@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bar } from "react-chartjs-2";
+import { ChipRow, FilterChip } from "@/components/FilterChip";
 import { ChartFrame } from "@/components/stats/ChartFrame";
 import { registerCharts } from "@/components/stats/chart-setup";
 import { StatCard } from "@/components/stats/StatCard";
@@ -12,13 +13,9 @@ registerCharts();
 
 export function TagsCard({
   tags,
-  collapsed,
-  onToggleCollapse,
   onHide,
 }: {
   tags: Array<{ tag: string; count: number }>;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onHide?: () => void;
 }) {
   const theme = useChartTheme();
@@ -36,24 +33,20 @@ export function TagsCard({
       subtitle="Tocá una barra para buscar ese tag"
       info="El selector recorta el ranking; 'Todos' muestra el período completo."
       empty={!tags.length}
-      collapsed={collapsed}
-      onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
-      <div className="mb-2 flex flex-wrap gap-1.5">
+      <ChipRow className="mb-2">
         {([10, 20, 0] as const).map((value) => (
-          <button
+          <FilterChip
             key={value}
-            type="button"
+            size="sm"
+            selected={limit === value}
             onClick={() => setLimit(value)}
-            className={`inline-flex min-h-9 items-center rounded-full px-3 text-xs ${
-              limit === value ? "bg-foreground text-background" : "bg-chip"
-            }`}
           >
             {value === 0 ? "Todos" : `Top ${value}`}
-          </button>
+          </FilterChip>
         ))}
-      </div>
+      </ChipRow>
       <ChartFrame height={Math.max(200, visible.length * 28)}>
         <Bar
           data={{

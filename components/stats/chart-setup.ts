@@ -1,6 +1,7 @@
 import {
   ArcElement,
   BarElement,
+  BubbleController,
   CategoryScale,
   Chart as ChartJS,
   Filler,
@@ -21,6 +22,7 @@ export function registerCharts() {
     BarElement,
     LineElement,
     PointElement,
+    BubbleController,
     ArcElement,
     Tooltip,
     Legend,

@@ -14,6 +14,8 @@ export type BotStat = {
   lastAt: string | null;
   streak: number;
   perWeek: number;
+  activeDays: number;
+  perActiveDay: number;
 };
 
 export type DayPost = {
@@ -30,6 +32,28 @@ export type HeatCell = {
   count: number;
   bot: string;
 };
+
+export function artParts(iso: string): { weekday: number; hour: number } {
+  const art = new Date(new Date(iso).getTime() - 3 * 3600_000);
+  return { weekday: art.getUTCDay(), hour: art.getUTCHours() };
+}
+
+export function heatCellKey(weekday: number, hour: number, bot: string): string {
+  return `${weekday}|${hour}|${bot}`;
+}
+
+export function parseHeatCellKey(key: string): { weekday: number; hour: number; bot: string } {
+  const [weekday, hour, ...botParts] = key.split("|");
+  return {
+    weekday: Number(weekday),
+    hour: Number(hour),
+    bot: botParts.join("|"),
+  };
+}
+
+export function filterHeatByBot(cells: HeatCell[], bot: string | null): HeatCell[] {
+  return bot ? cells.filter((cell) => cell.bot === bot) : cells;
+}
 
 export type KpiPoint = {
   key: string;
@@ -141,6 +165,8 @@ export function buildStats(
       lastAt: null,
       streak: 0,
       perWeek: 0,
+      activeDays: 0,
+      perActiveDay: 0,
     };
     currentBot.posts += 1;
     if (!currentBot.lastAt || post.created_at > currentBot.lastAt) {
@@ -155,6 +181,10 @@ export function buildStats(
         .filter((post) => post.bot.id === stat.bot.id)
         .map((post) => baCalendarDate(new Date(post.created_at))),
     );
+    stat.activeDays = daysSet.size;
+    stat.perActiveDay = daysSet.size
+      ? Number((stat.posts / daysSet.size).toFixed(2))
+      : 0;
     let streak = 0;
     const cursor = new Date(now);
     while (daysSet.has(baCalendarDate(cursor))) {
@@ -184,14 +214,13 @@ export function buildStats(
   for (const post of current) {
     kindMap.set(post.kind, (kindMap.get(post.kind) ?? 0) + 1);
     for (const tag of post.tags) tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
-    const created = new Date(post.created_at);
-    const art = new Date(created.getTime() - 3 * 3600_000);
-    const key = `${art.getUTCDay()}-${art.getUTCHours()}-${post.bot.slug}`;
+    const { weekday, hour } = artParts(post.created_at);
+    const key = heatCellKey(weekday, hour, post.bot.slug);
     heatMap.set(key, (heatMap.get(key) ?? 0) + 1);
   }
   for (const [key, count] of heatMap) {
-    const [weekday, hour, bot] = key.split("-");
-    heat.push({ weekday: Number(weekday), hour: Number(hour), count, bot: bot ?? "" });
+    const parsed = parseHeatCellKey(key);
+    heat.push({ ...parsed, count });
   }
 
   let oportunidadesOpen = 0;

@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
+import { ChipRow, FilterChip } from "@/components/FilterChip";
+import { FilterToolbar } from "@/components/FilterToolbar";
 import {
   statsHref,
   type StatsPeriod,
@@ -26,51 +27,43 @@ export function StatsFilters({
   }>;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="min-w-0 space-y-3">
+      <ChipRow>
         {PERIODS.map((period) => (
-          <Link
+          <FilterChip
             key={period.days}
             href={statsHref(query, { days: period.days })}
-            className={`inline-flex min-h-11 items-center rounded-full px-3 text-sm ${
-              query.days === period.days
-                ? "bg-accent text-accent-ink"
-                : "bg-chip"
-            }`}
+            selected={query.days === period.days}
           >
             {period.label}
-          </Link>
+          </FilterChip>
         ))}
-      </div>
+      </ChipRow>
       {bots.length > 1 ? (
-        <div className="flex flex-wrap gap-1.5">
-          <Link
-            href={statsHref(query, { bots: [] })}
-            className={`inline-flex min-h-11 items-center rounded-full px-3 text-sm ${
-              query.bots.length === 0 ? "bg-foreground text-background" : "bg-chip"
-            }`}
-          >
-            Todos los bots
-          </Link>
-          {bots.map((bot) => {
-            const active = query.bots.includes(bot.slug);
-            const next = active
-              ? query.bots.filter((slug) => slug !== bot.slug)
-              : [...query.bots, bot.slug];
-            return (
-              <Link
-                key={bot.slug}
-                href={statsHref(query, { bots: next })}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm ${
-                  active ? "bg-foreground text-background" : "bg-chip"
-                }`}
-              >
-                <BotAvatar bot={bot} size="xs" />
-                {bot.name}
-              </Link>
-            );
-          })}
-        </div>
+        <FilterToolbar applied={query.bots.length} title="Bots">
+          <ChipRow>
+            <FilterChip href={statsHref(query, { bots: [] })} selected={query.bots.length === 0}>
+              Todos los bots
+            </FilterChip>
+            {bots.map((bot) => {
+              const active = query.bots.includes(bot.slug);
+              const next = active
+                ? query.bots.filter((slug) => slug !== bot.slug)
+                : [...query.bots, bot.slug];
+              return (
+                <FilterChip
+                  key={bot.slug}
+                  href={statsHref(query, { bots: next })}
+                  selected={active}
+                  check
+                >
+                  <BotAvatar bot={bot} size="xs" />
+                  <span className="min-w-0 truncate">{bot.name}</span>
+                </FilterChip>
+              );
+            })}
+          </ChipRow>
+        </FilterToolbar>
       ) : null}
     </div>
   );

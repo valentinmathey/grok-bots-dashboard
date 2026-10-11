@@ -1,6 +1,7 @@
 export const STAT_CARD_IDS = [
   "kpi",
   "posts-bot",
+  "constancia",
   "actividad",
   "horario",
   "tipos",
@@ -14,16 +15,58 @@ export type StatCardId = (typeof STAT_CARD_IDS)[number];
 export type StatsLayout = {
   order: StatCardId[];
   hidden: StatCardId[];
-  collapsed: StatCardId[];
 };
 
 export const DEFAULT_STATS_LAYOUT: StatsLayout = {
   order: [...STAT_CARD_IDS],
   hidden: [],
-  collapsed: [],
 };
 
 export const STATS_LAYOUT_KEY = "gb-stats-layout";
+
+export const WIDE_CARD_IDS = ["kpi", "actividad", "comparativa"] as const;
+
+export function isAlwaysWide(id: StatCardId): boolean {
+  return (WIDE_CARD_IDS as readonly string[]).includes(id);
+}
+
+/** Half-width cards left alone in a 2-col row span full width. */
+export function spanFullIds(
+  visible: readonly StatCardId[],
+  wideIds: readonly StatCardId[] = WIDE_CARD_IDS,
+): Set<StatCardId> {
+  const wide = new Set<string>(wideIds);
+  const full = new Set<StatCardId>();
+  let col = 0;
+  for (let i = 0; i < visible.length; i += 1) {
+    const id = visible[i]!;
+    if (wide.has(id)) {
+      col = 0;
+      continue;
+    }
+    if (col === 1) {
+      col = 0;
+      continue;
+    }
+    const next = visible[i + 1];
+    if (next == null || wide.has(next)) {
+      full.add(id);
+      col = 0;
+    } else {
+      col = 1;
+    }
+  }
+  return full;
+}
+
+export function cardSpansFull(id: StatCardId, visible: readonly StatCardId[]): boolean {
+  return isAlwaysWide(id) || spanFullIds(visible).has(id);
+}
+
+export function bubbleRadius(posts: number, maxPosts: number, min = 8, max = 26): number {
+  if (maxPosts <= 0) return min;
+  return Number((min + (Math.max(0, posts) / maxPosts) * (max - min)).toFixed(1));
+}
 
 export type StatsPeriod = 7 | 30 | 90 | 0;
 
@@ -43,17 +86,39 @@ export function mergeStatsLayout(stored: unknown): StatsLayout {
     stored && typeof stored === "object" ? (stored as Partial<StatsLayout>) : {};
   const seen = new Set<StatCardId>();
   const order: StatCardId[] = [];
-  for (const item of [...(raw.order ?? []), ...STAT_CARD_IDS]) {
+  for (const item of raw.order ?? []) {
     const id = asCardId(item);
     if (!id || seen.has(id)) continue;
     seen.add(id);
     order.push(id);
   }
+  for (const id of STAT_CARD_IDS) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const defaultIndex = STAT_CARD_IDS.indexOf(id);
+    let insertAt = order.length;
+    let placed = false;
+    for (let i = defaultIndex - 1; i >= 0; i -= 1) {
+      const predPos = order.indexOf(STAT_CARD_IDS[i]!);
+      if (predPos >= 0) {
+        insertAt = predPos + 1;
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      for (let i = defaultIndex + 1; i < STAT_CARD_IDS.length; i += 1) {
+        const succPos = order.indexOf(STAT_CARD_IDS[i]!);
+        if (succPos >= 0) {
+          insertAt = succPos;
+          break;
+        }
+      }
+    }
+    order.splice(insertAt, 0, id);
+  }
   const hidden = [...new Set((raw.hidden ?? []).map(asCardId).filter(Boolean))] as StatCardId[];
-  const collapsed = [
-    ...new Set((raw.collapsed ?? []).map(asCardId).filter(Boolean)),
-  ] as StatCardId[];
-  return { order, hidden, collapsed };
+  return { order, hidden };
 }
 
 export function parseStatsPeriod(value?: string): StatsPeriod {

@@ -5,13 +5,9 @@ import type { KpiPoint } from "@/lib/stats";
 
 export function KpiStrip({
   items,
-  collapsed,
-  onToggleCollapse,
   onHide,
 }: {
   items: KpiPoint[];
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onHide?: () => void;
 }) {
   return (
@@ -20,8 +16,6 @@ export function KpiStrip({
       subtitle="Comparado con el período anterior"
       info="El delta es contra la ventana anterior de la misma duración. En 'Todo' se comparan los últimos 90 días contra los 90 previos."
       empty={items.every((item) => item.value === 0)}
-      collapsed={collapsed}
-      onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

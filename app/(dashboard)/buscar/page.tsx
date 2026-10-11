@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
+import { ChipRow, FilterChip } from "@/components/FilterChip";
+import { FilterToolbar } from "@/components/FilterToolbar";
 import { KindBadge } from "@/components/KindBadge";
 import { getRepository } from "@/lib/data";
 
@@ -62,29 +64,29 @@ export default async function BuscarPage({
         </form>
       </div>
       {bots.length ? (
-        <div className="chip-row">
-          <Link
-            href={href({ bot: undefined })}
-            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${!params.bot ? "bg-accent text-accent-ink" : "bg-chip"}`}
-          >
-            Todos
-          </Link>
-          {bots.map((bot) => (
-            <Link
-              key={bot.id}
-              href={href({ bot: bot.slug })}
-              className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.bot === bot.slug ? "bg-accent text-accent-ink" : "bg-chip"}`}
+        <FilterToolbar applied={Number(Boolean(params.bot)) + Number(params.favorites === "1")}>
+          <ChipRow>
+            <FilterChip href={href({ bot: undefined })} selected={!params.bot}>
+              Todos
+            </FilterChip>
+            {bots.map((bot) => (
+              <FilterChip
+                key={bot.id}
+                href={href({ bot: bot.slug })}
+                selected={params.bot === bot.slug}
+              >
+                <span className="min-w-0 truncate">{bot.name}</span>
+              </FilterChip>
+            ))}
+            <FilterChip
+              href={href({ favorites: params.favorites === "1" ? undefined : "1" })}
+              selected={params.favorites === "1"}
+              check
             >
-              {bot.name}
-            </Link>
-          ))}
-          <Link
-            href={href({ favorites: params.favorites === "1" ? undefined : "1" })}
-            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs font-medium ${params.favorites === "1" ? "bg-accent text-accent-ink" : "bg-chip"}`}
-          >
-            Solo favoritos
-          </Link>
-        </div>
+              Solo favoritos
+            </FilterChip>
+          </ChipRow>
+        </FilterToolbar>
       ) : null}
       {q.length < 2 && !params.kind ? (
         <p className="text-sm text-muted">Escribí al menos dos letras.</p>

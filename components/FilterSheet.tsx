@@ -14,6 +14,7 @@ import {
   Trophy,
   Wallet,
 } from "lucide-react";
+import { ChipRow, FilterChip, SegmentedControl } from "@/components/FilterChip";
 import { Sheet } from "@/components/Sheet";
 import { amenityLabel, oportunidadCategoryLabel } from "@/lib/details";
 import {
@@ -36,17 +37,9 @@ function Chip({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`min-h-11 shrink-0 rounded-full px-3 text-sm ${
-        active
-          ? "bg-accent text-accent-ink"
-          : "bg-chip text-foreground/80 hover:bg-line"
-      }`}
-    >
+    <FilterChip selected={active} onClick={onClick} check={active}>
       {children}
-    </button>
+    </FilterChip>
   );
 }
 
@@ -159,84 +152,66 @@ export function FilterSheet({
           ) : null}
         </button>
         {alojamiento ? (
-          <div className="flex w-full min-w-0 rounded-full bg-chip p-1 sm:flex-1">
-            {(
-              [
-                ["score", "Score"],
-                ["price_pp", "$/pers."],
-                ["price_total", "Total"],
-                ["rating", "Nota"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => toggleSort(value)}
-                className={`min-h-8 flex-1 rounded-full px-1.5 text-[11px] font-medium sm:px-2.5 sm:text-xs ${
-                  query.sort === value ? "bg-card text-foreground shadow-sm" : "text-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            className="sm:flex-1"
+            value={query.sort ?? "score"}
+            options={[
+              { id: "score", label: "Score", onClick: () => toggleSort("score") },
+              { id: "price_pp", label: "$/pers.", onClick: () => toggleSort("price_pp") },
+              { id: "price_total", label: "Total", onClick: () => toggleSort("price_total") },
+              { id: "rating", label: "Nota", onClick: () => toggleSort("rating") },
+            ]}
+          />
         ) : oportunidades ? (
-          <div className="flex w-full min-w-0 rounded-full bg-chip p-1 sm:flex-1">
-            {(
-              [
-                ["newest", "Nuevas"],
-                ["deadline", "Cierre"],
-                ["prize", "Premio"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => toggleSort(value)}
-                className={`min-h-8 flex-1 rounded-full px-1.5 text-[11px] font-medium sm:px-2.5 sm:text-xs ${
-                  query.sort === value ? "bg-card text-foreground shadow-sm" : "text-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            className="sm:flex-1"
+            value={query.sort ?? "newest"}
+            options={[
+              { id: "newest", label: "Nuevas", onClick: () => toggleSort("newest") },
+              { id: "deadline", label: "Cierre", onClick: () => toggleSort("deadline") },
+              { id: "prize", label: "Premio", onClick: () => toggleSort("prize") },
+            ]}
+          />
         ) : (
-          <div className="flex shrink-0 rounded-full bg-chip p-1">
-            <button
-              type="button"
-              onClick={() => toggleSort("newest")}
-              className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
-                query.sort === "newest" ? "bg-card text-foreground shadow-sm" : "text-muted"
-              }`}
-            >
-              <ArrowDownNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
-              {facets.has_events
-                ? query.when === "past"
-                  ? "Recientes"
-                  : "Próximos"
-                : "Nuevas"}
-            </button>
-            <button
-              type="button"
-              onClick={() => toggleSort("oldest")}
-              className={`min-h-8 rounded-full px-2.5 text-xs font-medium sm:px-3 ${
-                query.sort === "oldest" ? "bg-card text-foreground shadow-sm" : "text-muted"
-              }`}
-            >
-              <ArrowUpNarrowWide size={13} strokeWidth={1.75} className="mr-1 inline" />
-              {facets.has_events
-                ? query.when === "past"
-                  ? "Antiguos"
-                  : "Lejanos"
-                : "Antiguas"}
-            </button>
-          </div>
+          <SegmentedControl
+            className="sm:w-auto"
+            value={query.sort === "oldest" ? "oldest" : "newest"}
+            options={[
+              {
+                id: "newest",
+                label: (
+                  <>
+                    <ArrowDownNarrowWide size={13} strokeWidth={1.75} />
+                    {facets.has_events
+                      ? query.when === "past"
+                        ? "Recientes"
+                        : "Próximos"
+                      : "Nuevas"}
+                  </>
+                ),
+                onClick: () => toggleSort("newest"),
+              },
+              {
+                id: "oldest",
+                label: (
+                  <>
+                    <ArrowUpNarrowWide size={13} strokeWidth={1.75} />
+                    {facets.has_events
+                      ? query.when === "past"
+                        ? "Antiguos"
+                        : "Lejanos"
+                      : "Antiguas"}
+                  </>
+                ),
+                onClick: () => toggleSort("oldest"),
+              },
+            ]}
+          />
         )}
       </div>
 
       {oportunidades ? (
-        <div className="chip-row">
+        <ChipRow>
           <Chip
             active={Boolean(query.recommended)}
             onClick={() => push({ ...query, recommended: query.recommended ? undefined : true })}
@@ -264,23 +239,18 @@ export function FilterSheet({
               {oportunidadCategoryLabel(category)}
             </Chip>
           ))}
-        </div>
+        </ChipRow>
       ) : null}
 
       {chipFilters.length > 0 ? (
-        <div className="chip-row">
+        <ChipRow>
           {chipFilters.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              onClick={() => removeChip(chip.key)}
-              className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-chip px-2.5 text-xs"
-            >
+            <FilterChip key={chip.key} selected size="sm" onClick={() => removeChip(chip.key)}>
               {chip.label}
               <span aria-hidden>×</span>
-            </button>
+            </FilterChip>
           ))}
-        </div>
+        </ChipRow>
       ) : null}
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Filtros" desktopDialog>

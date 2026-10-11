@@ -22,6 +22,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { ActivityByDayCard } from "@/components/stats/ActivityByDayCard";
 import { BotsCompareCard } from "@/components/stats/BotsCompareCard";
+import { ConsistencyCard } from "@/components/stats/ConsistencyCard";
 import { HeatmapCard } from "@/components/stats/HeatmapCard";
 import { InsightsCard } from "@/components/stats/InsightsCard";
 import { KindsCard } from "@/components/stats/KindsCard";
@@ -31,6 +32,7 @@ import { TagsCard } from "@/components/stats/TagsCard";
 import {
   DEFAULT_STATS_LAYOUT,
   STATS_LAYOUT_KEY,
+  cardSpansFull,
   mergeStatsLayout,
   type StatCardId,
   type StatsLayout,
@@ -136,26 +138,18 @@ export function StatsDashboard({
     update({ ...layout, order: [...nextVisible, ...hidden] });
   }
 
-  function toggleCollapsed(id: StatCardId) {
-    const collapsed = layout.collapsed.includes(id)
-      ? layout.collapsed.filter((item) => item !== id)
-      : [...layout.collapsed, id];
-    update({ ...layout, collapsed });
-  }
-
   function hide(id: StatCardId) {
     update({ ...layout, hidden: [...layout.hidden, id] });
   }
 
   const cardProps = (id: StatCardId) => ({
-    collapsed: layout.collapsed.includes(id),
-    onToggleCollapse: () => toggleCollapsed(id),
     onHide: () => hide(id),
   });
 
   const cards: Record<StatCardId, ReactNode> = {
     kpi: <KpiStrip items={data.kpis} {...cardProps("kpi")} />,
     "posts-bot": <PostsByBotCard bots={data.bots} {...cardProps("posts-bot")} />,
+    constancia: <ConsistencyCard bots={data.bots} {...cardProps("constancia")} />,
     actividad: (
       <ActivityByDayCard
         days={data.days}
@@ -210,13 +204,13 @@ export function StatsDashboard({
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={visible} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 items-stretch gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
             {visible.map((id) => (
               <SortableCard
                 key={id}
                 id={id}
                 sorting={sorting}
-                wide={id === "kpi" || id === "actividad" || id === "comparativa"}
+                wide={cardSpansFull(id, visible)}
               >
                 {cards[id]}
               </SortableCard>

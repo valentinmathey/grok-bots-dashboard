@@ -12,14 +12,10 @@ registerCharts();
 export function BotsCompareCard({
   days,
   bots,
-  collapsed,
-  onToggleCollapse,
   onHide,
 }: {
   days: Array<{ date: string; counts: Record<string, number> }>;
   bots: BotStat[];
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
   onHide?: () => void;
 }) {
   const theme = useChartTheme();
@@ -31,8 +27,6 @@ export function BotsCompareCard({
       subtitle="Actividad diaria de cada bot"
       info="Cada serie se puede ocultar desde la leyenda."
       empty={!bots.length}
-      collapsed={collapsed}
-      onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
       <ChartFrame height={256}>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { AlojamientoTable } from "@/components/AlojamientoTable";
 import { EmptyState } from "@/components/EmptyState";
+import { SegmentedControl } from "@/components/FilterChip";
 import { FilterSheet } from "@/components/FilterSheet";
 import { PostCard } from "@/components/PostCard";
 import { PostCardSkeleton } from "@/components/Skeleton";
@@ -116,47 +116,49 @@ export function PostFeed({
   return (
     <div className="min-w-0 space-y-4">
       {hasEvents ? (
-        <div className="flex rounded-full bg-chip p-1">
-          <Link
-            href={`${path}?${filtersToSearchParams({ ...query, when: "upcoming" }).toString()}`}
-            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-medium transition-colors ${
-              when === "upcoming" ? "bg-card text-foreground shadow-sm" : "text-muted"
-            }`}
-          >
-            Próximos
-          </Link>
-          <Link
-            href={`${path}?${filtersToSearchParams({ ...query, when: "past" }).toString()}`}
-            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-medium transition-colors ${
-              when === "past" ? "bg-card text-foreground shadow-sm" : "text-muted"
-            }`}
-          >
-            Ya pasaron
-          </Link>
-        </div>
+        <SegmentedControl
+          value={when === "past" ? "past" : "upcoming"}
+          options={[
+            {
+              id: "upcoming",
+              label: "Próximos",
+              href: `${path}?${filtersToSearchParams({ ...query, when: "upcoming" }).toString()}`,
+            },
+            {
+              id: "past",
+              label: "Ya pasaron",
+              href: `${path}?${filtersToSearchParams({ ...query, when: "past" }).toString()}`,
+            },
+          ]}
+        />
       ) : null}
       <FilterSheet action={path} facets={facets} query={query} />
       {alojamiento ? (
-        <div className="flex rounded-full bg-chip p-1">
-          <Link
-            href={`${path}?${filtersToSearchParams({ ...query, view: "cards" }).toString()}`}
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium ${
-              view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted"
-            }`}
-          >
-            <LayoutGrid size={14} strokeWidth={1.75} />
-            Cards
-          </Link>
-          <Link
-            href={`${path}?${filtersToSearchParams({ ...query, view: "table" }).toString()}`}
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium ${
-              view === "table" ? "bg-card text-foreground shadow-sm" : "text-muted"
-            }`}
-          >
-            <Table2 size={14} strokeWidth={1.75} />
-            Comparar
-          </Link>
-        </div>
+        <SegmentedControl
+          value={view === "table" ? "table" : "cards"}
+          options={[
+            {
+              id: "cards",
+              label: (
+                <>
+                  <LayoutGrid size={14} strokeWidth={1.75} />
+                  Cards
+                </>
+              ),
+              href: `${path}?${filtersToSearchParams({ ...query, view: "cards" }).toString()}`,
+            },
+            {
+              id: "table",
+              label: (
+                <>
+                  <Table2 size={14} strokeWidth={1.75} />
+                  Comparar
+                </>
+              ),
+              href: `${path}?${filtersToSearchParams({ ...query, view: "table" }).toString()}`,
+            },
+          ]}
+        />
       ) : null}
       {posts.length === 0 ? (
         <EmptyState

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ChipRow, FilterChip } from "@/components/FilterChip";
 import { getRepository } from "@/lib/data";
 import { listMessages, listRequests } from "@/lib/requests";
 
@@ -31,20 +31,20 @@ export default async function PedidosPage({
           Lo que le pediste a cada bot y sus respuestas.
         </p>
       </div>
-      <div className="chip-row">
-        <Link href="/pedidos" className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs ${!params.status ? "bg-accent text-accent-ink" : "bg-chip"}`}>
+      <ChipRow>
+        <FilterChip href="/pedidos" selected={!params.status}>
           Todos
-        </Link>
+        </FilterChip>
         {["pendiente", "en_progreso", "respondido", "descartado"].map((status) => (
-          <Link
+          <FilterChip
             key={status}
             href={`/pedidos?status=${status}`}
-            className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-xs ${params.status === status ? "bg-accent text-accent-ink" : "bg-chip"}`}
+            selected={params.status === status}
           >
             {status}
-          </Link>
+          </FilterChip>
         ))}
-      </div>
+      </ChipRow>
       {detailed.length === 0 ? (
         <p className="text-sm text-muted">Todavía no hay pedidos.</p>
       ) : (
