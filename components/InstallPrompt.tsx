@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Share, X } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 import {
   captureInstallPrompt,
   hasInstalledRelatedApp,
@@ -109,11 +110,7 @@ export function InstallPrompt() {
   return (
     <div className="safe-px fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom)+var(--vv-bottom,0px))] left-0 right-0 z-40 flex justify-center px-3.5 lg:bottom-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <div className="surface flex w-full max-w-md items-start gap-3 rounded-3xl p-3.5 shadow-lg">
-        <img
-          src="/icons/icon-192.png"
-          alt=""
-          className="h-10 w-10 shrink-0 rounded-2xl"
-        />
+        <BrandMark size={40} className="h-10 w-10" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Instalar app</p>
           {iosHelp ? (
