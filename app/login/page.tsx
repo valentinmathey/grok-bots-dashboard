@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/BrandMark";
 import { LoginForm } from "@/components/LoginForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -18,11 +19,7 @@ export default async function LoginPage({
     <div className="mx-auto flex min-h-full min-h-dvh w-full max-w-md flex-1 flex-col justify-center px-4 py-12 pt-[max(3rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]">
       <div className="mb-8 flex items-start justify-between gap-3">
         <div>
-          <img
-            src="/icons/icon-192.png"
-            alt=""
-            className="h-12 w-12 rounded-2xl"
-          />
+          <BrandMark size={48} className="h-12 w-12" />
           <h1 className="mt-6 text-3xl font-semibold tracking-tight">Grok Bots</h1>
           <p className="mt-2 text-sm leading-6 text-muted">
             Un solo lugar para leer lo que publican tus asistentes.

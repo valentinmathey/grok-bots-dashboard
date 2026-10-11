@@ -86,29 +86,29 @@ export function AgendaCalendar({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex w-full min-w-0 items-center gap-2">
         <Link
           href={agendaHref(query, { month: prev })}
           aria-label="Mes anterior"
-          className="grid h-11 w-11 place-items-center rounded-full border border-line"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line"
         >
           <ChevronLeft size={18} />
         </Link>
-        <h2 className="min-w-0 flex-1 text-center text-base font-semibold sm:text-lg">
+        <h2 className="min-w-0 flex-1 truncate text-center text-base font-semibold sm:text-lg">
           {formatMonthTitle(query.month)}
         </h2>
         <Link
-          href={agendaHref(query, { month: today.slice(0, 7) })}
-          className="inline-flex h-11 items-center rounded-full border border-line px-3 text-sm font-medium"
-        >
-          Hoy
-        </Link>
-        <Link
           href={agendaHref(query, { month: next })}
           aria-label="Mes siguiente"
-          className="grid h-11 w-11 place-items-center rounded-full border border-line"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line"
         >
           <ChevronRight size={18} />
+        </Link>
+        <Link
+          href={agendaHref(query, { month: today.slice(0, 7) })}
+          className="inline-flex h-11 shrink-0 items-center rounded-full border border-line px-3 text-sm font-medium"
+        >
+          Hoy
         </Link>
       </div>
 

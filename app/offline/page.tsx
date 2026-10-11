@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,9 +10,7 @@ export const metadata: Metadata = {
 export default function OfflinePage() {
   return (
     <div className="mx-auto flex min-h-full min-h-dvh w-full max-w-md flex-1 flex-col justify-center px-4 py-16 pt-[max(3rem,env(safe-area-inset-top))] pb-[max(3rem,env(safe-area-inset-bottom))]">
-      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-lg font-bold text-accent-ink">
-        G
-      </span>
+      <BrandMark size={48} className="h-12 w-12" />
       <h1 className="mt-6 text-3xl font-semibold tracking-tight">Sin conexión</h1>
       <p className="mt-2 text-sm leading-6 text-muted">
         No hay internet ahora. Cuando vuelva, esta app sigue donde la dejaste.

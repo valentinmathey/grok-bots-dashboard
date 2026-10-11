@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -147,9 +148,7 @@ function DesktopSidebar({
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line/80 bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:flex">
       <Link href="/" className="flex items-center gap-2.5 px-5 py-5">
-        <span className="grid h-9 w-9 place-items-center rounded-2xl bg-accent text-[13px] font-bold text-accent-ink">
-          G
-        </span>
+        <BrandMark size={36} className="h-9 w-9" />
         <span className="text-[15px] font-semibold tracking-tight">Grok Bots</span>
       </Link>
       <nav className="flex flex-1 flex-col gap-0.5 px-3">
