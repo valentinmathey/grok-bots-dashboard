@@ -96,7 +96,10 @@ export function memorySearch(
   filters: SearchFilters,
 ): { hits: SearchHit[]; total: number } {
   const q = filters.q.trim();
-  if (q.length < 2) return { hits: [], total: 0 };
+  const hasScope = Boolean(
+    filters.kinds?.length || filters.from || filters.to || filters.bots?.length,
+  );
+  if (q.length < 2 && !hasScope) return { hits: [], total: 0 };
   const needle = fold(q);
   const words = needle.split(/\s+/).filter(Boolean);
   const scored = posts
@@ -113,7 +116,7 @@ export function memorySearch(
       const hay = fold(
         `${post.title} ${post.product ?? ""} ${post.tags.join(" ")} ${post.body_markdown} ${detailsHaystack(post.details)}`,
       );
-      if (!words.every((word) => hay.includes(word))) return null;
+      if (words.length && !words.every((word) => hay.includes(word))) return null;
       let rank = 0;
       const title = fold(post.title);
       if (title.includes(needle)) rank += 8;

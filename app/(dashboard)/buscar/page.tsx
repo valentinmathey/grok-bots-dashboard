@@ -15,7 +15,7 @@ export default async function BuscarPage({
   const repo = getRepository();
   const [bots, result] = await Promise.all([
     repo.listBots(),
-    q.length >= 2
+    q.length >= 2 || params.kind
       ? repo.searchPosts({
           q,
           bots: params.bot ? [params.bot] : undefined,
@@ -86,10 +86,12 @@ export default async function BuscarPage({
           </Link>
         </div>
       ) : null}
-      {q.length < 2 ? (
+      {q.length < 2 && !params.kind ? (
         <p className="text-sm text-muted">Escribí al menos dos letras.</p>
       ) : result.hits.length === 0 ? (
-        <p className="text-sm text-muted">Nada con “{q}”.</p>
+        <p className="text-sm text-muted">
+          {q.length >= 2 ? `Nada con “${q}”.` : "Nada con ese filtro."}
+        </p>
       ) : (
         <ul className="space-y-2">
           {result.hits.map((hit) => (

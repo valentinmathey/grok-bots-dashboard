@@ -583,13 +583,14 @@ export function createSupabaseRepository(): BotsRepository {
     },
 
     async listStatsPosts(days = 90) {
-      const since = new Date(Date.now() - days * 86_400_000).toISOString();
+      const lookback = days <= 0 ? 3650 : days;
+      const since = new Date(Date.now() - lookback * 86_400_000).toISOString();
       const { data, error } = await admin
         .from("posts")
         .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(2000);
+        .limit(5000);
       if (error) throw error;
       return (data ?? []).map((row) => {
         const { bots, ...post } = row as import("@/lib/types").Post & {
@@ -618,7 +619,8 @@ export function createSupabaseRepository(): BotsRepository {
     async searchPosts(filters) {
       const { highlightSnippet, memorySearch } = await import("@/lib/search");
       const q = filters.q.trim();
-      if (q.length < 2) return { hits: [], total: 0 };
+      const hasScope = Boolean(filters.kinds?.length || filters.from || filters.to || filters.bots?.length);
+      if (q.length < 2 && !hasScope) return { hits: [], total: 0 };
       const limit = Math.min(filters.limit ?? 20, 50);
       const offset = filters.offset ?? 0;
       let query = admin
@@ -639,10 +641,14 @@ export function createSupabaseRepository(): BotsRepository {
         .replace(/[':()&|!]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
-      let { data, error, count } = await query
-        .textSearch("search_tsv", ts, { type: "websearch", config: "simple" })
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
+      let built = query.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+      if (ts.length >= 2) {
+        built = query
+          .textSearch("search_tsv", ts, { type: "websearch", config: "simple" })
+          .order("created_at", { ascending: false })
+          .range(offset, offset + limit - 1);
+      }
+      let { data, error, count } = await built;
       if (error) {
         const fallback = await admin
           .from("posts")
