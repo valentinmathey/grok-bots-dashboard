@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Doughnut } from "react-chartjs-2";
+import { ChartFrame } from "@/components/stats/ChartFrame";
 import { registerCharts } from "@/components/stats/chart-setup";
 import { StatCard } from "@/components/stats/StatCard";
 import { chartDefaults, useChartTheme } from "@/components/stats/useChartTheme";
@@ -42,7 +43,8 @@ export function KindsCard({
       onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
-      <div className="relative mx-auto h-56 w-full max-w-[260px]">
+      <div className="relative mx-auto w-full max-w-[260px]">
+        <ChartFrame height={224}>
         <Doughnut
           data={{
             labels: kinds.map((row) => kindLabel(row.kind as never)),
@@ -79,6 +81,7 @@ export function KindsCard({
             scales: undefined,
           }}
         />
+        </ChartFrame>
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div className="text-center">
             <p className="text-2xl font-semibold tabular-nums">{total}</p>

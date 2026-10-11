@@ -1,6 +1,7 @@
 "use client";
 
 import { Line } from "react-chartjs-2";
+import { ChartFrame } from "@/components/stats/ChartFrame";
 import { registerCharts } from "@/components/stats/chart-setup";
 import { StatCard } from "@/components/stats/StatCard";
 import { chartDefaults, useChartTheme } from "@/components/stats/useChartTheme";
@@ -34,7 +35,7 @@ export function BotsCompareCard({
       onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
-      <div className="h-56 w-full sm:h-64">
+      <ChartFrame height={256}>
         <Line
           data={{
             labels: days.map((day) => day.date.slice(8)),
@@ -62,9 +63,22 @@ export function BotsCompareCard({
                 },
               },
             },
+            scales: {
+              x: {
+                ticks: { color: theme.muted, font: { size: 10 }, maxRotation: 0 },
+                grid: { color: theme.line },
+                border: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: theme.muted, font: { size: 10 } },
+                grid: { color: theme.line },
+                border: { display: false },
+              },
+            },
           }}
         />
-      </div>
+      </ChartFrame>
     </StatCard>
   );
 }

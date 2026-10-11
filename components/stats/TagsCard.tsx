@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bar } from "react-chartjs-2";
+import { ChartFrame } from "@/components/stats/ChartFrame";
 import { registerCharts } from "@/components/stats/chart-setup";
 import { StatCard } from "@/components/stats/StatCard";
 import { chartDefaults, useChartTheme } from "@/components/stats/useChartTheme";
@@ -53,7 +54,7 @@ export function TagsCard({
           </button>
         ))}
       </div>
-      <div style={{ height: Math.max(180, visible.length * 28) }}>
+      <ChartFrame height={Math.max(200, visible.length * 28)}>
         <Bar
           data={{
             labels: visible.map((row) => `#${row.tag}`),
@@ -79,12 +80,21 @@ export function TagsCard({
               legend: { display: false },
             },
             scales: {
-              ...defaults.scales,
-              y: { ...defaults.scales.y, grid: { display: false } },
+              x: {
+                beginAtZero: true,
+                ticks: { color: theme.muted, font: { size: 10 } },
+                grid: { color: theme.line },
+                border: { display: false },
+              },
+              y: {
+                ticks: { color: theme.ink, font: { size: 11 } },
+                grid: { display: false },
+                border: { display: false },
+              },
             },
           }}
         />
-      </div>
+      </ChartFrame>
     </StatCard>
   );
 }

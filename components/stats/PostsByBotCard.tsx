@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Bar } from "react-chartjs-2";
+import { ChartFrame } from "@/components/stats/ChartFrame";
 import { registerCharts } from "@/components/stats/chart-setup";
 import { StatCard } from "@/components/stats/StatCard";
 import { chartDefaults, useChartTheme } from "@/components/stats/useChartTheme";
@@ -35,7 +36,7 @@ export function PostsByBotCard({
       onToggleCollapse={onToggleCollapse}
       onHide={onHide}
     >
-      <div className="h-[min(360px,max(180px,calc(bots*44px)))] min-h-48" style={{ height: Math.max(180, bots.length * 44) }}>
+      <ChartFrame height={Math.max(220, bots.length * 36)}>
         <Bar
           data={{
             labels: bots.map((row) => row.bot.name),
@@ -74,13 +75,21 @@ export function PostsByBotCard({
               },
             },
             scales: {
-              ...defaults.scales,
-              x: { ...defaults.scales.x, grace: "8%" },
-              y: { ...defaults.scales.y, grid: { display: false } },
+              x: {
+                beginAtZero: true,
+                ticks: { color: theme.muted, font: { size: 10 } },
+                grid: { color: theme.line },
+                border: { display: false },
+              },
+              y: {
+                ticks: { color: theme.ink, font: { size: 11 } },
+                grid: { display: false },
+                border: { display: false },
+              },
             },
           }}
         />
-      </div>
+      </ChartFrame>
     </StatCard>
   );
 }

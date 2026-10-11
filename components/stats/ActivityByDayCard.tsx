@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Line } from "react-chartjs-2";
 import { Sheet } from "@/components/Sheet";
 import { BotAvatar } from "@/components/BotAvatar";
+import { ChartFrame } from "@/components/stats/ChartFrame";
 import { registerCharts } from "@/components/stats/chart-setup";
 import { StatCard } from "@/components/stats/StatCard";
 import { chartDefaults, useChartTheme } from "@/components/stats/useChartTheme";
@@ -85,7 +86,7 @@ export function ActivityByDayCard({
           Media 7 días
         </button>
       </div>
-      <div className="h-56 w-full sm:h-64">
+      <ChartFrame height={256}>
         <Line
           data={{ labels, datasets }}
           options={{
@@ -107,13 +108,23 @@ export function ActivityByDayCard({
               },
             },
             scales: {
-              ...defaults.scales,
-              x: { ...defaults.scales.x, stacked: !average },
-              y: { ...defaults.scales.y, stacked: !average },
+              x: {
+                stacked: !average,
+                ticks: { color: theme.muted, font: { size: 10 }, maxRotation: 0 },
+                grid: { color: theme.line },
+                border: { display: false },
+              },
+              y: {
+                stacked: !average,
+                beginAtZero: true,
+                ticks: { color: theme.muted, font: { size: 10 } },
+                grid: { color: theme.line },
+                border: { display: false },
+              },
             },
           }}
         />
-      </div>
+      </ChartFrame>
       <Sheet
         open={Boolean(openDay)}
         onClose={() => setOpenDay(null)}

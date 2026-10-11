@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import dynamic from "next/dynamic";
 import {
   DndContext,
   KeyboardSensor,
@@ -21,9 +20,14 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
+import { ActivityByDayCard } from "@/components/stats/ActivityByDayCard";
+import { BotsCompareCard } from "@/components/stats/BotsCompareCard";
+import { HeatmapCard } from "@/components/stats/HeatmapCard";
 import { InsightsCard } from "@/components/stats/InsightsCard";
+import { KindsCard } from "@/components/stats/KindsCard";
 import { KpiStrip } from "@/components/stats/KpiStrip";
-import { StatCard } from "@/components/stats/StatCard";
+import { PostsByBotCard } from "@/components/stats/PostsByBotCard";
+import { TagsCard } from "@/components/stats/TagsCard";
 import {
   DEFAULT_STATS_LAYOUT,
   STATS_LAYOUT_KEY,
@@ -32,31 +36,6 @@ import {
   type StatsLayout,
 } from "@/lib/stats-layout";
 import type { StatsSnapshot } from "@/lib/stats";
-
-const PostsByBotCard = dynamic(
-  () => import("@/components/stats/PostsByBotCard").then((mod) => mod.PostsByBotCard),
-  { ssr: false, loading: () => <StatCard title="Posts por bot" loading /> },
-);
-const ActivityByDayCard = dynamic(
-  () => import("@/components/stats/ActivityByDayCard").then((mod) => mod.ActivityByDayCard),
-  { ssr: false, loading: () => <StatCard title="Actividad por día" loading /> },
-);
-const HeatmapCard = dynamic(
-  () => import("@/components/stats/HeatmapCard").then((mod) => mod.HeatmapCard),
-  { ssr: false, loading: () => <StatCard title="Horario (Argentina)" loading /> },
-);
-const KindsCard = dynamic(
-  () => import("@/components/stats/KindsCard").then((mod) => mod.KindsCard),
-  { ssr: false, loading: () => <StatCard title="Tipos" loading /> },
-);
-const TagsCard = dynamic(
-  () => import("@/components/stats/TagsCard").then((mod) => mod.TagsCard),
-  { ssr: false, loading: () => <StatCard title="Tags" loading /> },
-);
-const BotsCompareCard = dynamic(
-  () => import("@/components/stats/BotsCompareCard").then((mod) => mod.BotsCompareCard),
-  { ssr: false, loading: () => <StatCard title="Comparativa de bots" loading /> },
-);
 
 function persist(layout: StatsLayout) {
   try {
