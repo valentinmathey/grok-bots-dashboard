@@ -12,6 +12,7 @@ import {
   useExpandable,
 } from "@/components/ExpandableCard";
 import { MarkdownBody } from "@/components/MarkdownBody";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { TimeStamp } from "@/components/TimeStamp";
 import {
   asResumen,
@@ -235,6 +236,8 @@ export function ResumenCard({
   initialOpen,
   updatedAt,
   archiveHref,
+  bot,
+  allowRequest = true,
 }: {
   post?: Post;
   details?: ResumenDetails | null;
@@ -243,6 +246,8 @@ export function ResumenCard({
   initialOpen?: boolean;
   updatedAt?: string;
   archiveHref?: string;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const bodyId = useId();
   const { open, setOpen, headerRef } = useExpandable(
@@ -273,35 +278,44 @@ export function ResumenCard({
         controlsId={bodyId}
         className="bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_70%)] p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
+        <PostCardHeader
+          open={open}
+          post={post}
+          bot={bot}
+          allowRequest={Boolean(post) && allowRequest}
+          showFavorite={Boolean(post)}
+          kind={post?.kind}
+          titleAs="h2"
+          titleClassName="mt-1 text-[1.35rem] font-semibold tracking-tight sm:text-2xl"
+          title={live ? "Esta semana · últimos 7 días" : (post?.title ?? "Resumen")}
+          meta={
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
               {live ? "En vivo" : "Resumen semanal"}
             </p>
-            <h2 className="mt-1 text-[1.35rem] font-semibold tracking-tight sm:text-2xl">
-              {live ? "Esta semana · últimos 7 días" : (post?.title ?? "Resumen")}
-            </h2>
-            {details ? (
-              <p className="mt-1 text-sm text-muted">
-                {formatDate(`${details.period_from}T12:00:00.000Z`)} —{" "}
-                {formatDate(`${details.period_to}T12:00:00.000Z`)}
-                {updated ? (
-                  <>
-                    {" · Actualizado "}
-                    <TimeStamp iso={updated} />
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-            {live && !open && details ? (
-              <p className="mt-2 truncate text-sm text-muted">
-                {totalNew} {totalNew === 1 ? "nuevo" : "nuevos"} · {totalEvents}{" "}
-                {totalEvents === 1 ? "evento" : "eventos"}
-              </p>
-            ) : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+          }
+          subtitle={
+            <>
+              {details ? (
+                <p className="mt-1 text-sm text-muted">
+                  {formatDate(`${details.period_from}T12:00:00.000Z`)} —{" "}
+                  {formatDate(`${details.period_to}T12:00:00.000Z`)}
+                  {updated ? (
+                    <>
+                      {" · Actualizado "}
+                      <TimeStamp iso={updated} />
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              {live && !open && details ? (
+                <p className="mt-2 truncate text-sm text-muted">
+                  {totalNew} {totalNew === 1 ? "nuevo" : "nuevos"} · {totalEvents}{" "}
+                  {totalEvents === 1 ? "evento" : "eventos"}
+                </p>
+              ) : null}
+            </>
+          }
+        />
       </ExpandableHeader>
 
       <ExpandableBody open={Boolean(details) && open} id={bodyId}>

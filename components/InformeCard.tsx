@@ -7,12 +7,13 @@ import {
   cardCollapseProps,
   ExpandableBody,
   ExpandableHeader,
-  ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
-import { KindBadge } from "@/components/KindBadge";
+import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
 import { MarkdownBody } from "@/components/MarkdownBody";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { formatDate, formatMoney } from "@/lib/format";
+import { collapsedCover } from "@/lib/images";
 import { asInforme, type InformeDetails } from "@/lib/rich-details";
 import type { Post } from "@/lib/types";
 
@@ -76,10 +77,14 @@ export function InformeCard({
   post,
   href,
   defaultOpen = false,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   href?: string;
   defaultOpen?: boolean;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
@@ -97,37 +102,41 @@ export function InformeCard({
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
       {...cardCollapseProps(open, toggle)}
     >
+      <CardCover src={collapsedCover(post)?.url} alt={post.title} />
       <ExpandableHeader
         open={open}
         onToggle={toggle}
         headerRef={headerRef}
         controlsId={bodyId}
-        className="p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-[1.1rem] font-semibold leading-snug tracking-tight">
-                {href ? (
-                  <Link href={href} className="hover:underline">
-                    {post.title}
-                  </Link>
-                ) : (
-                  post.title
-                )}
-              </h3>
-              <KindBadge kind="informe" />
-            </div>
-            <p className="mt-1 text-xs text-muted">
-              {details.date ? formatDate(`${details.date}T12:00:00-03:00`) : null}
-              {details.brecha_pct != null
-                ? `${details.date ? " · " : ""}Brecha ${details.brecha_pct.toFixed(1)}%`
-                : ""}
-            </p>
-            {!open ? <p className="mt-2 text-sm leading-6 text-muted">{headline}</p> : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+        <CardHeaderPad>
+          <PostCardHeader
+            open={open}
+            post={post}
+            bot={bot}
+            allowRequest={allowRequest}
+            kind="informe"
+            title={
+              href ? (
+                <Link href={href} className="hover:underline">
+                  {post.title}
+                </Link>
+              ) : (
+                post.title
+              )
+            }
+            titleClassName="text-[1.1rem] font-semibold leading-snug tracking-tight"
+            meta={
+              <p className="text-xs text-muted">
+                {details.date ? formatDate(`${details.date}T12:00:00-03:00`) : null}
+                {details.brecha_pct != null
+                  ? `${details.date ? " · " : ""}Brecha ${details.brecha_pct.toFixed(1)}%`
+                  : ""}
+              </p>
+            }
+            subtitle={!open ? <p className="mt-2 text-sm leading-6 text-muted">{headline}</p> : null}
+          />
+        </CardHeaderPad>
       </ExpandableHeader>
       <ExpandableBody open={open} id={bodyId} className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
         {dollars.length ? (

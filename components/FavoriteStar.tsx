@@ -34,7 +34,7 @@ export function FavoriteStar({
         }
         void togglePost(postId);
       }}
-      className={`grid h-11 w-11 place-items-center rounded-full transition-transform hover:scale-110 ${
+      className={`grid h-10 w-10 place-items-center rounded-full transition-transform hover:scale-110 ${
         on ? "text-amber-500" : "text-muted hover:text-foreground"
       }`}
     >

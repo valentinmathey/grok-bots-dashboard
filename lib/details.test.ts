@@ -4,7 +4,13 @@ import {
   asOportunidades,
   parsePostDetails,
 } from "@/lib/details";
-import { asNewsletter, asRanking, asWorkflow } from "@/lib/rich-details";
+import {
+  asNewsletter,
+  asRanking,
+  asWorkflow,
+  rankingBestCardOffer,
+  rankingBestOffer,
+} from "@/lib/rich-details";
 
 describe("details de alojamiento", () => {
   it("acepta el schema y completa maps_url", () => {
@@ -95,6 +101,33 @@ describe("details de ranking / newsletter / informe / workflow", () => {
     expect(asReport.ok).toBe(true);
     expect(parsePostDetails("ranking", { product_name: "" }).ok).toBe(false);
     expect(parsePostDetails("report", { title: "informe viejo" }).ok).toBe(true);
+  });
+
+  it("marca la mejor oferta en efectivo y la de tarjeta según el veredicto", () => {
+    const details = asRanking({
+      product_name: "Logitech Z407",
+      currency: "ARS",
+      best_offer_index: 0,
+      verdict:
+        "Mexx tiene el mejor precio en efectivo. Si pagás con tarjeta, conviene Compumundo.",
+      offers: [
+        { store: "Mexx", url: "https://www.mexx.com.ar/z407", price: 184900 },
+        {
+          store: "Compumundo",
+          url: "https://www.compumundo.com.ar/z407",
+          price: 198499,
+          installments_text: "6 cuotas sin interés",
+        },
+      ],
+    });
+    expect(rankingBestOffer(details!)?.store).toBe("Mexx");
+    expect(rankingBestCardOffer(details!)?.store).toBe("Compumundo");
+    expect(
+      rankingBestCardOffer({
+        ...details!,
+        verdict: "Mexx es la compra.",
+      }),
+    ).toBeNull();
   });
 
   it("valida newsletter y deja vacío como card estándar", () => {

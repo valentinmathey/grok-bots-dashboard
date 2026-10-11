@@ -99,7 +99,11 @@ export default async function FavoritosPage({
                   </div>
                 ) : null}
                 {fav?.note ? <p className="px-1 text-xs text-muted">Nota: {fav.note}</p> : null}
-                <PostCard post={post} filterBasePath={bot ? `/bots/${bot.slug}` : "/favoritos"} />
+                <PostCard
+                  post={post}
+                  filterBasePath={bot ? `/bots/${bot.slug}` : "/favoritos"}
+                  bot={bot}
+                />
               </div>
             );
           })}

@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
-  ArrowDownNarrowWide,
-  ArrowUpNarrowWide,
+  ArrowUpDown,
   CalendarDays,
   Hash,
   Package,
@@ -19,6 +18,7 @@ import { Sheet } from "@/components/Sheet";
 import { amenityLabel, oportunidadCategoryLabel } from "@/lib/details";
 import {
   countActiveFilters,
+  feedSortLabel,
   filtersToSearchParams,
   type FeedQuery,
   type FeedSort,
@@ -132,16 +132,42 @@ export function FilterSheet({
     push(next);
   }
 
+  const sortContext = { events: facets.has_events, when: query.when };
+  const sortOptions = alojamiento
+    ? ([
+        ["score", feedSortLabel("score")],
+        ["price_pp", feedSortLabel("price_pp")],
+        ["price_total", feedSortLabel("price_total")],
+        ["rating", feedSortLabel("rating")],
+      ] as const)
+    : oportunidades
+      ? ([
+          ["newest", feedSortLabel("newest")],
+          ["deadline", feedSortLabel("deadline")],
+          ["prize", feedSortLabel("prize")],
+        ] as const)
+      : ([
+          ["newest", feedSortLabel("newest", sortContext)],
+          ["oldest", feedSortLabel("oldest", sortContext)],
+        ] as const);
+  const sortValue = alojamiento
+    ? (query.sort ?? "score")
+    : oportunidades
+      ? (query.sort ?? "newest")
+      : query.sort === "oldest"
+        ? "oldest"
+        : "newest";
+
   return (
     <div className="space-y-3">
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 items-center gap-2 sm:justify-end">
         <button
           type="button"
           onClick={() => {
             setDraft(query);
             setOpen(true);
           }}
-          className="inline-flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:w-auto sm:px-4"
+          className="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:hidden"
         >
           <SlidersHorizontal size={16} strokeWidth={1.75} />
           Filtros
@@ -151,63 +177,59 @@ export function FilterSheet({
             </span>
           ) : null}
         </button>
-        {alojamiento ? (
+        <label className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium sm:hidden">
+          <ArrowUpDown size={14} strokeWidth={1.75} />
+          <span className="sr-only">Ordenar por</span>
+          <select
+            value={sortValue}
+            onChange={(event) => toggleSort(event.target.value as FeedSort | SortOrder)}
+            className="min-w-0 flex-1 bg-transparent font-medium"
+          >
+            {sortOptions.map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="hidden min-w-0 items-center gap-2 sm:flex">
+          <p className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            <ArrowUpDown size={13} strokeWidth={1.75} />
+            Ordenar por
+          </p>
           <SegmentedControl
-            className="sm:flex-1"
-            value={query.sort ?? "score"}
-            options={[
-              { id: "score", label: "Score", onClick: () => toggleSort("score") },
-              { id: "price_pp", label: "$/pers.", onClick: () => toggleSort("price_pp") },
-              { id: "price_total", label: "Total", onClick: () => toggleSort("price_total") },
-              { id: "rating", label: "Nota", onClick: () => toggleSort("rating") },
-            ]}
+            ariaLabel="Ordenar por"
+            className="w-auto"
+            value={sortValue}
+            options={sortOptions.map(([id, label]) => ({
+              id,
+              label,
+              onClick: () => toggleSort(id),
+            }))}
           />
-        ) : oportunidades ? (
-          <SegmentedControl
-            className="sm:flex-1"
-            value={query.sort ?? "newest"}
-            options={[
-              { id: "newest", label: "Nuevas", onClick: () => toggleSort("newest") },
-              { id: "deadline", label: "Cierre", onClick: () => toggleSort("deadline") },
-              { id: "prize", label: "Premio", onClick: () => toggleSort("prize") },
-            ]}
-          />
-        ) : (
-          <SegmentedControl
-            className="sm:w-auto"
-            value={query.sort === "oldest" ? "oldest" : "newest"}
-            options={[
-              {
-                id: "newest",
-                label: (
-                  <>
-                    <ArrowDownNarrowWide size={13} strokeWidth={1.75} />
-                    {facets.has_events
-                      ? query.when === "past"
-                        ? "Recientes"
-                        : "Próximos"
-                      : "Nuevas"}
-                  </>
-                ),
-                onClick: () => toggleSort("newest"),
-              },
-              {
-                id: "oldest",
-                label: (
-                  <>
-                    <ArrowUpNarrowWide size={13} strokeWidth={1.75} />
-                    {facets.has_events
-                      ? query.when === "past"
-                        ? "Antiguos"
-                        : "Lejanos"
-                      : "Antiguas"}
-                  </>
-                ),
-                onClick: () => toggleSort("oldest"),
-              },
-            ]}
-          />
-        )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Filtrar</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setDraft(query);
+              setOpen(true);
+            }}
+            className="hidden min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-card px-4 text-sm font-medium sm:inline-flex"
+          >
+            <SlidersHorizontal size={16} strokeWidth={1.75} />
+            Filtros
+            {active > 0 ? (
+              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-ink">
+                {active}
+              </span>
+            ) : null}
+          </button>
+        </div>
       </div>
 
       {oportunidades ? (

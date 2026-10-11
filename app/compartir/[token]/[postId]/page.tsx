@@ -48,6 +48,7 @@ export default async function SharePostPage({
         filterBasePath={basePath}
         href={`${basePath}/${share.post.id}`}
         defaultOpen
+        bot={share.bot}
       />
     </ShareChrome>
   );

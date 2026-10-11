@@ -2,30 +2,29 @@
 
 import { useId } from "react";
 import Link from "next/link";
-import { CalendarDays, Hash, Package } from "lucide-react";
-import { FavoriteStar } from "@/components/FavoriteStar";
-import { RequestComposer } from "@/components/RequestComposer";
+import { CalendarDays, Hash, MapPin, Package, Ticket, Users } from "lucide-react";
 import { AlojamientoCard } from "@/components/AlojamientoCard";
 import {
   cardCollapseProps,
   ExpandableBody,
   ExpandableHeader,
-  ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
 import { InformeCard } from "@/components/InformeCard";
-import { KindBadge } from "@/components/KindBadge";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
 import { NewsletterCard } from "@/components/NewsletterCard";
 import { OportunidadesCard } from "@/components/OportunidadesCard";
+import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { RankingCard } from "@/components/RankingCard";
 import { ResumenCard } from "@/components/ResumenCard";
 import { WorkflowCard } from "@/components/WorkflowCard";
 import { isEventPast, isEventToday } from "@/lib/event-time";
 import { filtersToSearchParams, type FeedQuery } from "@/lib/filters";
+import { hasEventFacts, parseEventFacts } from "@/lib/event-facts";
 import { formatDateTime, formatEventWhen, previewPlain } from "@/lib/format";
-import { uniquePostMedia } from "@/lib/images";
+import { collapsedCover, uniquePostMedia } from "@/lib/images";
 import {
   asInforme,
   asNewsletter,
@@ -35,60 +34,69 @@ import {
 } from "@/lib/rich-details";
 import type { Post, PostKind } from "@/lib/types";
 
+export type PostCardChrome = {
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
+};
+
 export function PostCard({
   post,
   filterBasePath,
   href,
   defaultOpen = false,
   query,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   filterBasePath: string;
   href?: string;
   defaultOpen?: boolean;
   query?: FeedQuery;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
-  let card = (
-    <StandardPostCard
-      post={post}
-      filterBasePath={filterBasePath}
-      href={href}
-      defaultOpen={defaultOpen}
-    />
-  );
+  const chrome: PostCardChrome = { bot, allowRequest };
   if (post.kind === "alojamiento") {
-    card = <AlojamientoCard post={post} href={href} defaultOpen={defaultOpen} />;
-  } else if (post.kind === "resumen") {
-    card = <ResumenCard post={post} />;
-  } else if (post.kind === "oportunidades") {
-    card = (
+    return <AlojamientoCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
+  }
+  if (post.kind === "resumen") {
+    return <ResumenCard post={post} {...chrome} />;
+  }
+  if (post.kind === "oportunidades") {
+    return (
       <OportunidadesCard
         post={post}
         href={href}
         defaultOpen={defaultOpen}
         query={query}
+        {...chrome}
       />
     );
-  } else if (
+  }
+  if (
     (post.kind === "ranking" || (post.kind === "report" && looksLikeRanking(post.details))) &&
     asRanking(post.details)
   ) {
-    card = <RankingCard post={post} href={href} defaultOpen={defaultOpen} />;
-  } else if (post.kind === "newsletter" && asNewsletter(post.details)) {
-    card = <NewsletterCard post={post} href={href} defaultOpen={defaultOpen} />;
-  } else if (post.kind === "informe" && asInforme(post.details)) {
-    card = <InformeCard post={post} href={href} defaultOpen={defaultOpen} />;
-  } else if (post.kind === "workflow" && asWorkflow(post.details)) {
-    card = <WorkflowCard post={post} href={href} defaultOpen={defaultOpen} />;
+    return <RankingCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
+  }
+  if (post.kind === "newsletter" && asNewsletter(post.details)) {
+    return <NewsletterCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
+  }
+  if (post.kind === "informe" && asInforme(post.details)) {
+    return <InformeCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
+  }
+  if (post.kind === "workflow" && asWorkflow(post.details)) {
+    return <WorkflowCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
   }
   return (
-    <div className="relative">
-      <div className="absolute right-12 top-3.5 z-10 sm:right-14">
-        <FavoriteStar postId={post.id} />
-      </div>
-      {card}
-      <RequestComposer botId={post.bot_id} postId={post.id} />
-    </div>
+    <StandardPostCard
+      post={post}
+      filterBasePath={filterBasePath}
+      href={href}
+      defaultOpen={defaultOpen}
+      {...chrome}
+    />
   );
 }
 
@@ -97,18 +105,32 @@ function StandardPostCard({
   filterBasePath,
   href,
   defaultOpen = false,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   filterBasePath: string;
   href?: string;
   defaultOpen?: boolean;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
-  const preview = previewPlain(post.body_markdown);
   const media = uniquePostMedia(post);
-  const cover = media[0] ?? null;
+  const cover = collapsedCover(post);
+  const extraMedia = media.filter((image) => image.url !== cover?.url);
   const eventIso = post.event_at ?? null;
+  const eventFacts = eventIso
+    ? parseEventFacts(
+        post.body_markdown,
+        post.details && typeof post.details === "object"
+          ? (post.details as Record<string, unknown>)
+          : null,
+      )
+    : {};
+  const preview =
+    eventIso && hasEventFacts(eventFacts) ? "" : previewPlain(post.body_markdown);
   const today = eventIso ? isEventToday(post) : false;
   const past = eventIso ? isEventPast(post) : false;
 
@@ -123,95 +145,121 @@ function StandardPostCard({
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
       {...cardCollapseProps(open, toggle)}
     >
-      {cover && !open ? (
-        <MediaImage src={cover.url} alt={cover.alt || post.title} className="max-h-52" />
-      ) : null}
+      <CardCover src={cover?.url} alt={cover?.alt ?? post.title} />
       <ExpandableHeader
         open={open}
         onToggle={toggle}
         headerRef={headerRef}
         controlsId={bodyId}
-        className="p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
-              <h3 className="min-w-0 text-[1.05rem] font-semibold leading-snug tracking-tight break-words">
-                {href ? (
-                  <Link href={href} className="hover:underline">
-                    {post.title}
-                  </Link>
-                ) : (
-                  post.title
-                )}
-              </h3>
-              {eventIso ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
-                  {today ? (
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-ink">
-                      Hoy
-                    </span>
-                  ) : null}
-                  {past ? (
-                    <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium text-muted">
-                      Pasado
-                    </span>
-                  ) : null}
-                  <time
-                    dateTime={eventIso}
-                    title={formatEventWhen(eventIso, post.event_end_at)}
-                    className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums"
-                  >
-                    <CalendarDays size={14} strokeWidth={1.75} />
-                    {formatEventWhen(eventIso, post.event_end_at)}
-                  </time>
-                </div>
-              ) : (
-                <time
-                  dateTime={post.created_at}
-                  title={formatDateTime(post.created_at)}
-                  className="inline-flex items-center gap-1 text-xs text-muted sm:shrink-0 sm:pt-0.5"
-                >
-                  <CalendarDays size={12} strokeWidth={1.75} />
-                  {formatDateTime(post.created_at)}
-                </time>
-              )}
-            </div>
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <Link href={filterHref({ kind: post.kind })} className="hover:opacity-80">
-                <KindBadge kind={post.kind} />
+        <CardHeaderPad>
+        <PostCardHeader
+          open={open}
+          post={post}
+          bot={bot}
+          allowRequest={allowRequest}
+          kind={post.kind}
+          title={
+            href ? (
+              <Link href={href} className="hover:underline">
+                {post.title}
               </Link>
-              {post.product ? (
-                <Link
-                  href={filterHref({ product: post.product })}
-                  className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium text-foreground/80 hover:bg-accent/15"
+            ) : (
+              post.title
+            )
+          }
+          meta={
+            eventIso ? (
+              <>
+                {today ? (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-accent-ink">
+                    Hoy
+                  </span>
+                ) : null}
+                {past ? (
+                  <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium text-muted">
+                    Pasado
+                  </span>
+                ) : null}
+                <time
+                  dateTime={eventIso}
+                  title={formatEventWhen(eventIso, post.event_end_at)}
+                  className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums"
                 >
-                  <Package size={11} strokeWidth={1.75} />
-                  {post.product}
-                </Link>
-              ) : null}
-              {post.tags.map((tag) => (
-                <Link
-                  key={tag}
-                  href={filterHref({ tag })}
-                  className="inline-flex items-center gap-0.5 text-[11px] text-muted hover:text-foreground"
-                >
-                  <Hash size={10} strokeWidth={1.75} />
-                  {tag}
-                </Link>
-              ))}
-            </div>
-            {!open ? (
+                  <CalendarDays size={14} strokeWidth={1.75} />
+                  {formatEventWhen(eventIso, post.event_end_at)}
+                </time>
+              </>
+            ) : (
+              <time
+                dateTime={post.created_at}
+                title={formatDateTime(post.created_at)}
+                className="inline-flex items-center gap-1 text-xs text-muted"
+              >
+                <CalendarDays size={12} strokeWidth={1.75} />
+                {formatDateTime(post.created_at)}
+              </time>
+            )
+          }
+          subtitle={
+            !open && preview ? (
               <p className="mt-3 text-sm leading-6 text-muted">{preview}</p>
-            ) : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+            ) : null
+          }
+          extra={
+            <>
+              {!open && hasEventFacts(eventFacts) ? (
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  {eventFacts.place ? (
+                    <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+                      <MapPin size={11} strokeWidth={1.75} className="shrink-0" />
+                      <span className="truncate">{eventFacts.place}</span>
+                    </span>
+                  ) : null}
+                  {eventFacts.price ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+                      <Ticket size={11} strokeWidth={1.75} />
+                      {eventFacts.price}
+                    </span>
+                  ) : null}
+                  {eventFacts.modality ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+                      <Users size={11} strokeWidth={1.75} />
+                      {eventFacts.modality}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                {post.product ? (
+                  <Link
+                    href={filterHref({ product: post.product })}
+                    className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium text-foreground/80 hover:bg-accent/15"
+                  >
+                    <Package size={11} strokeWidth={1.75} />
+                    {post.product}
+                  </Link>
+                ) : null}
+                {post.tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={filterHref({ tag })}
+                    className="inline-flex items-center gap-0.5 text-[11px] text-muted hover:text-foreground"
+                  >
+                    <Hash size={10} strokeWidth={1.75} />
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            </>
+          }
+        />
+        </CardHeaderPad>
       </ExpandableHeader>
       <ExpandableBody open={open} id={bodyId} className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
-        {media.length > 0 ? (
-          <div className={`grid gap-2 ${media.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-            {media.map((image) => (
+        {extraMedia.length > 0 ? (
+          <div className={`grid gap-2 ${extraMedia.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+            {extraMedia.map((image) => (
               <MediaImage
                 key={image.url}
                 src={image.url}

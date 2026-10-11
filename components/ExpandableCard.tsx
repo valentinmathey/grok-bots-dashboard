@@ -74,7 +74,7 @@ export function ExpandChevron({
   return (
     <span
       className={`grid shrink-0 place-items-center rounded-full text-muted ${
-        compact ? "h-8 w-8" : "h-11 w-11"
+        compact ? "h-8 w-8" : "h-10 w-10"
       }`}
       aria-hidden
     >

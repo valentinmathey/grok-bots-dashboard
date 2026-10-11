@@ -235,6 +235,27 @@ export function rankingBestOffer(details: RankingDetails): RankingOffer | null {
   return [...details.offers].sort((a, b) => a.price - b.price)[0] ?? null;
 }
 
+export function rankingBestCardOffer(details: RankingDetails): RankingOffer | null {
+  const verdict = details.verdict?.toLowerCase() ?? "";
+  if (!/tarjeta/.test(verdict)) return null;
+  const cash = rankingBestOffer(details);
+  const after = verdict.split(/tarjeta/)[1] ?? "";
+  const byLength = [...details.offers].sort((a, b) => b.store.length - a.store.length);
+  const namedAfter = byLength.find(
+    (offer) => after.includes(offer.store.toLowerCase()) && offer.url !== cash?.url,
+  );
+  if (namedAfter) return namedAfter;
+  const mentioned = byLength.find(
+    (offer) => verdict.includes(offer.store.toLowerCase()) && offer.url !== cash?.url,
+  );
+  if (mentioned) return mentioned;
+  return (
+    details.offers.find(
+      (offer) => /cuota/i.test(offer.installments_text ?? "") && offer.url !== cash?.url,
+    ) ?? null
+  );
+}
+
 export function rankingDropPct(details: RankingDetails): number | null {
   const best = rankingBestOffer(details);
   if (!best || details.previous_best_price == null || details.previous_best_price <= 0) {

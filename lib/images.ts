@@ -74,19 +74,55 @@ export function promoteBareImageLinks(markdown: string): string {
 export function uniquePostMedia(post: {
   cover_image_url?: string | null;
   images?: PostImage[] | null;
+  title?: string;
 }): PostImage[] {
   const seen = new Set<string>();
   const out: PostImage[] = [];
   const cover = normalizeHttpUrl(post.cover_image_url);
   if (cover) {
     seen.add(cover);
-    out.push({ url: cover, alt: "Portada" });
+    out.push({ url: cover, alt: post.title?.trim() || "Portada" });
   }
   for (const image of post.images ?? []) {
     const url = normalizeHttpUrl(image.url);
     if (!url || seen.has(url)) continue;
     seen.add(url);
-    out.push({ url, alt: image.alt });
+    out.push({ url, alt: image.alt || post.title?.trim() || "" });
   }
   return out;
+}
+
+export function collapsedCover(
+  post: {
+    cover_image_url?: string | null;
+    images?: PostImage[] | null;
+    title?: string;
+  },
+  fallback?: string | null,
+): { url: string; alt: string } | null {
+  const media = uniquePostMedia(post)[0];
+  if (media) return { url: media.url, alt: media.alt || post.title?.trim() || "Portada" };
+  const extra = normalizeHttpUrl(fallback);
+  return extra ? { url: extra, alt: post.title?.trim() || "Portada" } : null;
+}
+
+export function newsletterCover(
+  post: {
+    cover_image_url?: string | null;
+    images?: PostImage[] | null;
+    title?: string;
+  },
+  details?: {
+    sections?: Array<{ items?: Array<{ image_url?: string | null; title?: string }> }>;
+  } | null,
+): { url: string; alt: string } | null {
+  const media = uniquePostMedia(post)[0];
+  if (media) return { url: media.url, alt: media.alt || post.title?.trim() || "Portada" };
+  for (const section of details?.sections ?? []) {
+    for (const item of section.items ?? []) {
+      const url = normalizeHttpUrl(item.image_url);
+      if (url) return { url, alt: item.title?.trim() || post.title?.trim() || "Portada" };
+    }
+  }
+  return null;
 }

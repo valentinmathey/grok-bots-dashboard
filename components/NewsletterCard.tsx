@@ -19,12 +19,13 @@ import {
   cardCollapseProps,
   ExpandableBody,
   ExpandableHeader,
-  ExpandChevron,
   useExpandable,
 } from "@/components/ExpandableCard";
-import { KindBadge } from "@/components/KindBadge";
+import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
+import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
+import { newsletterCover } from "@/lib/images";
 import { formatDate } from "@/lib/format";
 import {
   asNewsletter,
@@ -51,10 +52,14 @@ export function NewsletterCard({
   post,
   href,
   defaultOpen = false,
+  bot,
+  allowRequest = true,
 }: {
   post: Post;
   href?: string;
   defaultOpen?: boolean;
+  bot?: PostCardBot | null;
+  allowRequest?: boolean;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
@@ -64,6 +69,7 @@ export function NewsletterCard({
   const headline = details.headline || post.title;
   const storyCount = details.sections.reduce((sum, section) => sum + section.items.length, 0);
   const tldrCount = details.tldr?.length ?? 0;
+  const cover = newsletterCover(post, details);
 
   return (
     <article
@@ -71,45 +77,51 @@ export function NewsletterCard({
       className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
       {...cardCollapseProps(open, toggle)}
     >
+      <CardCover src={cover?.url} alt={cover?.alt ?? headline} />
       <ExpandableHeader
         open={open}
         onToggle={toggle}
         headerRef={headerRef}
         controlsId={bodyId}
-        className="p-4 sm:p-5"
       >
-        <div className="flex items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
-              {details.edition_number != null ? `Edición ${details.edition_number}` : "Newsletter"}
-              {details.edition_date
-                ? ` · ${formatDate(`${details.edition_date}T12:00:00-03:00`)}`
-                : ""}
-              {details.reading_minutes ? ` · ${details.reading_minutes} min` : ""}
-            </p>
-            <div className="mt-1 flex items-start justify-between gap-2">
-              <h3 className="text-[1.1rem] font-semibold leading-snug tracking-tight">
-                {href ? (
-                  <Link href={href} className="hover:underline">
-                    {headline}
-                  </Link>
-                ) : (
-                  headline
-                )}
-              </h3>
-              <KindBadge kind="newsletter" />
-            </div>
-            {!open ? (
-              <p className="mt-2 text-sm text-muted">
-                {tldrCount ? `${tldrCount} en el TL;DR` : null}
-                {tldrCount && storyCount ? " · " : null}
-                {storyCount ? `${storyCount} notas` : null}
-                {!tldrCount && !storyCount ? "Abrí para leer la edición" : null}
+        <CardHeaderPad>
+          <PostCardHeader
+            open={open}
+            post={post}
+            bot={bot}
+            allowRequest={allowRequest}
+            kind="newsletter"
+            title={
+              href ? (
+                <Link href={href} className="hover:underline">
+                  {headline}
+                </Link>
+              ) : (
+                headline
+              )
+            }
+            titleClassName="mt-1 text-[1.1rem] font-semibold leading-snug tracking-tight"
+            meta={
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                {details.edition_number != null ? `Edición ${details.edition_number}` : "Newsletter"}
+                {details.edition_date
+                  ? ` · ${formatDate(`${details.edition_date}T12:00:00-03:00`)}`
+                  : ""}
+                {details.reading_minutes ? ` · ${details.reading_minutes} min` : ""}
               </p>
-            ) : null}
-          </div>
-          <ExpandChevron open={open} />
-        </div>
+            }
+            subtitle={
+              !open ? (
+                <p className="mt-2 text-sm text-muted">
+                  {tldrCount ? `${tldrCount} en el TL;DR` : null}
+                  {tldrCount && storyCount ? " · " : null}
+                  {storyCount ? `${storyCount} notas` : null}
+                  {!tldrCount && !storyCount ? "Abrí para leer la edición" : null}
+                </p>
+              ) : null
+            }
+          />
+        </CardHeaderPad>
       </ExpandableHeader>
       <ExpandableBody open={open} id={bodyId} className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">
         {details.tldr?.length ? (

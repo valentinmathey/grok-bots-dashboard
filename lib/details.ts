@@ -561,18 +561,85 @@ export function deadlineTone(deadline?: string, now = new Date()): DeadlineTone 
   if (!deadline) return "none";
   const days = daysUntilDeadline(deadline, now);
   if (days < 0) return "closed";
-  if (days <= 2) return "urgent";
+  if (days <= 3) return "urgent";
   if (days <= 7) return "soon";
   return "ok";
+}
+
+function deadlineDayMonth(deadline: string): string {
+  const ymd = baCalendarDate(deadline);
+  const [, month, day] = ymd.split("-");
+  return `${Number(day)}/${month}`;
 }
 
 export function deadlineChipLabel(deadline?: string, now = new Date()): string {
   if (!deadline) return "Sin fecha";
   const days = daysUntilDeadline(deadline, now);
   if (days < 0) return "Cerrada";
-  if (days === 0) return "Cierra hoy";
-  if (days === 1) return "Cierra en 1 día";
-  return `Cierra en ${days} días`;
+  const date = deadlineDayMonth(deadline);
+  if (days === 0) return `Cierra hoy · ${date}`;
+  if (days === 1) return `Cierra en 1 día · ${date}`;
+  return `Cierra en ${days} días · ${date}`;
+}
+
+export type PrizePill = {
+  label: string;
+  kind: "cash" | "credits" | "other";
+};
+
+export function splitPrizePills(prizeText?: string | null): PrizePill[] {
+  const text = prizeText?.trim();
+  if (!text) return [];
+  const parts = text
+    .split(/\s+(?:\+|y|&)\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const pills = (parts.length > 1 ? parts : [text]).map((part) => {
+    const credits = /cr[eé]dit/i.test(part);
+    const cash = /cash|efectivo|usd|us\$|ars|\$/i.test(part);
+    return {
+      label: part,
+      kind: credits ? "credits" : cash ? "cash" : "other",
+    } as PrizePill;
+  });
+  return pills;
+}
+
+export function effortChipLabel(item: {
+  effort?: OportunidadEffort;
+  effort_text?: string | null;
+}): string | null {
+  const raw = item.effort_text?.trim() || (item.effort ? OPORTUNIDAD_EFFORT_LABELS[item.effort] : "");
+  if (!raw) return null;
+  if (/^esfuerzo\b/i.test(raw)) return raw;
+  return `Esfuerzo: ${raw}`;
+}
+
+export function opportunitySourceHost(url?: string | null): string | null {
+  if (!url) return null;
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host || null;
+  } catch {
+    return null;
+  }
+}
+
+export function opportunityCalendarUrl(item: {
+  name: string;
+  deadline?: string;
+  organization?: string;
+  url?: string;
+}): string | null {
+  if (!item.deadline) return null;
+  const start = baCalendarDate(item.deadline).replace(/-/g, "");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: item.name,
+    dates: `${start}/${start}`,
+    details: [item.organization, item.url].filter(Boolean).join(" · "),
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 export function filterOportunidadItems(

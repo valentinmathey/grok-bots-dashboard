@@ -22,6 +22,15 @@ describe("formatEventWhen", () => {
     expect(text).toMatch(/19:00/);
     expect(text).not.toMatch(/[\u00a0\u202f\u2007\u2009]/);
   });
+
+  it("acorta un rango del mismo día a una sola fecha", () => {
+    const text = formatEventWhen(
+      "2026-10-13T16:00:00.000Z",
+      "2026-10-13T17:00:00.000Z",
+    );
+    expect(text).toMatch(/13:00–14:00/);
+    expect(text).not.toMatch(/– mar/);
+  });
 });
 
 describe("formatPublicationCount", () => {
