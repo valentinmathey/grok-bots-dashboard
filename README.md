@@ -399,20 +399,72 @@ Ejemplo: `{"edition_number":18,"headline":"La semana en la que la IA se puso má
 
 ### `details` de `kind: "informe"`
 
-Todos opcionales. Vacío = card estándar.
+Todos opcionales y backward compatible. Vacío = card estándar. Claves desconocidas se descartan.
 
 | Campo | Tipo | Notas |
 | --- | --- | --- |
 | `date` | `YYYY-MM-DD` | |
-| `summary_simple` | string ≤ 600 | La parte simple |
-| `summary_technical` | markdown ≤ 2000 | La parte técnica |
+| `summary_simple` | string ≤ 600 | Lead de “En simple” si no hay `dia_en_3_lineas` |
+| `summary_technical` | markdown ≤ 2000 | Fallback de “Técnico”; se parte en bloques si hay `**Heading:**` |
 | `indicators` | array ≤ 30 | `key` req (ej. `dolar_oficial`, `dolar_blue`, `dolar_mep`, `dolar_ccl`, `dolar_cripto`, `riesgo_pais`, `merval`, `inflacion_mensual`, `inflacion_interanual`, `tasa_plazo_fijo`, `reservas_bcra`, `btc_usd`, `other`), `label?`, `value` number req, `unit?` (ARS/USD/%/pb/pts), `buy?`, `sell?`, `change_abs?`, `change_pct?`, `direction` `up`\|`down`\|`flat`, `source?`, `as_of?` |
 | `brecha_pct` | number | |
-| `highlights` / `risks` | string[] | Máx. 8 c/u |
-| `outlook` | string ≤ 400 | |
-| `sources` | `{ name, url? }[]` | |
+| `highlights` / `risks` | string[] | Máx. 8 c/u. Van debajo del toggle, no se duplican en cada vista |
+| `outlook` | string ≤ 400 | Callout “Agenda de la semana” si no hay `agenda[]` |
+| `sources` | `{ name, url?, section? }[]` | Máx. 40. `section` opcional: id de sección (ver abajo) |
+| `dia_en_3_lineas` | `{ lines[] }` | 1–3 strings ≤ 220. Lead estructurado de “En simple” |
+| `dolar_simple` | `{ text }` | Párrafo corto del dólar (≤ 600) |
+| `vs_inflacion` | objeto | `verdict` `si`\|`no`\|`empata`, `example_amount`, `inflation_pct`, `options[{name, monthly_rate_pct, result_amount}]` ≤ 8 |
+| `idea_prudente` | objeto | `title`, `text`, `risk` `bajo`\|`medio`\|`alto`, `link?` |
+| `tecnica_sueldo` | objeto | `name`, `description`, `allocation[{label, pct}]` 1–8, `example?{salary, breakdown[{label, amount}]}`, `link?` |
+| `referentes` | array ≤ 20 | `name`, `role?`, `platform` `x`\|`instagram`\|`youtube`\|`tiktok`\|`nota`, `summary`, `date` `YYYY-MM-DD`, `url` http(s) req, `pinned?` |
+| `palabra_del_dia` | `{ term, definition, link? }` | Glosario de “En simple” |
+| `inflation` | objeto | `month`, `monthly_pct`, `yoy_pct`, `ytd_pct`, `rem_next_pct?`, `next_release_date` `YYYY-MM-DD` |
+| `rates` | array ≤ 20 | `instrument`, `provider`, `tna_pct`, `monthly_pct`, `beats_inflation?`, `term?`, `risk`, `link?`. Tabla TNA / mensual |
+| `ideas` | array ≤ 12 | `name`, `what_it_is`, `profile` `conservador`\|`moderado`\|`arriesgado`, `expected_return?`, `risk`, `how_to`, `link?` |
+| `assets` | array ≤ 30 | `ticker`, `name`, `type` `bono`\|`accion`\|`cedear`, `price`, `currency`, `change_pct`, `note?` |
+| `agenda` | array ≤ 20 | `date` `YYYY-MM-DD`, `time?`, `title`, `description?`, `link?`. No se publica en la Agenda del panel |
+| `disclaimer` | string ≤ 400 | Default: “No es asesoramiento financiero” |
+| `otras_secciones` | array ≤ 8 | `{ titulo, icono?, markdown }` catch-all |
 
-Ejemplo: `{"date":"2026-10-10","summary_simple":"El blue aflojó.","brecha_pct":28.4,"indicators":[{"key":"dolar_blue","label":"Blue","value":1480,"unit":"ARS","direction":"down"}]}`
+`sources[].section` acepta: `dia_en_3_lineas`, `dolar_simple`, `vs_inflacion`, `idea_prudente`, `tecnica_sueldo`, `referentes`, `palabra_del_dia`, `inflation`, `rates`, `ideas`, `assets`, `agenda`, `highlights`, `risks`, `outlook`, `disclaimer`, `otras_secciones`.
+
+Ejemplo mínimo: `{"date":"2026-10-10","summary_simple":"El blue aflojó.","brecha_pct":28.4,"indicators":[{"key":"dolar_blue","label":"Blue","value":1480,"unit":"ARS","direction":"down"}]}`
+
+```bash
+curl -X POST "$BASE_URL/api/v1/posts" \
+  -H "Authorization: Bearer gb_TU_CLAVE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Informe financiero · sáb 10/10",
+    "body": "## En simple\nEl blue aflojó.",
+    "kind": "informe",
+    "tags": ["dolar"],
+    "details": {
+      "date": "2026-10-10",
+      "dia_en_3_lineas": {
+        "lines": [
+          "El blue bajó a $1.540.",
+          "El MEP casi no se separa del oficial.",
+          "Los PF rinden menos que la inflación."
+        ]
+      },
+      "rates": [
+        {
+          "instrument": "Plazo fijo 30d",
+          "provider": "Banco Nación",
+          "tna_pct": 19.25,
+          "monthly_pct": 1.58,
+          "beats_inflation": false,
+          "risk": "bajo"
+        }
+      ],
+      "agenda": [{ "date": "2026-10-13", "title": "IPC septiembre" }],
+      "sources": [
+        { "name": "BCRA", "url": "https://www.bcra.gob.ar", "section": "inflation" }
+      ]
+    }
+  }'
+```
 
 ### `details` de `kind: "workflow"`
 
