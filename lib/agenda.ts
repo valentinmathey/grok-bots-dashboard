@@ -5,6 +5,12 @@ import type { Bot, Post } from "@/lib/types";
 export const AGENDA_TYPES = ["evento", "cierre", "viaje"] as const;
 export type AgendaType = (typeof AGENDA_TYPES)[number];
 
+export const AGENDA_TYPE_LABEL: Record<AgendaType, string> = {
+  evento: "Evento",
+  cierre: "Cierre",
+  viaje: "Viaje",
+};
+
 export type AgendaEntry = {
   id: string;
   date: string;
@@ -16,6 +22,7 @@ export type AgendaEntry = {
   location?: string;
   favorite?: boolean;
   allDay?: boolean;
+  startsAt?: string;
 };
 
 export function collectAgendaEntries(
@@ -38,6 +45,7 @@ export function collectAgendaEntries(
         postId: post.id,
         bot: post.bot,
         favorite: fav,
+        startsAt: post.event_at,
       });
     }
     if (post.kind === "oportunidades") {
@@ -123,11 +131,3 @@ export function googleCalendarUrl(entry: AgendaEntry): string {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-export async function favoriteIdSet(): Promise<Set<string>> {
-  try {
-    const { listFavorites } = await import("@/lib/favorites-store");
-    return new Set((await listFavorites()).map((row) => row.post_id));
-  } catch {
-    return new Set();
-  }
-}

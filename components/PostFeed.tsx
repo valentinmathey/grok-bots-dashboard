@@ -40,6 +40,7 @@ export function PostFeed({
     ? (post: Post) => `${postHrefBase}/${post.id}`
     : undefined;
   const [posts, setPosts] = useState(initialPosts);
+  const [hashPostId, setHashPostId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
   const lock = useRef(false);
@@ -73,6 +74,24 @@ export function PostFeed({
       setLoading(false);
     }
   }, [posts.length, postsApi, query, slug]);
+
+  useEffect(() => {
+    function applyHash() {
+      const raw = window.location.hash;
+      const id = raw.startsWith("#post-") ? raw.slice(6) : null;
+      setHashPostId(id);
+      if (!id) return;
+      requestAnimationFrame(() => {
+        document.getElementById(`post-${id}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
   useEffect(() => {
     const node = sentinel.current;
@@ -184,6 +203,7 @@ export function PostFeed({
               filterBasePath={path}
               href={postHref?.(post)}
               query={query}
+              defaultOpen={post.id === hashPostId}
             />
           ))}
         </div>

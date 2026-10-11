@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays } from "lucide-react";
-import { collectAgendaEntries, favoriteIdSet } from "@/lib/agenda";
+import { collectAgendaEntries } from "@/lib/agenda";
+import { favoriteIdSet } from "@/lib/favorites-store";
 import { baCalendarDate } from "@/lib/event-time";
 import { getRepository } from "@/lib/data";
 
