@@ -4,11 +4,13 @@ const ICON_192 = {
   src: "/icons/icon-192.png",
   sizes: "192x192",
   type: "image/png" as const,
+  purpose: "any" as const,
 };
 const ICON_512 = {
   src: "/icons/icon-512.png",
   sizes: "512x512",
   type: "image/png" as const,
+  purpose: "any" as const,
 };
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -22,12 +24,18 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     lang: "es-AR",
     dir: "ltr",
-    background_color: "#f3f0ea",
-    theme_color: "#0f766e",
+    background_color: "#0d1117",
+    theme_color: "#0d1117",
     categories: ["productivity", "utilities"],
     icons: [
       ICON_192,
       ICON_512,
+      {
+        src: "/icons/icon-192-maskable.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
       {
         src: "/icons/icon-512-maskable.png",
         sizes: "512x512",

@@ -1,12 +1,15 @@
-const VERSION = "gb-pwa-v2";
+const VERSION = "gb-pwa-v3";
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const PRECACHE = [
   "/",
   "/offline",
   "/manifest.webmanifest",
+  "/icon.svg",
+  "/favicon.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/icons/icon-192-maskable.png",
   "/icons/icon-512-maskable.png",
   "/icons/apple-touch-icon.png",
 ];

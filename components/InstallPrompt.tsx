@@ -109,9 +109,11 @@ export function InstallPrompt() {
   return (
     <div className="safe-px fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom)+var(--vv-bottom,0px))] left-0 right-0 z-40 flex justify-center px-3.5 lg:bottom-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <div className="surface flex w-full max-w-md items-start gap-3 rounded-3xl p-3.5 shadow-lg">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent text-sm font-bold text-accent-ink">
-          G
-        </span>
+        <img
+          src="/icons/icon-192.png"
+          alt=""
+          className="h-10 w-10 shrink-0 rounded-2xl"
+        />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Instalar app</p>
           {iosHelp ? (
