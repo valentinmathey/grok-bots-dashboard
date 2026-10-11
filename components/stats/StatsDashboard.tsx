@@ -69,9 +69,9 @@ function SortableCard({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative min-w-0 ${wide ? "lg:col-span-2" : ""} ${
-        isDragging ? "z-20" : ""
-      }`}
+      className={`relative h-full min-w-0 ${
+        wide ? "lg:col-span-2" : "lg:min-h-[400px]"
+      } ${isDragging ? "z-20" : ""}`}
     >
       {sorting ? (
         <button
@@ -204,7 +204,7 @@ export function StatsDashboard({
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={visible} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-stretch gap-3 lg:grid-cols-2">
             {visible.map((id) => (
               <SortableCard
                 key={id}

@@ -44,7 +44,7 @@ export function ConsistencyCard({
       empty={!bots.length}
       onHide={onHide}
     >
-      <ChartFrame height={280}>
+      <ChartFrame fill height={280}>
         <Bubble
           data={{
             datasets: [
