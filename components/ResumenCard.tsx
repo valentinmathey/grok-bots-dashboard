@@ -306,7 +306,7 @@ export function ResumenCard({
 
       <ExpandableBody open={Boolean(details) && open} id={bodyId}>
         {details ? (
-        <div className="space-y-2 p-3 pt-0 sm:p-4 sm:pt-0">
+        <div className="space-y-2 px-3 pb-3 pt-3.5 sm:px-4 sm:pb-4 sm:pt-5">
           {details.bots.map((bot) => (
             <BotResumenRow key={bot.bot_id} bot={bot} />
           ))}
