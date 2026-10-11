@@ -14,6 +14,9 @@ export function isPublicPath(pathname: string): boolean {
     pathname === "/sw.js" ||
     pathname === "/offline" ||
     pathname === "/api/agenda.ics" ||
+    pathname === "/icon.svg" ||
+    pathname === "/favicon.ico" ||
+    pathname === "/favicon.png" ||
     pathname.startsWith("/icons/") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||

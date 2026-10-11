@@ -40,7 +40,7 @@ function SortableBot({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`relative min-w-0 ${isDragging ? "z-20 scale-[1.02] shadow-xl" : ""} ${
+      className={`relative h-full min-w-0 ${isDragging ? "z-20 scale-[1.02] shadow-xl" : ""} ${
         sorting ? "cursor-grab active:cursor-grabbing" : ""
       }`}
       {...(sorting ? { ...attributes, ...listeners } : {})}
@@ -53,7 +53,7 @@ function SortableBot({
           <GripVertical size={16} strokeWidth={1.75} />
         </span>
       ) : null}
-      <div className={sorting ? "pointer-events-none" : undefined}>
+      <div className={`h-full ${sorting ? "pointer-events-none" : ""}`}>
         <BotCard bot={bot} />
       </div>
     </div>
@@ -121,7 +121,7 @@ export function BotBoard({ initialBots }: { initialBots: BotSummary[] }) {
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={ids} strategy={rectSortingStrategy}>
-          <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 auto-rows-auto items-stretch gap-3 sm:grid-cols-2 sm:auto-rows-fr">
             {bots.map((bot) => (
               <SortableBot key={bot.id} bot={bot} sorting={sorting} />
             ))}

@@ -24,6 +24,14 @@ const memory = {
   items: [] as ItemFavorite[],
 };
 
+export async function favoriteIdSet(): Promise<Set<string>> {
+  try {
+    return new Set((await listFavorites()).map((row) => row.post_id));
+  } catch {
+    return new Set();
+  }
+}
+
 export async function listFavorites(): Promise<Favorite[]> {
   if (isPreviewMode()) return [...memory.posts].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const admin = createAdminClient();

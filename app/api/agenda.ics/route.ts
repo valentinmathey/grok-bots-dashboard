@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { collectAgendaEntries, favoriteIdSet, toIcs } from "@/lib/agenda";
+import { collectAgendaEntries, toIcs } from "@/lib/agenda";
+import { favoriteIdSet } from "@/lib/favorites-store";
 import { agendaTokenValid } from "@/lib/agenda-feed";
 import { getOwnerFromRequest } from "@/lib/auth";
 import { getRepository } from "@/lib/data";

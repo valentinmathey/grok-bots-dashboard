@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Grok Bots">
+  <rect width="1024" height="1024" fill="#0d1117"/>
+  <g transform="translate(512 512) scale(0.78) translate(-512 -512)">
+    <g fill="#5ee6c8" transform="translate(328 518)">
+      <rect x="-4" y="-166" width="8" height="46" rx="4"/>
+      <circle cy="-170" r="11"/>
+      <rect x="-142" y="-16" width="30" height="22" rx="11"/>
+      <rect x="112" y="-16" width="30" height="22" rx="11"/>
+      <circle r="124"/>
+      <circle cx="-40" cy="-6" r="16" fill="#0d1117"/>
+      <circle cx="40" cy="-6" r="16" fill="#0d1117"/>
+    </g>
+    <g fill="#ff9f2a" transform="translate(500 338)">
+      <rect x="-4" y="-156" width="8" height="42" rx="4"/>
+      <circle cy="-160" r="10"/>
+      <rect x="-132" y="-15" width="28" height="20" rx="10"/>
+      <rect x="104" y="-15" width="28" height="20" rx="10"/>
+      <circle r="114"/>
+      <circle cx="-36" cy="-5" r="15" fill="#0d1117"/>
+      <circle cx="36" cy="-5" r="15" fill="#0d1117"/>
+    </g>
+    <g fill="#9b6cff" transform="translate(498 668)">
+      <rect x="-4" y="-156" width="8" height="42" rx="4"/>
+      <circle cy="-160" r="10"/>
+      <rect x="-132" y="-15" width="28" height="20" rx="10"/>
+      <rect x="104" y="-15" width="28" height="20" rx="10"/>
+      <circle r="114"/>
+      <circle cx="-36" cy="-5" r="15" fill="#0d1117"/>
+      <circle cx="36" cy="-5" r="15" fill="#0d1117"/>
+    </g>
+    <g fill="#ff4545" transform="translate(690 478)">
+      <rect x="-4" y="-166" width="8" height="46" rx="4"/>
+      <circle cy="-170" r="11"/>
+      <rect x="-142" y="-16" width="30" height="22" rx="11"/>
+      <rect x="112" y="-16" width="30" height="22" rx="11"/>
+      <circle r="124"/>
+      <circle cx="-40" cy="-6" r="16" fill="#0d1117"/>
+      <circle cx="40" cy="-6" r="16" fill="#0d1117"/>
+    </g>
+  </g>
+</svg>

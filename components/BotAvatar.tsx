@@ -4,6 +4,7 @@ import { useState } from "react";
 import { resolveAvatar } from "@/lib/avatar";
 
 const SIZES = {
+  xs: "h-6 w-6 text-[10px]",
   sm: "h-9 w-9 text-[13px]",
   md: "h-12 w-12 text-lg",
   lg: "h-[4.5rem] w-[4.5rem] text-2xl",
