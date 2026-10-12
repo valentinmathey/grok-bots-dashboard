@@ -28,7 +28,7 @@ export async function requestMagicLink(
     email: normalized,
     options: {
       emailRedirectTo: `${getSiteUrl()}/auth/callback`,
-      shouldCreateUser: true,
+      shouldCreateUser: false,
     },
   });
 
@@ -36,5 +36,31 @@ export async function requestMagicLink(
     return { ok: false, error: error.message };
   }
 
+  return { ok: true };
+}
+
+export async function signInWithPassword(
+  email: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, error: "Falta configurar Supabase." };
+  }
+  const normalized = normalizeEmail(email);
+  if (!normalized || !isOwnerEmail(normalized)) {
+    return { ok: false, error: "Este dashboard es privado." };
+  }
+  if (!password) {
+    return { ok: false, error: "Ingresá tu contraseña." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: normalized,
+    password,
+  });
+  if (error) {
+    return { ok: false, error: "Email o contraseña incorrectos." };
+  }
   return { ok: true };
 }
