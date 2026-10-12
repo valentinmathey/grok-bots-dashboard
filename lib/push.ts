@@ -46,6 +46,8 @@ export async function sendPush(payload: PushPayload, filter?: PushFilter): Promi
       const status = (error as { statusCode?: number }).statusCode;
       if (status === 404 || status === 410) {
         await disableSubscription(sub.id, true);
+      } else {
+        console.error("push: sendNotification falló", status ?? error);
       }
     }
   }
@@ -54,11 +56,13 @@ export async function sendPush(payload: PushPayload, filter?: PushFilter): Promi
 
 export function schedulePush(task: () => Promise<void>) {
   try {
-    after(() => {
-      void task().catch(() => {
-        /* no tumbar el publish */
-      });
-    });
+    // Devolver la promesa: si no, after() no espera y Vercel congela la
+    // función antes de que salga el push.
+    after(() =>
+      task().catch((error) => {
+        console.error("push: falló el envío post-publish", error);
+      }),
+    );
   } catch {
     void task().catch(() => undefined);
   }
