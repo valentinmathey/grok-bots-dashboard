@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ExpandChevron } from "@/components/ExpandableCard";
 import { FavoriteStar } from "@/components/FavoriteStar";
+import { PostAudio } from "@/components/PostAudio";
 import { KindBadge } from "@/components/KindBadge";
 import { RequestButton } from "@/components/RequestModal";
 import type { Post } from "@/lib/types";
@@ -96,6 +97,7 @@ export function PostCardHeader({
         <TitleTag className={`min-w-0 break-words ${titleClassName}`}>{title}</TitleTag>
         {subtitle}
         {extra}
+        <PostAudio post={post} />
       </div>
       <PostCardActions
         post={post}

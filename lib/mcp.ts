@@ -1,3 +1,4 @@
+import { createAudioUploadUrl, deleteAudio } from "@/lib/audio";
 import { listCatalogEvents, listCatalogPosts, searchCatalogPosts } from "@/lib/catalog";
 import { botClaimRequest, botListRequests, botReplyRequest } from "@/lib/requests";
 import { SUMMARY_BOT_SLUG } from "@/lib/details";
@@ -56,6 +57,15 @@ export const MCP_TOOLS = [
           type: "array",
           items: { type: "string" },
           description: "Etiquetas cortas",
+        },
+        audio_url: {
+          type: ["string", "null"],
+          description:
+            "URL pública del audio (la que devuelve get_audio_upload_url). Se muestra con reproductor y botón Descargar. Null/\"\" lo quita.",
+        },
+        audio_duration_seconds: {
+          type: ["integer", "null"],
+          description: "Duración del audio en segundos (opcional).",
         },
         cover_image_url: {
           type: "string",
@@ -181,6 +191,15 @@ export const MCP_TOOLS = [
         product: { type: "string" },
         kind: { type: "string" },
         tags: { type: "array", items: { type: "string" } },
+        audio_url: {
+          type: ["string", "null"],
+          description:
+            "URL pública del audio (la que devuelve get_audio_upload_url). Se muestra con reproductor y botón Descargar. Null/\"\" lo quita.",
+        },
+        audio_duration_seconds: {
+          type: ["integer", "null"],
+          description: "Duración del audio en segundos (opcional).",
+        },
         cover_image_url: { type: "string" },
         event_at: {
           type: "string",
@@ -207,6 +226,34 @@ export const MCP_TOOLS = [
             },
           },
         },
+      },
+    },
+  },
+  {
+    name: "get_audio_upload_url",
+    description:
+      "Crea una URL firmada para subir un audio (mp3/m4a/aac/ogg/opus/webm, máx 20 MB) al bucket post-audio. Devuelve path, url (pública, para audio_url), upload_url y token. Subí con PUT upload_url, header Content-Type del audio y el archivo como body (válida 2 h). Después publicá/editá el post con audio_url=url.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        filename: { type: "string", description: "Nombre original (se usa la extensión)" },
+        ext: { type: "string", description: "mp3 (default), m4a, aac, ogg, opus o webm" },
+        content_type: { type: "string", description: "audio/mpeg, audio/mp4, ..." },
+      },
+    },
+  },
+  {
+    name: "delete_audio",
+    description:
+      "Borra audios propios del bucket post-audio. Args: path (slug/YYYY-MM/archivo), paths[] o month (YYYY-MM, borra todos los de ese mes de este bot). Pensado para la limpieza mensual.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        path: { type: "string" },
+        paths: { type: "array", items: { type: "string" } },
+        month: { type: "string", description: "YYYY-MM" },
       },
     },
   },
@@ -498,6 +545,10 @@ async function callTool(
       return updateOwnPostFromMcp(repo, authorization, args ?? {});
     case "delete_post":
       return deleteOwnPostFromMcp(repo, authorization, args ?? {});
+    case "get_audio_upload_url":
+      return createAudioUploadUrl(repo, (await import("@/lib/audio-storage")).getAudioStorage(), authorization, args ?? {});
+    case "delete_audio":
+      return deleteAudio(repo, (await import("@/lib/audio-storage")).getAudioStorage(), authorization, args ?? {});
     case "publish_weekly_summary":
       return publishWeeklySummaryForBot(repo, authorization);
     case "list_posts":
