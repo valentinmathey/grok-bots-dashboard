@@ -5,6 +5,7 @@ import { ExpandChevron } from "@/components/ExpandableCard";
 import { FavoriteStar } from "@/components/FavoriteStar";
 import { PostAudio } from "@/components/PostAudio";
 import { KindBadge } from "@/components/KindBadge";
+import { RegisteredBadge, RegisteredToggle } from "@/components/RegisteredToggle";
 import { RequestButton } from "@/components/RequestModal";
 import type { Post } from "@/lib/types";
 
@@ -38,6 +39,7 @@ export function PostCardActions({
           <KindBadge kind={kind} />
         </span>
       ) : null}
+      {post && showFavorite && post.kind === "evento" ? <RegisteredToggle postId={post.id} /> : null}
       {post && showFavorite ? <FavoriteStar postId={post.id} /> : null}
       {post && allowRequest ? (
         <RequestButton
@@ -87,6 +89,7 @@ export function PostCardHeader({
         <div className="min-w-0 flex-1">
           {meta || kind ? (
             <div className="flex flex-wrap items-center gap-1.5">
+              {post?.kind === "evento" ? <RegisteredBadge postId={post.id} /> : null}
               {meta}
               {kind ? (
                 <span className="min-[480px]:hidden">

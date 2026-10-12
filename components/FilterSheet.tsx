@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   ArrowUpDown,
+  CircleCheck,
   Hash,
   Package,
   SlidersHorizontal,
@@ -231,6 +232,25 @@ export function FilterSheet({
           </button>
         </div>
       </div>
+
+      {facets.kinds.includes("evento") ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            <CircleCheck size={13} strokeWidth={1.75} />
+            Inscripción
+          </p>
+          <SegmentedControl
+            ariaLabel="Filtrar por inscripción"
+            className="w-full sm:w-auto sm:min-w-[20rem]"
+            value={query.registered ?? "todos"}
+            options={[
+              { id: "todos", label: "Todos", onClick: () => push({ ...query, registered: undefined }) },
+              { id: "si", label: "Inscripto", onClick: () => push({ ...query, registered: "si" }) },
+              { id: "no", label: "No inscripto", onClick: () => push({ ...query, registered: "no" }) },
+            ]}
+          />
+        </div>
+      ) : null}
 
       {oportunidades ? (
         <ChipRow>

@@ -23,7 +23,15 @@ import type { BotsRepository } from "@/lib/publishing";
 import type { Bot, BotSummary, Post, PostImage, PostKind, ShareLink } from "@/lib/types";
 import { isPostId } from "@/lib/validations";
 
-function applyFilters<T>(query: T, filters: PostFilters = {}): T {
+type RegistrationFilters = PostFilters & { registeredIds?: string[] };
+
+async function withRegistrationIds(filters?: PostFilters): Promise<RegistrationFilters | undefined> {
+  if (!filters?.registered) return filters;
+  const { listRegisteredIds } = await import("@/lib/registrations-store");
+  return { ...filters, registeredIds: await listRegisteredIds() };
+}
+
+function applyFilters<T>(query: T, filters: RegistrationFilters = {}): T {
   let next = query as T & {
     eq: (column: string, value: unknown) => T;
     ilike: (column: string, value: string) => T;
@@ -36,6 +44,17 @@ function applyFilters<T>(query: T, filters: PostFilters = {}): T {
   };
   if (filters.kind) {
     next = next.eq("kind", filters.kind) as typeof next;
+  }
+  if (filters.registered && filters.registeredIds) {
+    const ids = filters.registeredIds;
+    if (filters.registered === "si") {
+      next = (next as unknown as { in: (c: string, v: string[]) => T }).in(
+        "id",
+        ids.length ? ids : ["00000000-0000-0000-0000-000000000000"],
+      ) as typeof next;
+    } else if (ids.length) {
+      next = next.not("id", "in", `(${ids.join(",")})`) as typeof next;
+    }
   }
   if (filters.product) {
     next = next.ilike("product", filters.product.replace(/[%_]/g, "\\$&")) as typeof next;
@@ -402,7 +421,8 @@ export function createSupabaseRepository(): BotsRepository {
       return (data ?? []) as Post[];
     },
 
-    async listPostsPage(botId, filters, options) {
+    async listPostsPage(botId, rawFilters, options) {
+      const filters = await withRegistrationIds(rawFilters);
       const limit = options.limit ?? 12;
       const offset = options.offset ?? 0;
       const needsJs =
