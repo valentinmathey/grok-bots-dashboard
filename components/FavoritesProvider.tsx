@@ -16,6 +16,8 @@ type Ctx = {
     price_at_save?: number;
   }) => Promise<void>;
   isItemSaved: (postId: string, key: string) => boolean;
+  registeredIds: Set<string>;
+  toggleRegistered: (postId: string) => Promise<void>;
 };
 
 const FavoritesContext = createContext<Ctx | null>(null);
@@ -23,6 +25,34 @@ const FavoritesContext = createContext<Ctx | null>(null);
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [postIds, setPostIds] = useState<Set<string>>(new Set());
   const [items, setItems] = useState<ItemFav[]>([]);
+  const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    void fetch("/api/admin/registrations")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { post_ids?: string[] } | null) => {
+        if (data?.post_ids) setRegisteredIds(new Set(data.post_ids));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const toggleRegistered = useCallback(
+    async (postId: string) => {
+      const on = !registeredIds.has(postId);
+      setRegisteredIds((prev) => {
+        const next = new Set(prev);
+        if (on) next.add(postId);
+        else next.delete(postId);
+        return next;
+      });
+      await fetch("/api/admin/registrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: postId, registered: on }),
+      });
+    },
+    [registeredIds],
+  );
 
   useEffect(() => {
     void fetch("/api/admin/favorites")
@@ -74,8 +104,10 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
       togglePost,
       toggleItem,
       isItemSaved: (postId, key) => items.some((row) => row.post_id === postId && row.item_key === key),
+      registeredIds,
+      toggleRegistered,
     }),
-    [postIds, items, togglePost, toggleItem],
+    [postIds, items, togglePost, toggleItem, registeredIds, toggleRegistered],
   );
 
   return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
@@ -90,6 +122,8 @@ export function useFavorites() {
       togglePost: async () => undefined,
       toggleItem: async () => undefined,
       isItemSaved: () => false,
+      registeredIds: new Set<string>(),
+      toggleRegistered: async () => undefined,
     };
   }
   return ctx;

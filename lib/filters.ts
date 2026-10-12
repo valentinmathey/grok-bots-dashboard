@@ -39,6 +39,7 @@ export type PostFilters = {
   category?: string;
   recommended?: boolean;
   openOnly?: boolean;
+  registered?: "si" | "no";
   view?: FeedView;
   bot?: string;
   q?: string;
@@ -99,6 +100,7 @@ export function parsePostFilters(
   const categoryRaw = firstString(searchParams.category)?.trim().toLowerCase();
   const recommendedRaw = firstString(searchParams.recommended);
   const openRaw = firstString(searchParams.open);
+  const registeredRaw = firstString(searchParams.inscripto);
 
   return {
     from: asDate(firstString(searchParams.from)),
@@ -116,6 +118,7 @@ export function parsePostFilters(
     category: categoryRaw && isOportunidadCategory(categoryRaw) ? categoryRaw : undefined,
     recommended: recommendedRaw === "1" || recommendedRaw === "true" ? true : undefined,
     openOnly: openRaw === "1" || openRaw === "true" ? true : undefined,
+    registered: registeredRaw === "si" || registeredRaw === "no" ? registeredRaw : undefined,
     view: viewRaw === "table" ? "table" : undefined,
   };
 }
@@ -194,6 +197,7 @@ export function filtersToSearchParams(
   if (filters.category) params.set("category", filters.category);
   if (filters.recommended) params.set("recommended", "1");
   if (filters.openOnly) params.set("open", "1");
+  if (filters.registered) params.set("inscripto", filters.registered);
   if (filters.view && filters.view !== "cards") params.set("view", filters.view);
   if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
   return params;

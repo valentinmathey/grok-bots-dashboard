@@ -129,10 +129,17 @@ export async function listCatalogPosts(
     sortEvents: usesEventSort(filters),
   });
 
+  const registered = posts.some((post) => post.kind === "evento")
+    ? await loadRegisteredIds()
+    : new Set<string>();
   return {
     ok: true,
     data: {
-      posts: posts.map(toCatalogPost),
+      posts: posts.map((post) =>
+        post.kind === "evento"
+          ? { ...toCatalogPost(post), owner_registered: registered.has(post.id) }
+          : toCatalogPost(post),
+      ),
       total,
       limit,
       offset,
@@ -246,4 +253,13 @@ export async function searchCatalogPosts(
     offset,
   });
   return { ok: true, data: { ...result, limit, offset } };
+}
+
+async function loadRegisteredIds(): Promise<Set<string>> {
+  try {
+    const { registeredIdSet } = await import("@/lib/registrations-store");
+    return await registeredIdSet();
+  } catch {
+    return new Set();
+  }
 }
