@@ -2,7 +2,10 @@
 
 import { useRef, useState } from "react";
 import { Download, Headphones } from "lucide-react";
+import { postAudio } from "@/lib/post-audio";
 import type { Post } from "@/lib/types";
+
+export { postAudio };
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -10,14 +13,6 @@ function formatDuration(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export function postAudio(post?: Post | null): { url: string; duration: number | null } | null {
-  const details = post?.details;
-  if (!details || typeof details !== "object") return null;
-  const url = (details as Record<string, unknown>).audio_url;
-  if (typeof url !== "string" || !/^https?:\/\//.test(url)) return null;
-  const d = (details as Record<string, unknown>).audio_duration_seconds;
-  return { url, duration: typeof d === "number" && d > 0 ? d : null };
-}
 
 function downloadHref(url: string, title: string) {
   const name = `${title.replace(/[^\p{L}\p{N} _-]+/gu, "").trim().slice(0, 60) || "audio"}.${
