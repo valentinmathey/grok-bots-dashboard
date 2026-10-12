@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/supabase/cookies";
 import { getPublicSupabaseEnv, getOwnerEmail, isPreviewMode } from "@/lib/env";
 import { isOwnerEmail } from "@/lib/owner";
 import { isPublicPath, isSharePath } from "@/lib/public-paths";
@@ -49,6 +50,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const supabase = createServerClient(env.url, env.anonKey, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
