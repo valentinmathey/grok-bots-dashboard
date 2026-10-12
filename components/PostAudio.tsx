@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { SegmentedControl } from "@/components/FilterChip";
 import { Download, Headphones } from "lucide-react";
 import type { Post } from "@/lib/types";
 
@@ -32,6 +31,8 @@ function downloadHref(url: string, title: string) {
   return { href: url, name };
 }
 
+const RATES = ["1", "1.5", "2"];
+
 export function PostAudio({ post }: { post?: Post | null }) {
   const audio = postAudio(post);
   const [broken, setBroken] = useState(false);
@@ -43,16 +44,38 @@ export function PostAudio({ post }: { post?: Post | null }) {
   }
   if (!audio || broken || !post) return null;
   const dl = downloadHref(audio.url, post.title);
+  const nextRate = RATES[(RATES.indexOf(rate) + 1) % RATES.length];
   return (
     <div
       data-no-collapse
-      className="mt-2 flex w-full min-w-0 flex-wrap items-center gap-2 rounded-2xl bg-chip/60 p-2"
+      className="mt-3 w-full min-w-0 rounded-2xl bg-chip/60 px-3 py-2"
     >
-      <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted">
-        <Headphones size={14} strokeWidth={1.75} />
-        Versión hablada
-        {audio.duration ? <span className="tabular-nums">· {formatDuration(audio.duration)}</span> : null}
-      </span>
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="inline-flex min-w-0 flex-1 items-center gap-1.5 text-xs font-medium text-muted">
+          <Headphones size={14} strokeWidth={1.75} className="shrink-0" />
+          <span className="truncate">
+            Versión hablada
+            {audio.duration ? <span className="tabular-nums"> · {formatDuration(audio.duration)}</span> : null}
+          </span>
+        </span>
+        <button
+          type="button"
+          onClick={() => changeRate(nextRate)}
+          aria-label={`Velocidad ${rate}x. Tocá para cambiar a ${nextRate}x`}
+          className="inline-flex min-h-8 min-w-10 shrink-0 items-center justify-center rounded-full px-2 text-xs font-semibold tabular-nums hover:bg-chip"
+        >
+          {rate}x
+        </button>
+        <a
+          href={dl.href}
+          download={dl.name}
+          aria-label="Descargar"
+          title="Descargar"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-chip hover:text-foreground"
+        >
+          <Download size={16} strokeWidth={1.75} />
+        </a>
+      </div>
       <audio
         ref={ref}
         controls
@@ -60,22 +83,8 @@ export function PostAudio({ post }: { post?: Post | null }) {
         preload="metadata"
         src={audio.url}
         onError={() => setBroken(true)}
-        className="h-9 min-w-0 flex-1 basis-56"
+        className="mt-1.5 block h-9 w-full min-w-0"
       />
-      <SegmentedControl
-        ariaLabel="Velocidad de reproducción"
-        value={rate}
-        className="w-auto min-w-[9.5rem] flex-1 basis-40 !rounded-full [&>*]:!min-h-8 [&>*]:!rounded-full [&>*]:!text-xs sm:flex-none"
-        options={["1", "1.5", "2"].map((id) => ({ id, label: `${id}x`, onClick: () => changeRate(id) }))}
-      />
-      <a
-        href={dl.href}
-        download={dl.name}
-        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-chip px-3 py-1.5 text-xs font-semibold hover:opacity-80"
-      >
-        <Download size={14} strokeWidth={1.75} />
-        Descargar
-      </a>
     </div>
   );
 }

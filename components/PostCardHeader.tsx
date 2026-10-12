@@ -82,31 +82,35 @@ export function PostCardHeader({
   className?: string;
 }) {
   return (
-    <div className={`flex items-start gap-2 ${className}`.trim()}>
-      <div className="min-w-0 flex-1">
-        {meta || kind ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {meta}
-            {kind ? (
-              <span className="min-[480px]:hidden">
-                <KindBadge kind={kind} />
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-        <TitleTag className={`min-w-0 break-words ${titleClassName}`}>{title}</TitleTag>
-        {subtitle}
-        {extra}
-        <PostAudio post={post} />
+    <div className={className || undefined}>
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          {meta || kind ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {meta}
+              {kind ? (
+                <span className="min-[480px]:hidden">
+                  <KindBadge kind={kind} />
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <TitleTag className={`min-w-0 break-words ${titleClassName}`}>
+            {title}
+          </TitleTag>
+          {subtitle}
+          {extra}
+        </div>
+        <PostCardActions
+          post={post}
+          bot={bot}
+          open={open}
+          kind={kind}
+          allowRequest={allowRequest}
+          showFavorite={showFavorite}
+        />
       </div>
-      <PostCardActions
-        post={post}
-        bot={bot}
-        open={open}
-        kind={kind}
-        allowRequest={allowRequest}
-        showFavorite={showFavorite}
-      />
+      <PostAudio post={post} />
     </div>
   );
 }
