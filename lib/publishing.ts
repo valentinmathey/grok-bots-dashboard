@@ -236,6 +236,7 @@ export async function publishPost(
   if (!details.ok) {
     return details;
   }
+  details.data = withAudio(details.data, parsed.data, parsed.data.details);
 
   const post = await repo.insertPost({
     botId: auth.data.botId,
@@ -442,7 +443,16 @@ export async function updateOwnPost(
     if (!details.ok) {
       return details;
     }
-    nextDetails = details.data;
+    nextDetails = withAudio(details.data, parsed.data, raw, owned.data.details);
+  } else if (
+    parsed.data.audio_url !== undefined ||
+    parsed.data.audio_duration_seconds !== undefined
+  ) {
+    const base =
+      owned.data.details && typeof owned.data.details === "object"
+        ? { ...(owned.data.details as Record<string, unknown>) }
+        : emptyDetails();
+    nextDetails = withAudio(base, parsed.data, undefined, owned.data.details);
   }
 
   const post = await repo.updatePost(
@@ -746,4 +756,44 @@ export async function regenerateOwnedKey(
       bot,
     },
   };
+}
+
+type AudioFields = {
+  audio_url?: string | null;
+  audio_duration_seconds?: number | null;
+};
+
+function pickAudio(source: unknown): AudioFields {
+  if (!source || typeof source !== "object") return {};
+  const record = source as Record<string, unknown>;
+  const out: AudioFields = {};
+  if (typeof record.audio_url === "string" && record.audio_url) out.audio_url = record.audio_url;
+  if (typeof record.audio_duration_seconds === "number") {
+    out.audio_duration_seconds = record.audio_duration_seconds;
+  }
+  return out;
+}
+
+/** audio_url / audio_duration_seconds viven en details (sobreviven a la validación por kind). */
+function withAudio(
+  details: Record<string, unknown>,
+  fields: AudioFields,
+  rawDetails?: unknown,
+  previous?: unknown,
+): Record<string, unknown> {
+  const next = { ...details };
+  const merged: AudioFields = { ...pickAudio(previous), ...pickAudio(rawDetails) };
+  if (fields.audio_url !== undefined) merged.audio_url = fields.audio_url || null;
+  if (fields.audio_duration_seconds !== undefined) {
+    merged.audio_duration_seconds = fields.audio_duration_seconds;
+  }
+  delete next.audio_url;
+  delete next.audio_duration_seconds;
+  if (merged.audio_url) {
+    next.audio_url = merged.audio_url;
+    if (typeof merged.audio_duration_seconds === "number") {
+      next.audio_duration_seconds = merged.audio_duration_seconds;
+    }
+  }
+  return next;
 }

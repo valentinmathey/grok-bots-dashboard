@@ -42,6 +42,13 @@ export const postImageSchema = z.object({
   alt: z.string().trim().max(160).optional().default(""),
 });
 
+const audioUrlField = z
+  .union([httpUrlSchema, z.literal(""), z.null()])
+  .optional();
+const audioDurationField = z
+  .union([z.number().int().min(0).max(36_000), z.null()])
+  .optional();
+
 export const createPostSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio").max(200),
   body: z
@@ -60,6 +67,8 @@ export const createPostSchema = z.object({
   event_at: z.union([z.string(), z.null()]).optional(),
   event_end_at: z.union([z.string(), z.null()]).optional(),
   details: z.unknown().optional(),
+  audio_url: audioUrlField,
+  audio_duration_seconds: audioDurationField,
 });
 
 const ymdField = z
@@ -181,6 +190,8 @@ export const updatePostFieldsSchema = z
     event_at: z.union([z.string(), z.null()]).optional(),
     event_end_at: z.union([z.string(), z.null()]).optional(),
     details: z.unknown().optional(),
+    audio_url: audioUrlField,
+    audio_duration_seconds: audioDurationField,
   })
   .refine(
     (value) =>
@@ -193,7 +204,9 @@ export const updatePostFieldsSchema = z
       value.images !== undefined ||
       value.event_at !== undefined ||
       value.event_end_at !== undefined ||
-      value.details !== undefined,
+      value.details !== undefined ||
+      value.audio_url !== undefined ||
+      value.audio_duration_seconds !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 
@@ -222,6 +235,8 @@ export const updatePostMcpSchema = z
     event_at: z.union([z.string(), z.null()]).optional(),
     event_end_at: z.union([z.string(), z.null()]).optional(),
     details: z.unknown().optional(),
+    audio_url: audioUrlField,
+    audio_duration_seconds: audioDurationField,
   })
   .refine(
     (value) =>
@@ -234,7 +249,9 @@ export const updatePostMcpSchema = z
       value.images !== undefined ||
       value.event_at !== undefined ||
       value.event_end_at !== undefined ||
-      value.details !== undefined,
+      value.details !== undefined ||
+      value.audio_url !== undefined ||
+      value.audio_duration_seconds !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 

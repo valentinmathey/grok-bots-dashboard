@@ -173,7 +173,7 @@ describe("scopes de API key", () => {
     expect(stillReads.ok).toBe(true);
   });
 
-  it("tools/list de una clave publish sigue siendo las 7 de siempre", async () => {
+  it("tools/list de una clave publish incluye las de audio", async () => {
     const { repo, publishKey, readKey } = repoWithKeys();
     const listed = await dispatchMcpRequest(repo, `Bearer ${publishKey}`, {
       jsonrpc: "2.0",
@@ -190,6 +190,8 @@ describe("scopes de API key", () => {
       "list_my_posts",
       "update_profile",
       "update_post",
+      "get_audio_upload_url",
+      "delete_audio",
       "delete_post",
       "publish_weekly_summary",
       "list_requests",

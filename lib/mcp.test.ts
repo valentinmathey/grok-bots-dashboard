@@ -51,6 +51,8 @@ describe("MCP Streamable HTTP", () => {
       "list_my_posts",
       "update_profile",
       "update_post",
+      "get_audio_upload_url",
+      "delete_audio",
       "delete_post",
       "publish_weekly_summary",
       "list_requests",
