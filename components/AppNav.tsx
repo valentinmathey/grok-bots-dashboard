@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bell,
   CalendarDays,
+  Headphones,
   Home,
   LogOut,
   Menu,
@@ -54,6 +55,7 @@ const RIGHT_TABS = [
 const MORE_LINKS = [
   { href: "/pedidos", label: "Pedidos", icon: MessageSquare, badge: true },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3, badge: false },
+  { href: "/audios", label: "Audios", icon: Headphones, badge: false },
   { href: "/notificaciones", label: "Notificaciones", icon: Bell, badge: false },
   { href: "/ajustes", label: "Ajustes", icon: Settings, badge: false },
 ] as const;
