@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
   BarChart3,
   Bell,
+  CalendarClock,
   CalendarDays,
   Headphones,
   Home,
@@ -55,6 +56,7 @@ const RIGHT_TABS = [
 const MORE_LINKS = [
   { href: "/pedidos", label: "Pedidos", icon: MessageSquare, badge: true },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3, badge: false },
+  { href: "/rutinas", label: "Rutinas", icon: CalendarClock, badge: false },
   { href: "/audios", label: "Audios", icon: Headphones, badge: false },
   { href: "/notificaciones", label: "Notificaciones", icon: Bell, badge: false },
   { href: "/ajustes", label: "Ajustes", icon: Settings, badge: false },

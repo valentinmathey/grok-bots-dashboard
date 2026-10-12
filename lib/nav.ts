@@ -8,6 +8,7 @@ export function titleFromPathname(pathname: string): string {
   if (pathname.startsWith("/pedidos")) return "Pedidos";
   if (pathname.startsWith("/estadisticas")) return "Estadísticas";
   if (pathname.startsWith("/audios")) return "Audios";
+  if (pathname.startsWith("/rutinas")) return "Rutinas";
   if (pathname.startsWith("/notificaciones")) return "Notificaciones";
   if (pathname.startsWith("/ajustes")) return "Ajustes";
   if (pathname.startsWith("/bots/nuevo")) return "Nuevo bot";
@@ -23,6 +24,7 @@ export function primaryTabFromPathname(pathname: string): PrimaryTab {
     pathname.startsWith("/pedidos") ||
     pathname.startsWith("/estadisticas") ||
     pathname.startsWith("/audios") ||
+    pathname.startsWith("/rutinas") ||
     pathname.startsWith("/notificaciones") ||
     pathname.startsWith("/ajustes") ||
     pathname.startsWith("/bots/nuevo")

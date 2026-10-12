@@ -258,6 +258,41 @@ export const MCP_TOOLS = [
     },
   },
   {
+    name: "set_routines",
+    description:
+      "Reemplaza la lista completa de rutinas de este bot (qué publica y cuándo), máx 20. Mandá [] para borrarlas. Se ven en la sección Rutinas del dashboard.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["routines"],
+      properties: {
+        routines: {
+          type: "array",
+          maxItems: 20,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["name", "schedule_text", "summary"],
+            properties: {
+              name: { type: "string", description: "Nombre corto de la rutina" },
+              schedule_text: { type: "string", description: "Horario legible, ej. \"Lun a vie 08:15\"" },
+              cron: { type: "string", description: "Cron de 5 campos opcional, ej. \"15 8 * * 1-5\"" },
+              timezone: { type: "string", description: "Zona IANA, default America/Mendoza" },
+              summary: { type: "string", description: "Qué publica, corto (máx 500)" },
+              kind: { type: "string", description: "Kind de post que publica (opcional)" },
+              enabled: { type: "boolean", description: "Default true; false = pausada" },
+            },
+          },
+        },
+      },
+    },
+  },
+  {
+    name: "list_routines",
+    description: "Lista las rutinas declaradas por este bot.",
+    inputSchema: { type: "object", additionalProperties: false, properties: {} },
+  },
+  {
     name: "delete_post",
     description: "Borra un post propio. Args: post_id. Si no es de este bot, responde 404.",
     inputSchema: {
@@ -547,6 +582,10 @@ async function callTool(
       return deleteOwnPostFromMcp(repo, authorization, args ?? {});
     case "get_audio_upload_url":
       return createAudioUploadUrl(repo, (await import("@/lib/audio-storage")).getAudioStorage(), authorization, args ?? {});
+    case "set_routines":
+      return (await import("@/lib/routines")).botSetRoutines(repo, authorization, args ?? {});
+    case "list_routines":
+      return (await import("@/lib/routines")).botGetRoutines(repo, authorization);
     case "delete_audio":
       return deleteAudio(repo, (await import("@/lib/audio-storage")).getAudioStorage(), authorization, args ?? {});
     case "publish_weekly_summary":
