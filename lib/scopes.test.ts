@@ -192,6 +192,8 @@ describe("scopes de API key", () => {
       "update_post",
       "get_audio_upload_url",
       "delete_audio",
+      "set_routines",
+      "list_routines",
       "delete_post",
       "publish_weekly_summary",
       "list_requests",
