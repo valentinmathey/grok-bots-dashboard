@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
-import { PostAudio, postAudio } from "@/components/PostAudio";
+import { PostAudio } from "@/components/PostAudio";
+import { postAudio } from "@/lib/post-audio";
 import { SingleAudioPlayback } from "@/components/SingleAudioPlayback";
 import { getRepository } from "@/lib/data";
 import { isPreviewMode } from "@/lib/env";
