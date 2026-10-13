@@ -448,7 +448,8 @@ export async function updateOwnPost(
     nextDetails = withAudio(details.data, parsed.data, raw, owned.data.details);
   } else if (
     parsed.data.audio_url !== undefined ||
-    parsed.data.audio_duration_seconds !== undefined
+    parsed.data.audio_duration_seconds !== undefined ||
+    parsed.data.availability !== undefined
   ) {
     const base =
       owned.data.details && typeof owned.data.details === "object"
@@ -763,6 +764,7 @@ export async function regenerateOwnedKey(
 type AudioFields = {
   audio_url?: string | null;
   audio_duration_seconds?: number | null;
+  availability?: "disponible" | "ocupado" | null;
 };
 
 function pickAudio(source: unknown): AudioFields {
@@ -772,6 +774,9 @@ function pickAudio(source: unknown): AudioFields {
   if (typeof record.audio_url === "string" && record.audio_url) out.audio_url = record.audio_url;
   if (typeof record.audio_duration_seconds === "number") {
     out.audio_duration_seconds = record.audio_duration_seconds;
+  }
+  if (record.availability === "disponible" || record.availability === "ocupado") {
+    out.availability = record.availability;
   }
   return out;
 }
@@ -789,8 +794,11 @@ function withAudio(
   if (fields.audio_duration_seconds !== undefined) {
     merged.audio_duration_seconds = fields.audio_duration_seconds;
   }
+  if (fields.availability !== undefined) merged.availability = fields.availability;
   delete next.audio_url;
   delete next.audio_duration_seconds;
+  delete next.availability;
+  if (merged.availability) next.availability = merged.availability;
   if (merged.audio_url) {
     next.audio_url = merged.audio_url;
     if (typeof merged.audio_duration_seconds === "number") {

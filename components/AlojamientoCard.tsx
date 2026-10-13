@@ -60,14 +60,16 @@ export function AlojamientoCard({
   const currency = details.currency || "BRL";
   const location = [details.neighborhood, details.city].filter(Boolean).join(" · ");
   const maps = details.maps_url;
+  const ocupado = details.availability === "ocupado";
 
   return (
     <article
       id={`post-${post.id}`}
-      className="surface group min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
+      data-availability={ocupado ? "ocupado" : "disponible"}
+      className={`surface group min-w-0 scroll-mt-20 overflow-hidden rounded-3xl ${ocupado ? "opacity-80" : ""}`}
       {...cardCollapseProps(open, toggle)}
     >
-      <div className="relative">
+      <div className={`relative ${ocupado ? "grayscale opacity-70" : ""}`}>
         {cover ? (
           <MediaImage
             src={cover.url}
@@ -79,6 +81,11 @@ export function AlojamientoCard({
         )}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
           <div className="flex flex-wrap gap-1.5">
+            {ocupado ? (
+              <span className="rounded-full bg-zinc-900/80 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur">
+                Ocupado
+              </span>
+            ) : null}
             {details.platform ? (
               <span className="rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur">
                 {PLATFORM_LABELS[details.platform]}

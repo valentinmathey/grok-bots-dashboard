@@ -67,6 +67,11 @@ export const MCP_TOOLS = [
           type: ["integer", "null"],
           description: "Duración del audio en segundos (opcional).",
         },
+        availability: {
+          type: ["string", "null"],
+          enum: ["disponible", "ocupado", null],
+          description: "Disponibilidad (pensado para alojamiento): disponible (default) u ocupado. Null la quita.",
+        },
         cover_image_url: {
           type: "string",
           description: "URL http(s) de una imagen de portada (sin subir archivos)",
@@ -199,6 +204,11 @@ export const MCP_TOOLS = [
         audio_duration_seconds: {
           type: ["integer", "null"],
           description: "Duración del audio en segundos (opcional).",
+        },
+        availability: {
+          type: ["string", "null"],
+          enum: ["disponible", "ocupado", null],
+          description: "Disponibilidad (pensado para alojamiento): disponible (default) u ocupado. Null la quita.",
         },
         cover_image_url: { type: "string" },
         event_at: {

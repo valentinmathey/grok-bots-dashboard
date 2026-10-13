@@ -42,6 +42,9 @@ export const postImageSchema = z.object({
   alt: z.string().trim().max(160).optional().default(""),
 });
 
+export const AVAILABILITY_VALUES = ["disponible", "ocupado"] as const;
+const availabilityField = z.enum(AVAILABILITY_VALUES).nullable().optional();
+
 const audioUrlField = z
   .union([httpUrlSchema, z.literal(""), z.null()])
   .optional();
@@ -69,6 +72,7 @@ export const createPostSchema = z.object({
   details: z.unknown().optional(),
   audio_url: audioUrlField,
   audio_duration_seconds: audioDurationField,
+  availability: availabilityField,
 });
 
 const ymdField = z
@@ -192,6 +196,7 @@ export const updatePostFieldsSchema = z
     details: z.unknown().optional(),
     audio_url: audioUrlField,
     audio_duration_seconds: audioDurationField,
+    availability: availabilityField,
   })
   .refine(
     (value) =>
@@ -206,7 +211,8 @@ export const updatePostFieldsSchema = z
       value.event_end_at !== undefined ||
       value.details !== undefined ||
       value.audio_url !== undefined ||
-      value.audio_duration_seconds !== undefined,
+      value.audio_duration_seconds !== undefined ||
+      value.availability !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 
@@ -237,6 +243,7 @@ export const updatePostMcpSchema = z
     details: z.unknown().optional(),
     audio_url: audioUrlField,
     audio_duration_seconds: audioDurationField,
+    availability: availabilityField,
   })
   .refine(
     (value) =>
@@ -251,7 +258,8 @@ export const updatePostMcpSchema = z
       value.event_end_at !== undefined ||
       value.details !== undefined ||
       value.audio_url !== undefined ||
-      value.audio_duration_seconds !== undefined,
+      value.audio_duration_seconds !== undefined ||
+      value.availability !== undefined,
     { message: "Mandá al menos un campo para actualizar" },
   );
 

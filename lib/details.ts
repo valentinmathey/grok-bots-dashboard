@@ -77,6 +77,7 @@ export const alojamientoUnitSchema = z.object({
 });
 
 export const alojamientoDetailsSchema = z.object({
+  availability: z.enum(["disponible", "ocupado"]).optional(),
   platform: z.enum(ALOJAMIENTO_PLATFORMS).optional(),
   listing_url: httpUrl.optional().or(z.literal("")),
   search_area: z.string().trim().max(120).optional(),

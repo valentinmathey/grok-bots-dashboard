@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   ArrowUpDown,
+  BedDouble,
   CircleCheck,
   Hash,
   Package,
@@ -232,6 +233,25 @@ export function FilterSheet({
           </button>
         </div>
       </div>
+
+      {facets.has_alojamientos ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+            <BedDouble size={13} strokeWidth={1.75} />
+            Disponibilidad
+          </p>
+          <SegmentedControl
+            ariaLabel="Filtrar por disponibilidad"
+            className="w-full sm:w-auto sm:min-w-[20rem]"
+            value={query.availability ?? "todos"}
+            options={[
+              { id: "todos", label: "Todos", onClick: () => push({ ...query, availability: undefined }) },
+              { id: "disponible", label: "Disponible", onClick: () => push({ ...query, availability: "disponible" }) },
+              { id: "ocupado", label: "Ocupado", onClick: () => push({ ...query, availability: "ocupado" }) },
+            ]}
+          />
+        </div>
+      ) : null}
 
       {facets.kinds.includes("evento") ? (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
