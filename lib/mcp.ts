@@ -456,15 +456,20 @@ export const MCP_SHARE_TOOLS = [
   {
     name: "create_share_link",
     description:
-      "Crea un link público de solo lectura para un bot (ej. alojamiento-brasil-2027). Solo la clave de paraguayo-crack. Devuelve la URL una sola vez. Args: bot_slug.",
+      "Crea un link público de solo lectura. Para un bot: bot_slug. Para la sección Audios: scope 'audios' (opcional bot_slugs para limitar a algunos bots). Solo la clave de paraguayo-crack. Devuelve la URL una sola vez.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
-      required: ["bot_slug"],
       properties: {
         bot_slug: {
           type: "string",
-          description: "Slug del bot a compartir",
+          description: "Slug del bot a compartir (scope bot)",
+        },
+        scope: { type: "string", enum: ["bot", "audios"], description: "Default bot" },
+        bot_slugs: {
+          type: "array",
+          items: { type: "string" },
+          description: "Solo con scope audios: limitar a estos bots",
         },
       },
     },
@@ -472,12 +477,13 @@ export const MCP_SHARE_TOOLS = [
   {
     name: "revoke_share_link",
     description:
-      "Revoca un link público. Mandá id (un link) o bot_slug (todos los activos de ese bot). Solo paraguayo-crack.",
+      "Revoca un link público. Mandá id (un link), bot_slug (todos los activos de ese bot) o scope 'audios' (todos los de Audios). Solo paraguayo-crack.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         bot_slug: { type: "string" },
+        scope: { type: "string", enum: ["audios"] },
         id: { type: "string", description: "UUID del link" },
       },
     },

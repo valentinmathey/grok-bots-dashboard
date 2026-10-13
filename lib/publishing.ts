@@ -141,7 +141,9 @@ export type BotsRepository = {
   ): Promise<void>;
   getActiveKeyPrefix(botId: string): Promise<string | null>;
   insertShareLink(input: {
-    botId: string;
+    botId: string | null;
+    scope?: "bot" | "audios";
+    botIds?: string[] | null;
     tokenHash: string;
     tokenPrefix: string;
   }): Promise<ShareLink>;

@@ -452,13 +452,17 @@ export class MemoryRepository implements BotsRepository {
   }
 
   async insertShareLink(input: {
-    botId: string;
+    botId: string | null;
+    scope?: "bot" | "audios";
+    botIds?: string[] | null;
     tokenHash: string;
     tokenPrefix: string;
   }) {
     const link: ShareLink = {
       id: crypto.randomUUID(),
       bot_id: input.botId,
+      scope: input.scope ?? "bot",
+      bot_ids: input.botIds ?? null,
       token_hash: input.tokenHash,
       token_prefix: input.tokenPrefix,
       created_at: new Date().toISOString(),

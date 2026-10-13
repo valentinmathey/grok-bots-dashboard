@@ -194,3 +194,22 @@ describe("links para compartir", () => {
     expect(crackTools.map((tool) => tool.name)).toContain("list_share_links");
   });
 });
+
+describe("links de Audios", () => {
+  it("crea, resuelve y revoca un link scope audios", async () => {
+    const { repo, crackKey } = repoWithBots();
+    const auth = `Bearer ${crackKey}`;
+    const created = await createShareLink(repo, auth, { scope: "audios", bot_slugs: ["otro"] });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.data.scope).toBe("audios");
+    const token = created.data.url.split("/compartir/")[1];
+    const { resolveAudiosShare } = await import("@/lib/share");
+    const resolved = await resolveAudiosShare(repo, token);
+    expect(resolved.ok && resolved.data.botIds).toEqual(["bot_otro"]);
+    expect((await resolveShare(repo, token)).ok).toBe(false);
+    const revoked = await revokeShareLink(repo, auth, { scope: "audios" });
+    expect(revoked.ok && revoked.data.revoked).toBe(1);
+    expect((await resolveAudiosShare(repo, token)).ok).toBe(false);
+  });
+});
