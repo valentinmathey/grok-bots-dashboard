@@ -40,6 +40,7 @@ export type PostFilters = {
   recommended?: boolean;
   openOnly?: boolean;
   registered?: "si" | "no";
+  availability?: "disponible" | "ocupado";
   view?: FeedView;
   bot?: string;
   q?: string;
@@ -101,6 +102,7 @@ export function parsePostFilters(
   const recommendedRaw = firstString(searchParams.recommended);
   const openRaw = firstString(searchParams.open);
   const registeredRaw = firstString(searchParams.inscripto);
+  const dispRaw = firstString(searchParams.disp);
 
   return {
     from: asDate(firstString(searchParams.from)),
@@ -119,6 +121,7 @@ export function parsePostFilters(
     recommended: recommendedRaw === "1" || recommendedRaw === "true" ? true : undefined,
     openOnly: openRaw === "1" || openRaw === "true" ? true : undefined,
     registered: registeredRaw === "si" || registeredRaw === "no" ? registeredRaw : undefined,
+    availability: dispRaw === "disponible" || dispRaw === "ocupado" ? dispRaw : undefined,
     view: viewRaw === "table" ? "table" : undefined,
   };
 }
@@ -198,6 +201,7 @@ export function filtersToSearchParams(
   if (filters.recommended) params.set("recommended", "1");
   if (filters.openOnly) params.set("open", "1");
   if (filters.registered) params.set("inscripto", filters.registered);
+  if (filters.availability) params.set("disp", filters.availability);
   if (filters.view && filters.view !== "cards") params.set("view", filters.view);
   if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
   return params;
@@ -230,6 +234,7 @@ export function hasAlojamientoFilters(filters: PostFilters = {}): boolean {
     filters.city ||
       filters.search_area ||
       filters.neighborhood ||
+      filters.availability ||
       filters.max_price_pp != null ||
       (filters.amenities && filters.amenities.length > 0),
   );
@@ -285,7 +290,15 @@ function sameLoose(a: string | undefined, b: string | undefined): boolean {
   return (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
 }
 
+export function isOcupado(post: Pick<Post, "details">): boolean {
+  const details = post.details as Record<string, unknown> | null | undefined;
+  return details?.availability === "ocupado";
+}
+
 export function matchesFilters(post: Post, filters: PostFilters): boolean {
+  if (filters.availability && (isOcupado(post) ? "ocupado" : "disponible") !== filters.availability) {
+    return false;
+  }
   if (filters.kind && post.kind !== filters.kind) {
     return false;
   }
@@ -465,6 +478,8 @@ export function sortPosts(
   if (isAlojamientoSort(sort)) {
     const cheaperFirst = sort === "price_pp" || sort === "price_total";
     copy.sort((a, b) => {
+      const busy = Number(isOcupado(a)) - Number(isOcupado(b));
+      if (busy) return busy;
       const va = alojamientoSortValue(a, sort);
       const vb = alojamientoSortValue(b, sort);
       if (va == null && vb == null) return 0;
@@ -489,6 +504,8 @@ export function sortPosts(
   }
 
   copy.sort((a, b) => {
+    const busy = Number(isOcupado(a)) - Number(isOcupado(b));
+    if (busy) return busy;
     const delta =
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     return sort === "oldest" ? delta : -delta;
