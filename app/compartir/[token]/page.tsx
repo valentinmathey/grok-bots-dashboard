@@ -4,7 +4,8 @@ import { PostFeed } from "@/components/PostFeed";
 import { TimeStamp } from "@/components/TimeStamp";
 import { PAGE_SIZE, parseFeedQuery } from "@/lib/filters";
 import { getRepository } from "@/lib/data";
-import { loadShare } from "@/lib/share-page";
+import { loadAudiosShare, loadShare } from "@/lib/share-page";
+import { AudiosShareView } from "@/components/AudiosShareView";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +17,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { token } = await params;
   const share = await loadShare(token);
+  const audios = share ? null : await loadAudiosShare(token);
   return {
-    title: share ? `${share.bot.name} · Solo lectura` : "No encontrado",
+    title: share
+      ? `${share.bot.name} · Solo lectura`
+      : audios
+        ? "Audios · Solo lectura"
+        : "No encontrado",
     robots: { index: false, follow: false, nocache: true },
   };
 }
@@ -33,7 +39,10 @@ export default async function ShareBotPage({
   const search = await searchParams;
   const share = await loadShare(token);
   if (!share) {
-    notFound();
+    const audios = await loadAudiosShare(token);
+    if (!audios) notFound();
+    const bot = typeof search.bot === "string" ? search.bot : undefined;
+    return <AudiosShareView token={token} botIds={audios.botIds} selectedSlug={bot} />;
   }
 
   const repo = getRepository();

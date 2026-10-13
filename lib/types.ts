@@ -67,9 +67,13 @@ export type PostWithBot = Post & {
   bot: Pick<Bot, "id" | "name" | "slug">;
 };
 
+export type ShareScope = "bot" | "audios";
+
 export type ShareLink = {
   id: string;
-  bot_id: string;
+  bot_id: string | null;
+  scope?: ShareScope;
+  bot_ids?: string[] | null;
   token_hash: string;
   token_prefix: string;
   created_at: string;

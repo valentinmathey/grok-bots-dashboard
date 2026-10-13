@@ -16,7 +16,9 @@ export const SHARE_TOKEN_RE = /^[A-Za-z0-9_-]{32,128}$/;
 
 export type ShareLinkPublic = {
   id: string;
-  bot: { id: string; slug: string; name: string };
+  scope: "bot" | "audios";
+  bot: { id: string; slug: string; name: string } | null;
+  bots?: Array<{ id: string; slug: string; name: string }> | null;
   token_prefix: string;
   created_at: string;
   revoked_at: string | null;
@@ -69,10 +71,16 @@ async function requireShareAdmin(
   return auth;
 }
 
-function toPublic(link: ShareLink, bot: Bot): ShareLinkPublic {
+function toPublic(
+  link: ShareLink,
+  bot: Bot | null,
+  bots?: Bot[] | null,
+): ShareLinkPublic {
   return {
     id: link.id,
-    bot: { id: bot.id, slug: bot.slug, name: bot.name },
+    scope: link.scope ?? "bot",
+    bot: bot ? { id: bot.id, slug: bot.slug, name: bot.name } : null,
+    bots: bots ? bots.map((b) => ({ id: b.id, slug: b.slug, name: b.name })) : null,
     token_prefix: link.token_prefix,
     created_at: link.created_at,
     revoked_at: link.revoked_at,
@@ -88,7 +96,7 @@ export async function resolveShare(
     return fail(404, "not_found", "No encontramos ese link");
   }
   const link = await repo.findShareLinkByTokenHash(hashShareToken(raw));
-  if (!link || link.revoked_at) {
+  if (!link || link.revoked_at || (link.scope ?? "bot") !== "bot" || !link.bot_id) {
     return fail(404, "not_found", "No encontramos ese link");
   }
   const bot = await repo.getBotById(link.bot_id);
@@ -96,6 +104,22 @@ export async function resolveShare(
     return fail(404, "not_found", "No encontramos ese link");
   }
   return { ok: true, data: { link, bot } };
+}
+
+/** Link de la sección Audios (scope 'audios'). bot_ids null = todos los bots. */
+export async function resolveAudiosShare(
+  repo: BotsRepository,
+  token: string,
+): Promise<Result<{ link: ShareLink; botIds: string[] | null }>> {
+  const raw = token.trim();
+  if (!isShareToken(raw)) {
+    return fail(404, "not_found", "No encontramos ese link");
+  }
+  const link = await repo.findShareLinkByTokenHash(hashShareToken(raw));
+  if (!link || link.revoked_at || link.scope !== "audios") {
+    return fail(404, "not_found", "No encontramos ese link");
+  }
+  return { ok: true, data: { link, botIds: link.bot_ids?.length ? link.bot_ids : null } };
 }
 
 export async function resolveSharedPost(
@@ -117,17 +141,24 @@ export async function resolveSharedPost(
   return { ok: true, data: { ...share.data, post } };
 }
 
-const createSchema = z.object({
-  bot_slug: slugSchema,
-});
+const createSchema = z
+  .object({
+    scope: z.enum(["bot", "audios"]).optional(),
+    bot_slug: slugSchema.optional(),
+    bot_slugs: z.array(slugSchema).max(20).optional(),
+  })
+  .refine((v) => (v.scope === "audios" ? !v.bot_slug : Boolean(v.bot_slug)), {
+    message: "Mandá bot_slug, o scope 'audios' (con bot_slugs opcional)",
+  });
 
 const revokeSchema = z
   .object({
     bot_slug: slugSchema.optional(),
     id: z.string().trim().uuid().optional(),
+    scope: z.enum(["audios"]).optional(),
   })
-  .refine((value) => Boolean(value.bot_slug || value.id), {
-    message: "Mandá bot_slug o id",
+  .refine((value) => Boolean(value.bot_slug || value.id || value.scope), {
+    message: "Mandá bot_slug, id o scope 'audios'",
   });
 
 const listSchema = z.object({
@@ -144,7 +175,9 @@ export async function createShareLink(
     id: string;
     token_prefix: string;
     created_at: string;
-    bot: { id: string; slug: string; name: string };
+    scope: "bot" | "audios";
+    bot: { id: string; slug: string; name: string } | null;
+    bots?: Array<{ id: string; slug: string; name: string }> | null;
   }>
 > {
   const auth = await requireShareAdmin(repo, authorization);
@@ -160,7 +193,36 @@ export async function createShareLink(
       formatZodError(parsed.error),
     );
   }
-  const bot = await repo.getBotBySlug(parsed.data.bot_slug);
+  if (parsed.data.scope === "audios") {
+    const bots: Bot[] = [];
+    for (const slug of parsed.data.bot_slugs ?? []) {
+      const found = await repo.getBotBySlug(slug);
+      if (!found) return fail(404, "not_found", `No encontramos el bot ${slug}`);
+      bots.push(found);
+    }
+    const gen = generateShareToken();
+    const audiosLink = await repo.insertShareLink({
+      botId: null,
+      scope: "audios",
+      botIds: bots.length ? bots.map((b) => b.id) : null,
+      tokenHash: gen.hash,
+      tokenPrefix: gen.prefix,
+    });
+    return {
+      ok: true,
+      status: 201,
+      data: {
+        url: shareUrl(gen.token),
+        id: audiosLink.id,
+        token_prefix: audiosLink.token_prefix,
+        created_at: audiosLink.created_at,
+        scope: "audios",
+        bot: null,
+        bots: bots.length ? bots.map((b) => ({ id: b.id, slug: b.slug, name: b.name })) : null,
+      },
+    };
+  }
+  const bot = await repo.getBotBySlug(parsed.data.bot_slug as string);
   if (!bot) {
     return fail(404, "not_found", "No encontramos ese bot");
   }
@@ -178,6 +240,7 @@ export async function createShareLink(
       id: link.id,
       token_prefix: link.token_prefix,
       created_at: link.created_at,
+      scope: "bot",
       bot: { id: bot.id, slug: bot.slug, name: bot.name },
     },
   };
@@ -207,6 +270,13 @@ export async function revokeShareLink(
       return fail(404, "not_found", "No encontramos ese link");
     }
     return { ok: true, data: { revoked: revoked.revoked_at ? 1 : 0 } };
+  }
+  if (!parsed.data.bot_slug && parsed.data.scope === "audios") {
+    let count = 0;
+    for (const link of await repo.listShareLinks()) {
+      if (link.scope === "audios" && !link.revoked_at && (await repo.revokeShareLink(link.id))) count += 1;
+    }
+    return { ok: true, data: { revoked: count } };
   }
   const bot = await repo.getBotBySlug(parsed.data.bot_slug as string);
   if (!bot) {
@@ -246,6 +316,19 @@ export async function listShareLinks(
   const bots = new Map<string, Bot>();
   const publicLinks: ShareLinkPublic[] = [];
   for (const link of links) {
+    if (link.scope === "audios" || !link.bot_id) {
+      if (botId) continue;
+      const scoped: Bot[] = [];
+      for (const id of link.bot_ids ?? []) {
+        const found = bots.get(id) ?? (await repo.getBotById(id)) ?? undefined;
+        if (found) {
+          bots.set(id, found);
+          scoped.push(found);
+        }
+      }
+      publicLinks.push(toPublic(link, null, link.bot_ids?.length ? scoped : null));
+      continue;
+    }
     let bot = bots.get(link.bot_id);
     if (!bot) {
       bot = (await repo.getBotById(link.bot_id)) ?? undefined;

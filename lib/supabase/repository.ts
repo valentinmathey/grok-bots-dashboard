@@ -857,6 +857,8 @@ export function createSupabaseRepository(): BotsRepository {
         .from("bot_share_links")
         .insert({
           bot_id: input.botId,
+          scope: input.scope ?? "bot",
+          bot_ids: input.botIds ?? null,
           token_hash: input.tokenHash,
           token_prefix: input.tokenPrefix,
         })
