@@ -43,7 +43,7 @@ export default async function FavoritosPage({
           Estrellas en las cards. Si borrás el post, desaparece de acá.
         </p>
       </div>
-      <FilterToolbar applied={params.bot ? 1 : 0}>
+      <FilterToolbar applied={params.bot ? 1 : 0} clearHref="/favoritos">
         <ChipRow>
           <FilterChip href="/favoritos" selected={!params.bot}>
             Todos

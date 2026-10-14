@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
+import { FilterGroup, FilterToolbar } from "@/components/FilterToolbar";
 import { PostAudio } from "@/components/PostAudio";
 import { SingleAudioPlayback } from "@/components/SingleAudioPlayback";
 import { postAudio } from "@/lib/post-audio";
@@ -44,16 +45,24 @@ export function AudiosList({
   return (
     <>
       {botsWithAudio.length > 1 ? (
-        <ChipRow>
-          <FilterChip href={basePath} selected={!selected}>
-            Todos
-          </FilterChip>
-          {botsWithAudio.map((bot) => (
-            <FilterChip key={bot.id} href={`${basePath}?bot=${bot.slug}`} selected={selected?.id === bot.id}>
-              {bot.name}
-            </FilterChip>
-          ))}
-        </ChipRow>
+        <FilterToolbar
+          applied={selected ? 1 : 0}
+          clearHref={basePath}
+          activeChips={selected ? [{ label: selected.name, removeHref: basePath }] : []}
+        >
+          <FilterGroup label="Bots">
+            <ChipRow>
+              <FilterChip href={basePath} selected={!selected}>
+                Todos
+              </FilterChip>
+              {botsWithAudio.map((bot) => (
+                <FilterChip key={bot.id} href={`${basePath}?bot=${bot.slug}`} selected={selected?.id === bot.id}>
+                  {bot.name}
+                </FilterChip>
+              ))}
+            </ChipRow>
+          </FilterGroup>
+        </FilterToolbar>
       ) : null}
       {rows.length === 0 ? (
         <div className="surface rounded-3xl p-6 text-center">

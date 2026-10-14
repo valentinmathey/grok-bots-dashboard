@@ -64,7 +64,7 @@ export default async function BuscarPage({
         </form>
       </div>
       {bots.length ? (
-        <FilterToolbar applied={Number(Boolean(params.bot)) + Number(params.favorites === "1")}>
+        <FilterToolbar applied={Number(Boolean(params.bot)) + Number(params.favorites === "1")} clearHref={href({ bot: undefined, favorites: undefined })}>
           <ChipRow>
             <FilterChip href={href({ bot: undefined })} selected={!params.bot}>
               Todos
