@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarPlus, Check, Copy, Download, Unlink } from "lucide-react";
+import { CalendarPlus, Download, Unlink } from "lucide-react";
+import { CopyField } from "@/components/CopyField";
 
 export function AgendaFeedButton() {
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
 
   async function create() {
@@ -34,17 +34,6 @@ export function AgendaFeedButton() {
     setBusy(false);
   }
 
-  async function copy() {
-    if (!url) return;
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* el link queda visible para copiarlo a mano */
-    }
-  }
-
   return (
     <div className="space-y-4">
       <p className="text-sm leading-6 text-muted">
@@ -64,17 +53,7 @@ export function AgendaFeedButton() {
 
         {url ? (
           <div className="space-y-3 rounded-2xl bg-chip/60 p-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <p className="min-w-0 flex-1 break-all font-mono text-xs">{url}</p>
-              <button
-                type="button"
-                onClick={() => void copy()}
-                className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-full bg-card px-3 text-xs font-semibold"
-              >
-                {copied ? <Check size={14} strokeWidth={2} /> : <Copy size={14} strokeWidth={1.75} />}
-                {copied ? "Copiado" : "Copiar"}
-              </button>
-            </div>
+            <CopyField value={url} label="Copiar link" />
             <ol className="list-decimal space-y-1 pl-5 text-xs leading-5 text-muted">
               <li>
                 <span className="font-medium text-foreground">Google Calendar</span> (en la compu): Otros
