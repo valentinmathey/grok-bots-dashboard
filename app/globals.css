@@ -298,9 +298,30 @@ html {
   padding: 0 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px) + var(--vv-bottom, 0px));
 }
 
+/* Footer fijo del sheet (Limpiar / Ver resultados): ocupa todo el ancho del
+   panel, mismo fondo que el sheet con un fade suave arriba, y llega hasta el
+   borde inferior cubriendo el padding/safe-area de .sheet-body. */
+.sheet-footer {
+  position: sticky;
+  bottom: calc(-1 * (1.25rem + env(safe-area-inset-bottom, 0px) + var(--vv-bottom, 0px)));
+  margin: 0 -1rem calc(-1 * (1.25rem + env(safe-area-inset-bottom, 0px) + var(--vv-bottom, 0px)));
+  margin-top: 1.5rem;
+  padding: 1.25rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px) + var(--vv-bottom, 0px));
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bg-card) 0%, transparent),
+    var(--bg-card) 1rem
+  );
+}
+
 @media (min-width: 640px) {
   .sheet-panel-dialog .sheet-body {
     padding-bottom: 1.75rem;
+  }
+  .sheet-panel-dialog .sheet-footer {
+    bottom: -1.75rem;
+    margin-bottom: -1.75rem;
+    padding-bottom: 1.25rem;
   }
 }
 

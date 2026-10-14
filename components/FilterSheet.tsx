@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { DateRangeField } from "@/components/DateRangeField";
 import { ChipRow, FilterChip, SegmentedControl } from "@/components/FilterChip";
-import { Sheet } from "@/components/Sheet";
+import { Sheet, SheetFooter } from "@/components/Sheet";
 import { amenityLabel, oportunidadCategoryLabel } from "@/lib/details";
 import {
   countActiveFilters,
@@ -577,7 +577,7 @@ export function FilterSheet({
               }
             />
 
-            <div className="mt-6 flex gap-2">
+            <SheetFooter>
               <button
                 type="button"
                 onClick={clear}
@@ -592,7 +592,7 @@ export function FilterSheet({
               >
                 Aplicar
               </button>
-            </div>
+            </SheetFooter>
       </Sheet>
     </div>
   );

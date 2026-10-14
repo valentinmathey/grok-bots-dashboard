@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { SlidersHorizontal, X } from "lucide-react";
-import { Sheet } from "@/components/Sheet";
+import { Sheet, SheetFooter } from "@/components/Sheet";
 
 export type ActiveFilterChip = { label: ReactNode; removeHref: string };
 
@@ -82,9 +82,9 @@ export function FilterToolbar({
         </div>
       ) : null}
       <Sheet open={open} onClose={() => setOpen(false)} title={title} mobileOnly>
-        <div className="space-y-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="space-y-4">
           {children}
-          <div className="sticky bottom-0 flex gap-2 border-t border-line bg-background pt-3">
+          <SheetFooter>
             {clearHref ? (
               <Link
                 href={clearHref}
@@ -101,7 +101,7 @@ export function FilterToolbar({
             >
               Ver resultados
             </button>
-          </div>
+          </SheetFooter>
         </div>
       </Sheet>
     </div>
