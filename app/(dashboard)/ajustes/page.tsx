@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { AgendaFeedButton } from "@/components/AgendaFeedButton";
-import { InstallAppButton } from "@/components/InstallAppButton";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { CreateBotForm } from "@/components/CreateBotForm";
 import { EditBotProfileForm } from "@/components/EditBotProfileForm";
 import { RegenerateKeyButton } from "@/components/RegenerateKeyButton";
@@ -36,12 +36,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <section className="surface rounded-3xl p-5">
-        <h2 className="text-base font-semibold">App</h2>
-        <div className="mt-3">
-          <InstallAppButton className="inline-flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-medium hover:bg-chip" />
-        </div>
-      </section>
+      <InstallAppCard />
 
       <section className="surface rounded-3xl p-5">
         <h2 className="text-base font-semibold">Agenda</h2>

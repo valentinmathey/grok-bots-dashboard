@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarPlus, Check, Copy, Download, Unlink } from "lucide-react";
 
 export function AgendaFeedButton() {
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [disconnected, setDisconnected] = useState(false);
 
   async function create() {
     setBusy(true);
+    setDisconnected(false);
     const res = await fetch("/api/admin/agenda-feed", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,31 +30,94 @@ export function AgendaFeedButton() {
       body: JSON.stringify({ action: "revoke" }),
     });
     setUrl(null);
+    setDisconnected(true);
     setBusy(false);
   }
 
+  async function copy() {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* el link queda visible para copiarlo a mano */
+    }
+  }
+
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-muted">
-        Feed privado para Google Calendar. El token se muestra una vez.
+    <div className="space-y-4">
+      <p className="text-sm leading-6 text-muted">
+        Sumá los eventos de tus bots a tu calendario (Google Calendar, iPhone). Se actualiza solo.
       </p>
-      <div className="flex flex-wrap gap-2">
+
+      <div className="space-y-3">
         <button
           type="button"
           onClick={() => void create()}
           disabled={busy}
-          className="rounded-full bg-accent px-3 py-2 text-xs font-semibold text-accent-ink"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-4 text-sm font-semibold text-accent-ink disabled:opacity-60"
         >
-          Generar feed .ics
+          <CalendarPlus size={16} strokeWidth={1.75} />
+          Conectar con mi calendario
         </button>
-        <a href="/api/agenda.ics" className="rounded-full bg-chip px-3 py-2 text-xs font-medium">
-          Descargar .ics
-        </a>
-        <button type="button" onClick={() => void revoke()} className="text-xs text-muted">
-          Revocar
-        </button>
+
+        {url ? (
+          <div className="space-y-3 rounded-2xl bg-chip/60 p-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="min-w-0 flex-1 break-all font-mono text-xs">{url}</p>
+              <button
+                type="button"
+                onClick={() => void copy()}
+                className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-full bg-card px-3 text-xs font-semibold"
+              >
+                {copied ? <Check size={14} strokeWidth={2} /> : <Copy size={14} strokeWidth={1.75} />}
+                {copied ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+            <ol className="list-decimal space-y-1 pl-5 text-xs leading-5 text-muted">
+              <li>
+                <span className="font-medium text-foreground">Google Calendar</span> (en la compu): Otros
+                calendarios → <span className="font-medium text-foreground">Desde URL</span> y pegá el link.
+              </li>
+              <li>
+                <span className="font-medium text-foreground">iPhone</span>: Ajustes → Calendario → Cuentas →
+                Agregar cuenta → Otra → <span className="font-medium text-foreground">Agregar calendario suscrito</span>{" "}
+                y pegá el link.
+              </li>
+            </ol>
+            <p className="text-xs text-muted">Guardá el link: por seguridad solo se muestra esta vez.</p>
+          </div>
+        ) : null}
       </div>
-      {url ? <p className="break-all font-mono text-xs">{url}</p> : null}
+
+      <div>
+        <a
+          href="/api/agenda.ics"
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-chip px-4 text-sm font-medium"
+        >
+          <Download size={16} strokeWidth={1.75} />
+          Descargar eventos (.ics)
+        </a>
+        <p className="mt-1 text-xs text-muted">Una sola vez, no se actualiza.</p>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => void revoke()}
+          disabled={busy}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-medium disabled:opacity-60"
+        >
+          <Unlink size={16} strokeWidth={1.75} />
+          Desconectar link
+        </button>
+        <p className="mt-1 text-xs text-muted">
+          {disconnected
+            ? "Listo: el link anterior ya no funciona. Si querés, conectá uno nuevo."
+            : "El link que pegaste en tu calendario deja de funcionar."}
+        </p>
+      </div>
     </div>
   );
 }
