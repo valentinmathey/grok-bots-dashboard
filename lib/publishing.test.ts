@@ -304,13 +304,13 @@ describe("API de publicación", () => {
       title: "Demo",
       body: "Hoy",
       kind: "evento",
-      event_at: "2026-10-13",
-      event_end_at: "2026-10-13T21:00",
+      event_at: "2099-10-13",
+      event_end_at: "2099-10-13T21:00",
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
-    expect(created.data.post.event_at).toBe("2026-10-13T03:00:00.000Z");
-    expect(created.data.post.event_end_at).toBe("2026-10-14T00:00:00.000Z");
+    expect(created.data.post.event_at).toBe("2099-10-13T03:00:00.000Z");
+    expect(created.data.post.event_end_at).toBe("2099-10-14T00:00:00.000Z");
 
     const bad = await publishPost(repo, `Bearer ${key}`, {
       title: "Mal",
@@ -336,8 +336,8 @@ describe("API de publicación", () => {
     }
 
     const range = await listMyPosts(repo, `Bearer ${key}`, {
-      event_from: "2026-10-13",
-      event_to: "2026-10-13",
+      event_from: "2099-10-13",
+      event_to: "2099-10-13",
     });
     expect(range.ok).toBe(true);
     if (range.ok) {
