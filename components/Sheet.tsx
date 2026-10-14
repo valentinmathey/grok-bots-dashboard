@@ -196,3 +196,8 @@ export function Sheet({
 
   return createPortal(node, document.body);
 }
+
+/** Footer fijo compartido de los sheets (Limpiar / Aplicar / Ver resultados). */
+export function SheetFooter({ children }: { children: ReactNode }) {
+  return <div className="sheet-footer flex gap-2">{children}</div>;
+}
