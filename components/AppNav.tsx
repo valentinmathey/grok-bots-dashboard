@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Monitor,
   Moon,
+  Newspaper,
   Search,
   Settings,
   Star,
@@ -54,6 +55,7 @@ const RIGHT_TABS = [
 ] as const;
 
 const MORE_LINKS = [
+  { href: "/publicaciones", label: "Publicaciones", icon: Newspaper, badge: false },
   { href: "/pedidos", label: "Pedidos", icon: MessageSquare, badge: true },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3, badge: false },
   { href: "/rutinas", label: "Rutinas", icon: CalendarClock, badge: false },
