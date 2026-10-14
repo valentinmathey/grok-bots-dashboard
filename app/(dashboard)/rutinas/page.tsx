@@ -1,3 +1,4 @@
+import { formatInZone } from "@/lib/format";
 import { CalendarClock } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip, SegmentedControl } from "@/components/FilterChip";
@@ -9,15 +10,16 @@ import type { Bot } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const whenFormat = new Intl.DateTimeFormat("es-AR", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: "America/Argentina/Mendoza",
-});
+const whenFormat = {
+  format: (date: Date) =>
+    formatInZone(date, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+};
 
 type Row = Routine & { next: string | null; bot?: Bot };
 

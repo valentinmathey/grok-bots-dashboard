@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
@@ -7,18 +8,11 @@ import { SingleAudioPlayback } from "@/components/SingleAudioPlayback";
 import { postAudio } from "@/lib/post-audio";
 import type { Bot, Post } from "@/lib/types";
 
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
 
-const dateFormat = new Intl.DateTimeFormat("es-AR", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "America/Argentina/Mendoza",
-});
+/** "14 de oct de 2026 · 07:12" en hora de Mendoza. */
+export function formatAudioPublished(iso: string) {
+  return formatDateTime(iso);
+}
 
 /** Lista de audios compartida entre /audios y el link público. */
 export function AudiosList({
@@ -82,8 +76,7 @@ export function AudiosList({
                     {bot ? <BotAvatar bot={bot} size="sm" className="shrink-0" /> : null}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs text-muted">
-                        {bot?.name ?? "Bot"} · {dateFormat.format(new Date(post.created_at))}
-                        {audio?.duration ? ` · ${formatDuration(audio.duration)}` : ""}
+                        {bot?.name ?? "Bot"} · {formatAudioPublished(post.created_at)}
                       </p>
                       {linkPosts && bot ? (
                         <Link

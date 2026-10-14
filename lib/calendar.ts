@@ -1,3 +1,4 @@
+import { formatTime } from "@/lib/format";
 import { addCalendarDays, baStartOfDay } from "@/lib/event-time";
 import type { AgendaEntry, AgendaType } from "@/lib/agenda";
 
@@ -237,12 +238,7 @@ export function stripDateFromTitle(title: string): string {
 export function formatAgendaTime(iso?: string, allDay?: boolean): string | undefined {
   if (!iso || allDay) return undefined;
   const date = new Date(iso);
-  const time = new Intl.DateTimeFormat("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Argentina/Buenos_Aires",
-    hourCycle: "h23",
-  }).format(date);
+  const time = formatTime(date);
   if (time === "00:00") return undefined;
   return time;
 }
