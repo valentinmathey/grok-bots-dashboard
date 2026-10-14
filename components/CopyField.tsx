@@ -36,7 +36,7 @@ export function CopyField({
         value={value}
         aria-label={label.replace(/^Copiar/, "").trim() || "Valor"}
         onFocus={(event) => event.currentTarget.select()}
-        className="min-w-0 flex-1 truncate bg-transparent font-mono text-xs text-foreground outline-none"
+        className="min-w-0 flex-1 truncate bg-transparent font-mono text-base sm:text-xs text-foreground outline-none"
       />
       <button
         type="button"

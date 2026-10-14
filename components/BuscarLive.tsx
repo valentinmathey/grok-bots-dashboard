@@ -75,7 +75,7 @@ export function BuscarLive({
           autoComplete="off"
           enterKeyHint="search"
           aria-busy={loading}
-          className="min-h-11 w-full rounded-full border border-line bg-card pl-10 pr-10 text-sm"
+          className="min-h-11 w-full rounded-full border border-line bg-card pl-10 pr-10 text-base sm:text-sm"
         />
         {loading ? (
           <Loader2
