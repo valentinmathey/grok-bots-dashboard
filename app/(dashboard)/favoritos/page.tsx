@@ -38,7 +38,7 @@ export default async function FavoritosPage({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="page-heading text-2xl font-semibold tracking-tight">Guardados</h1>
+        <h1 className="page-heading text-2xl font-semibold tracking-tight">Favoritos</h1>
         <p className="mt-1.5 text-sm text-muted">
           Estrellas en las cards. Si borrás el post, desaparece de acá.
         </p>
@@ -61,7 +61,7 @@ export default async function FavoritosPage({
       </FilterToolbar>
       {items.length ? (
         <section className="surface rounded-3xl p-4">
-          <h2 className="text-sm font-semibold">Ítems guardados</h2>
+          <h2 className="text-sm font-semibold">Ítems favoritos</h2>
           <ul className="mt-2 space-y-1.5 text-sm">
             {items.map((item) => (
               <li key={item.id} className="flex justify-between gap-3">

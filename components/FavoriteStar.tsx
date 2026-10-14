@@ -24,8 +24,8 @@ export function FavoriteStar({
       type="button"
       data-no-collapse
       aria-pressed={on}
-      aria-label={on ? "Sacar de guardados" : "Guardar"}
-      title={on ? "Sacar de guardados" : "Guardar"}
+      aria-label={on ? "Sacar de favoritos" : "Agregar a favoritos"}
+      title={on ? "Sacar de favoritos" : "Agregar a favoritos"}
       onClick={(event) => {
         event.stopPropagation();
         if (itemKey) {
