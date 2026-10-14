@@ -474,7 +474,7 @@ export function FilterSheet({
                         : undefined,
                     }))
                   }
-                  className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-sm"
+                  className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-base sm:text-sm"
                 />
               </section>
             ) : null}

@@ -595,3 +595,16 @@ input[type="date"].date-native::-webkit-calendar-picker-indicator {
   opacity: 0;
   cursor: pointer;
 }
+
+/*
+ * iOS Safari hace zoom al enfocar un campo con letra < 16px. En pantallas
+ * táctiles o chicas forzamos 16px (sin capa, así gana a las utilidades de
+ * Tailwind). No se toca maximum-scale: el zoom con los dedos sigue andando.
+ */
+@media (pointer: coarse), (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

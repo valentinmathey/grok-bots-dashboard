@@ -98,7 +98,7 @@ export function CreateBotForm() {
           minLength={2}
           maxLength={64}
           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-          className="min-h-11 w-full rounded-xl border border-line bg-raised px-3 font-mono text-sm outline-none ring-accent/40 focus:ring-2"
+          className="min-h-11 w-full rounded-xl border border-line bg-raised px-3 font-mono text-base sm:text-sm outline-none ring-accent/40 focus:ring-2"
           placeholder="reportero-semanal"
         />
         <span className="mt-1 block text-xs text-muted">

@@ -272,7 +272,7 @@ function RequestModal({
             value={body}
             onChange={(event) => setBody(event.target.value)}
             rows={4}
-            className="w-full rounded-2xl border border-line bg-card px-3 py-2 text-sm"
+            className="w-full rounded-2xl border border-line bg-card px-3 py-2 text-base sm:text-sm"
             maxLength={2000}
             placeholder={general ? "buscame eventos de IA este mes…" : "profundizame esto…"}
           />

@@ -60,7 +60,7 @@ export function EditBotProfileForm({ bot }: { bot: Bot }) {
           onChange={(event) => setDescription(event.target.value)}
           maxLength={500}
           rows={3}
-          className="w-full rounded-xl border border-line bg-raised px-3 py-2 text-sm outline-none ring-accent/40 focus:ring-2"
+          className="w-full rounded-xl border border-line bg-raised px-3 py-2 text-base sm:text-sm outline-none ring-accent/40 focus:ring-2"
         />
       </label>
       <div>
@@ -88,7 +88,7 @@ export function EditBotProfileForm({ bot }: { bot: Bot }) {
           onChange={(event) => setAvatarUrl(event.target.value)}
           type="url"
           placeholder="https://…"
-          className="min-h-11 w-full rounded-xl border border-line bg-raised px-3 text-sm outline-none ring-accent/40 focus:ring-2"
+          className="min-h-11 w-full rounded-xl border border-line bg-raised px-3 text-base sm:text-sm outline-none ring-accent/40 focus:ring-2"
         />
       </label>
       {error ? <p className="text-sm text-danger">{error}</p> : null}
