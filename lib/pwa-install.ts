@@ -203,6 +203,20 @@ export function isAppInstalled() {
   return isStandaloneDisplay();
 }
 
+export function isAndroidDevice(userAgent?: string) {
+  const ua = userAgent ?? (typeof navigator === "undefined" ? "" : navigator.userAgent);
+  return /android/i.test(ua);
+}
+
+export type CalendarDevice = "ios" | "android" | "desktop";
+
+/** Plataforma para adaptar la ayuda del calendario. */
+export function calendarDevice(userAgent: string): CalendarDevice {
+  if (/iphone|ipad|ipod/i.test(userAgent)) return "ios";
+  if (isAndroidDevice(userAgent)) return "android";
+  return "desktop";
+}
+
 export function isIosDevice() {
   if (typeof navigator === "undefined") return false;
   return /iphone|ipad|ipod/i.test(navigator.userAgent);

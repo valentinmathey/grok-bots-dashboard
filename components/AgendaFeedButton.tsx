@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarPlus, Download, Unlink } from "lucide-react";
 import { CopyField } from "@/components/CopyField";
+import { calendarDevice, type CalendarDevice } from "@/lib/pwa-install";
+
+const DESCRIPTION: Record<CalendarDevice, string> = {
+  desktop: "Google Calendar, iPhone",
+  android: "Google Calendar",
+  ios: "Calendario del iPhone",
+};
+
+const strong = "font-medium text-foreground";
 
 export function AgendaFeedButton() {
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [disconnected, setDisconnected] = useState(false);
+  // Se detecta en el cliente después del mount para no romper la hidratación.
+  const [device, setDevice] = useState<CalendarDevice>("desktop");
+
+  useEffect(() => {
+    setDevice(calendarDevice(navigator.userAgent));
+  }, []);
 
   async function create() {
     setBusy(true);
@@ -37,7 +52,7 @@ export function AgendaFeedButton() {
   return (
     <div className="space-y-4">
       <p className="text-sm leading-6 text-muted">
-        Sumá los eventos de tus bots a tu calendario (Google Calendar, iPhone). Se actualiza solo.
+        Sumá los eventos de tus bots a tu calendario ({DESCRIPTION[device]}). Se actualiza solo.
       </p>
 
       <div className="space-y-3">
@@ -55,15 +70,38 @@ export function AgendaFeedButton() {
           <div className="space-y-3 rounded-2xl bg-chip/60 p-3">
             <CopyField value={url} label="Copiar link" />
             <ol className="list-decimal space-y-1 pl-5 text-xs leading-5 text-muted">
-              <li>
-                <span className="font-medium text-foreground">Google Calendar</span> (en la compu): Otros
-                calendarios → <span className="font-medium text-foreground">Desde URL</span> y pegá el link.
-              </li>
-              <li>
-                <span className="font-medium text-foreground">iPhone</span>: Ajustes → Calendario → Cuentas →
-                Agregar cuenta → Otra → <span className="font-medium text-foreground">Agregar calendario suscrito</span>{" "}
-                y pegá el link.
-              </li>
+              {device === "ios" ? (
+                <li>
+                  En el iPhone: Ajustes → Calendario → Cuentas → Agregar cuenta → Otra →{" "}
+                  <span className={strong}>Agregar calendario suscrito</span> y pegá el link.
+                </li>
+              ) : device === "android" ? (
+                <>
+                  <li>
+                    Abrí <span className={strong}>calendar.google.com</span> en el navegador (versión web).
+                  </li>
+                  <li>
+                    Otros calendarios <span className={strong}>+</span> →{" "}
+                    <span className={strong}>Desde URL</span> y pegá el link.
+                  </li>
+                  <li>
+                    Listo: se sincroniza solo con la app Google Calendar del celu. Puede tardar algunas horas en
+                    actualizarse.
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <span className={strong}>Google Calendar</span> (en la compu): Otros calendarios →{" "}
+                    <span className={strong}>Desde URL</span> y pegá el link.
+                  </li>
+                  <li>
+                    <span className={strong}>iPhone o Mac</span>: Ajustes → Calendario → Cuentas → Agregar cuenta
+                    → Otra → <span className={strong}>Agregar calendario suscrito</span> y pegá el link (en la Mac:
+                    Calendario → Archivo → Nueva suscripción a calendario).
+                  </li>
+                </>
+              )}
             </ol>
             <p className="text-xs text-muted">Guardá el link: por seguridad solo se muestra esta vez.</p>
           </div>
