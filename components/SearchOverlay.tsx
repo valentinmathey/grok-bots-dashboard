@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { Search, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { KindBadge } from "@/components/KindBadge";
 import { useOptionalNav } from "@/components/nav-context";
 import type { SearchHit } from "@/lib/search";
+import { emptyResultLabel, resultCountLabel } from "@/lib/search-copy";
 
 const RECENT_KEY = "gb-recent-searches";
 
@@ -33,18 +34,31 @@ export function SearchOverlay() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState("");
+  const seq = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
 
   const run = useCallback(async (value: string) => {
+    const id = ++seq.current;
     if (value.trim().length < 2) {
       setHits([]);
+      setSearched("");
+      setLoading(false);
       return;
     }
-    const res = await fetch(`/api/admin/search?q=${encodeURIComponent(value.trim())}`);
-    if (!res.ok) return;
-    const data = (await res.json()) as { hits: SearchHit[] };
-    setHits(data.hits);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/search?q=${encodeURIComponent(value.trim())}`);
+      if (!res.ok || id !== seq.current) return;
+      const data = (await res.json()) as { hits: SearchHit[] };
+      if (id !== seq.current) return;
+      setHits(data.hits);
+      setSearched(value.trim());
+    } finally {
+      if (id === seq.current) setLoading(false);
+    }
     saveRecent(value.trim());
     setRecent(loadRecent());
   }, []);
@@ -76,6 +90,7 @@ export function SearchOverlay() {
 
   useEffect(() => {
     if (!open) return;
+    if (q.trim().length >= 2) setLoading(true);
     const handle = window.setTimeout(() => void run(q), 250);
     return () => window.clearTimeout(handle);
   }, [q, open, run]);
@@ -100,6 +115,9 @@ export function SearchOverlay() {
                 placeholder="Buscar posts…"
                 className="min-h-11 min-w-0 flex-1 bg-transparent text-base outline-none"
               />
+              {loading ? (
+                <Loader2 size={16} strokeWidth={1.75} aria-label="Buscando" className="animate-spin text-muted" />
+              ) : null}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -110,6 +128,9 @@ export function SearchOverlay() {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              {q.trim().length < 2 && !recent.length ? (
+                <p className="px-2 py-8 text-center text-sm text-muted">Escribí al menos dos letras para buscar.</p>
+              ) : null}
               {q.trim().length < 2 && recent.length ? (
                 <div className="space-y-1">
                   <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -127,11 +148,17 @@ export function SearchOverlay() {
                   ))}
                 </div>
               ) : null}
-              {q.trim().length >= 2 && hits.length === 0 ? (
-                <p className="px-2 py-8 text-center text-sm text-muted">Nada con “{q}”.</p>
+              {q.trim().length >= 2 && searched && hits.length === 0 && !loading ? (
+                <p className="px-2 py-8 text-center text-sm text-muted">{emptyResultLabel(searched)}</p>
               ) : null}
-              <ul className="space-y-1.5">
-                {hits.map((hit) => (
+              {q.trim().length >= 2 && searched && hits.length > 0 ? (
+                <p className="px-2 pb-2 text-xs text-muted">{resultCountLabel(hits.length, searched)}</p>
+              ) : null}
+              <ul
+                className={`space-y-1.5 transition-opacity duration-200 ${loading ? "opacity-50" : "opacity-100"}`}
+                aria-busy={loading}
+              >
+                {(q.trim().length >= 2 ? hits : []).map((hit) => (
                   <li key={hit.id}>
                     <Link
                       href={hit.url}
