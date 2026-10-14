@@ -1,4 +1,4 @@
-const VERSION = "gb-pwa-v3";
+const VERSION = "gb-pwa-v4";
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const PRECACHE = [
@@ -58,10 +58,11 @@ function isAsset(url) {
   );
 }
 
-async function networkFirst(request, fallbackUrl) {
+async function networkFirst(request, fallbackUrl, fresh = false) {
   const cache = await caches.open(RUNTIME);
   try {
-    const response = await fetch(request);
+    // Navegaciones: saltear el cache HTTP para no mostrar HTML viejo estando online.
+    const response = await fetch(request, fresh ? { cache: "no-store" } : undefined);
     if (response && response.ok && request.method === "GET") {
       cache.put(request, response.clone());
     }
@@ -96,7 +97,7 @@ self.addEventListener("fetch", (event) => {
   if (neverCache(request, url)) return;
 
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
-    event.respondWith(networkFirst(request, "/offline"));
+    event.respondWith(networkFirst(request, "/offline", true));
     return;
   }
 
