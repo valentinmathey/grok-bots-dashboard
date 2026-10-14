@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Bell, Smartphone, Trash2 } from "lucide-react";
 import type { NotificationPrefs, PushType } from "@/lib/push-types";
-import { DEFAULT_PUSH_TYPES } from "@/lib/push-types";
+import { DEFAULT_PUSH_TYPES, isBotEnabled, setAllBots } from "@/lib/push-types";
+import { BotPushToggles, type PushBot } from "@/components/BotPushToggles";
 
 const TYPE_LABELS: Record<PushType, string> = {
   new_post: "Post nuevo (por bot)",
@@ -22,8 +23,6 @@ type Device = {
   disabled_at: string | null;
 };
 
-type BotOpt = { id: string; name: string };
-
 function urlBase64ToUint8Array(base64: string) {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
@@ -33,7 +32,8 @@ function urlBase64ToUint8Array(base64: string) {
 function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
+    ("standalone" in navigator &&
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
   );
 }
 
@@ -41,7 +41,7 @@ function isIos() {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-export function NotificationsPanel({ bots }: { bots: BotOpt[] }) {
+export function NotificationsPanel({ bots }: { bots: PushBot[] }) {
   const [enabled, setEnabled] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs>({
@@ -129,7 +129,9 @@ export function NotificationsPanel({ bots }: { bots: BotOpt[] }) {
       body: JSON.stringify({ action: "test" }),
     });
     const data = (await res.json()) as { sent?: number };
-    setMessage(data.sent ? "Mandé una prueba." : "No hay dispositivos activos.");
+    setMessage(
+      data.sent ? "Mandé una prueba." : "No hay dispositivos activos.",
+    );
     setBusy(false);
   }
 
@@ -146,7 +148,9 @@ export function NotificationsPanel({ bots }: { bots: BotOpt[] }) {
     return (
       <p className="text-sm leading-6 text-muted">
         Faltan las claves VAPID. Generá con{" "}
-        <code className="rounded bg-chip px-1.5 py-0.5 text-xs">npx web-push generate-vapid-keys</code>{" "}
+        <code className="rounded bg-chip px-1.5 py-0.5 text-xs">
+          npx web-push generate-vapid-keys
+        </code>{" "}
         y cargá <code className="text-xs">VAPID_PUBLIC_KEY</code>,{" "}
         <code className="text-xs">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code>,{" "}
         <code className="text-xs">VAPID_PRIVATE_KEY</code> y{" "}
@@ -159,8 +163,8 @@ export function NotificationsPanel({ bots }: { bots: BotOpt[] }) {
     <div className="space-y-6">
       {iosHint ? (
         <p className="rounded-2xl bg-raised px-3 py-2.5 text-sm leading-6">
-          En iPhone las notificaciones andan si instalás la app (iOS 16.4+): Compartir → Agregar a
-          inicio.
+          En iPhone las notificaciones andan si instalás la app (iOS 16.4+):
+          Compartir → Agregar a inicio.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">
@@ -207,28 +211,22 @@ export function NotificationsPanel({ bots }: { bots: BotOpt[] }) {
         </ul>
       </section>
 
-      <section>
-        <h2 className="text-sm font-semibold">Bots</h2>
-        <ul className="mt-2 space-y-2">
-          {bots.map((bot) => (
-            <li key={bot.id}>
-              <label className="flex min-h-10 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={prefs.bots[bot.id] !== false}
-                  onChange={(event) =>
-                    void savePrefs({
-                      ...prefs,
-                      bots: { ...prefs.bots, [bot.id]: event.target.checked },
-                    })
-                  }
-                />
-                {bot.name}
-              </label>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <BotPushToggles
+        bots={bots}
+        enabled={(botId) => isBotEnabled(prefs, botId)}
+        onChange={(botId, on) =>
+          void savePrefs({ ...prefs, bots: { ...prefs.bots, [botId]: on } })
+        }
+        onAll={(on) =>
+          void savePrefs(
+            setAllBots(
+              prefs,
+              bots.map((bot) => bot.id),
+              on,
+            ),
+          )
+        }
+      />
 
       <section>
         <h2 className="text-sm font-semibold">Dispositivos</h2>
@@ -242,8 +240,14 @@ export function NotificationsPanel({ bots }: { bots: BotOpt[] }) {
                 className="flex items-center justify-between gap-3 rounded-2xl border border-line px-3 py-2"
               >
                 <span className="flex min-w-0 items-center gap-2 text-sm">
-                  <Smartphone size={14} strokeWidth={1.75} className="shrink-0 text-muted" />
-                  <span className="truncate">{device.user_agent || device.endpoint}</span>
+                  <Smartphone
+                    size={14}
+                    strokeWidth={1.75}
+                    className="shrink-0 text-muted"
+                  />
+                  <span className="truncate">
+                    {device.user_agent || device.endpoint}
+                  </span>
                 </span>
                 <button
                   type="button"

@@ -58,7 +58,10 @@ export async function runDailyPushAlerts(repo: BotsRepository, now = new Date())
   if (isTypeEnabled(prefs, "daily_digest")) {
     const since = now.getTime() - 24 * 3600_000;
     const recent = posts.filter(
-      (post) => post.kind !== "resumen" && new Date(post.created_at).getTime() >= since,
+      (post) =>
+        post.kind !== "resumen" &&
+        isBotEnabled(prefs, post.bot_id) &&
+        new Date(post.created_at).getTime() >= since,
     );
     if (recent.length) {
       const result = await sendPush(

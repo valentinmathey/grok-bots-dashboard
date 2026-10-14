@@ -50,6 +50,10 @@ export function isBotEnabled(prefs: NotificationPrefs, botId: string): boolean {
   return prefs.bots[botId] !== false;
 }
 
+export function setAllBots(prefs: NotificationPrefs, botIds: string[], on: boolean): NotificationPrefs {
+  return { ...prefs, bots: { ...prefs.bots, ...Object.fromEntries(botIds.map((id) => [id, on])) } };
+}
+
 export function isTypeEnabled(prefs: NotificationPrefs, type: PushType): boolean {
   return prefs.types[type] !== false;
 }

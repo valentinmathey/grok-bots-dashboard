@@ -19,7 +19,14 @@ export default async function NotificacionesPage() {
         </p>
       </div>
       <div className="surface rounded-3xl p-5">
-        <NotificationsPanel bots={bots.map((bot) => ({ id: bot.id, name: bot.name }))} />
+        <NotificationsPanel bots={bots.map((bot) => ({
+            id: bot.id,
+            name: bot.name,
+            slug: bot.slug,
+            avatar_color: bot.avatar_color,
+            avatar_shape: bot.avatar_shape,
+            avatar_url: bot.avatar_url,
+          }))} />
       </div>
     </div>
   );
