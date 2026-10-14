@@ -42,3 +42,13 @@ describe("banner Instalar app", () => {
     expect(shouldOfferInstallBanner({ ...base, engaged: true })).toBe(true);
   });
 });
+
+describe("calendarDevice", () => {
+  it("detecta iPhone, Android y escritorio", async () => {
+    const { calendarDevice, isAndroidDevice } = await import("@/lib/pwa-install");
+    expect(calendarDevice("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)")).toBe("ios");
+    expect(calendarDevice("Mozilla/5.0 (Linux; Android 14; Pixel 8)")).toBe("android");
+    expect(calendarDevice("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)")).toBe("desktop");
+    expect(isAndroidDevice("Mozilla/5.0 (Linux; Android 14)")).toBe(true);
+  });
+});
