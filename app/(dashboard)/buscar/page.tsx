@@ -3,14 +3,22 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
 import { FilterToolbar } from "@/components/FilterToolbar";
 import { KindBadge } from "@/components/KindBadge";
+import { BuscarLive } from "@/components/BuscarLive";
 import { getRepository } from "@/lib/data";
+import { emptyResultLabel, resultCountLabel } from "@/lib/search-copy";
 
 export const dynamic = "force-dynamic";
 
 export default async function BuscarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; bot?: string; kind?: string; sort?: string; favorites?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    bot?: string;
+    kind?: string;
+    sort?: string;
+    favorites?: string;
+  }>;
 }) {
   const params = await searchParams;
   const q = (params.q ?? "").trim();
@@ -50,71 +58,95 @@ export default async function BuscarPage({
     return `/buscar?${query.toString()}`;
   }
 
+  const count =
+    params.favorites === "1"
+      ? result.hits.length
+      : Math.max(result.total, result.hits.length);
+
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="page-heading text-2xl font-semibold tracking-tight">Buscar</h1>
-        <form className="mt-3">
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="n8n, Camboriu, logitech…"
-            className="min-h-11 w-full rounded-full border border-line bg-card px-4 text-sm"
-          />
-        </form>
-      </div>
-      {bots.length ? (
-        <FilterToolbar applied={Number(Boolean(params.bot)) + Number(params.favorites === "1")} clearHref={href({ bot: undefined, favorites: undefined })}>
-          <ChipRow>
-            <FilterChip href={href({ bot: undefined })} selected={!params.bot}>
-              Todos
-            </FilterChip>
-            {bots.map((bot) => (
-              <FilterChip
-                key={bot.id}
-                href={href({ bot: bot.slug })}
-                selected={params.bot === bot.slug}
-              >
-                <span className="min-w-0 truncate">{bot.name}</span>
-              </FilterChip>
-            ))}
-            <FilterChip
-              href={href({ favorites: params.favorites === "1" ? undefined : "1" })}
-              selected={params.favorites === "1"}
-              check
+    <div>
+      <h1 className="page-heading text-2xl font-semibold tracking-tight">
+        Buscar
+      </h1>
+      <BuscarLive
+        initialQ={q}
+        toolbar={
+          bots.length ? (
+            <FilterToolbar
+              applied={
+                Number(Boolean(params.bot)) + Number(params.favorites === "1")
+              }
+              clearHref={href({ bot: undefined, favorites: undefined })}
             >
-              Solo favoritos
-            </FilterChip>
-          </ChipRow>
-        </FilterToolbar>
-      ) : null}
-      {q.length < 2 && !params.kind ? (
-        <p className="text-sm text-muted">Escribí al menos dos letras.</p>
-      ) : result.hits.length === 0 ? (
-        <p className="text-sm text-muted">
-          {q.length >= 2 ? `Nada con “${q}”.` : "Nada con ese filtro."}
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {result.hits.map((hit) => (
-            <li key={hit.id}>
-              <Link href={hit.url} className="surface flex gap-3 rounded-3xl p-3">
-                <BotAvatar bot={hit.bot} size="sm" />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold">{hit.title}</p>
-                    <KindBadge kind={hit.kind} />
-                  </div>
-                  <p
-                    className="mt-1 text-sm leading-6 text-muted [&_mark]:rounded [&_mark]:bg-accent/20 [&_mark]:px-0.5 [&_mark]:text-foreground"
-                    dangerouslySetInnerHTML={{ __html: hit.snippet }}
-                  />
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+              <ChipRow>
+                <FilterChip
+                  href={href({ bot: undefined })}
+                  selected={!params.bot}
+                >
+                  Todos
+                </FilterChip>
+                {bots.map((bot) => (
+                  <FilterChip
+                    key={bot.id}
+                    href={href({ bot: bot.slug })}
+                    selected={params.bot === bot.slug}
+                  >
+                    <span className="min-w-0 truncate">{bot.name}</span>
+                  </FilterChip>
+                ))}
+                <FilterChip
+                  href={href({
+                    favorites: params.favorites === "1" ? undefined : "1",
+                  })}
+                  selected={params.favorites === "1"}
+                  check
+                >
+                  Solo favoritos
+                </FilterChip>
+              </ChipRow>
+            </FilterToolbar>
+          ) : null
+        }
+      >
+        {q.length < 2 && !params.kind ? (
+          <p className="text-sm text-muted">
+            Escribí al menos dos letras para buscar en todo lo que publicaron
+            tus bots.
+          </p>
+        ) : result.hits.length === 0 ? (
+          <p className="surface rounded-3xl px-4 py-8 text-center text-sm text-muted">
+            {emptyResultLabel(q.length >= 2 ? q : "")}
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-muted">
+              {resultCountLabel(count, q.length >= 2 ? q : "")}
+            </p>
+            <ul className="space-y-2">
+              {result.hits.map((hit) => (
+                <li key={hit.id}>
+                  <Link
+                    href={hit.url}
+                    className="surface flex gap-3 rounded-3xl p-3"
+                  >
+                    <BotAvatar bot={hit.bot} size="sm" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold">{hit.title}</p>
+                        <KindBadge kind={hit.kind} />
+                      </div>
+                      <p
+                        className="mt-1 text-sm leading-6 text-muted [&_mark]:rounded [&_mark]:bg-accent/20 [&_mark]:px-0.5 [&_mark]:text-foreground"
+                        dangerouslySetInnerHTML={{ __html: hit.snippet }}
+                      />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </BuscarLive>
     </div>
   );
 }
