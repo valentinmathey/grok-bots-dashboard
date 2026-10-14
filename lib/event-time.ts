@@ -1,5 +1,6 @@
 /** America/Argentina/Buenos_Aires es UTC−3 todo el año (sin DST). */
-export const BA_TIMEZONE = "America/Argentina/Buenos_Aires";
+/** Zona de toda la app (Mendoza; mismo offset que Buenos Aires, sin horario de verano). */
+export const BA_TIMEZONE = "America/Argentina/Mendoza";
 export const BA_OFFSET = "-03:00";
 
 export type ParseEventResult =

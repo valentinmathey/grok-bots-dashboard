@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
@@ -7,24 +8,10 @@ import { SingleAudioPlayback } from "@/components/SingleAudioPlayback";
 import { postAudio } from "@/lib/post-audio";
 import type { Bot, Post } from "@/lib/types";
 
-const dateFormat = new Intl.DateTimeFormat("es-AR", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "America/Argentina/Mendoza",
-});
-
-const timeFormat = new Intl.DateTimeFormat("es-AR", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-  timeZone: "America/Argentina/Mendoza",
-});
 
 /** "14 de oct de 2026 · 07:12" en hora de Mendoza. */
 export function formatAudioPublished(iso: string) {
-  const date = new Date(iso);
-  return `${dateFormat.format(date)} · ${timeFormat.format(date)}`;
+  return formatDateTime(iso);
 }
 
 /** Lista de audios compartida entre /audios y el link público. */

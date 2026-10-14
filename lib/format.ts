@@ -51,27 +51,38 @@ export function kindLabel(kind: PostKind): string {
   return kind.charAt(0).toUpperCase() + kind.slice(1).replace(/-/g, " ");
 }
 
-function localeText(
-  date: Date,
-  options: Intl.DateTimeFormatOptions,
-): string {
-  return new Intl.DateTimeFormat("es-AR", options)
+export const APP_TIMEZONE = BA_TIMEZONE;
+
+/**
+ * Único punto para formatear fechas/horas: siempre hora de Mendoza y 24 h
+ * (nada de "p. m."), salvo que se pida otra zona a propósito (fechas sin hora en UTC).
+ */
+export function formatInZone(input: Date | string, options: Intl.DateTimeFormatOptions): string {
+  const date = typeof input === "string" ? new Date(input) : input;
+  const withHour = options.hour !== undefined || options.minute !== undefined;
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: APP_TIMEZONE,
+    ...options,
+    ...(withHour ? { hourCycle: "h23" as const, hour12: undefined } : {}),
+  })
     .format(date)
     .replace(/[\u00a0\u202f\u2007\u2009]/g, " ");
 }
 
-export function formatDateTime(iso: string): string {
-  return localeText(new Date(iso), {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const localeText = formatInZone;
+
+/** "22:17" */
+export function formatTime(iso: string | Date): string {
+  return formatInZone(iso, { hour: "2-digit", minute: "2-digit" });
 }
 
-export function formatDate(iso: string): string {
-  return localeText(new Date(iso), {
+/** "14 de oct de 2026 · 22:17" */
+export function formatDateTime(iso: string | Date): string {
+  return `${formatDate(iso)} · ${formatTime(iso)}`;
+}
+
+export function formatDate(iso: string | Date): string {
+  return localeText(iso, {
     day: "numeric",
     month: "short",
     year: "numeric",
