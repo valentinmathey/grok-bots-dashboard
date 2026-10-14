@@ -74,3 +74,14 @@ describe("throttle de new_post", () => {
     expect(shouldThrottle(now - NEW_POST_THROTTLE_MS - 1, now)).toBe(false);
   });
 });
+
+describe("push por bot", () => {
+  it("todos prendidos por defecto y se pueden apagar en bloque", async () => {
+    const { defaultPrefs, isBotEnabled, setAllBots } = await import("@/lib/push-types");
+    const prefs = defaultPrefs();
+    expect(isBotEnabled(prefs, "b1")).toBe(true);
+    const off = setAllBots(prefs, ["b1", "b2"], false);
+    expect(isBotEnabled(off, "b1")).toBe(false);
+    expect(isBotEnabled({ ...off, bots: { ...off.bots, b2: true } }, "b2")).toBe(true);
+  });
+});

@@ -74,6 +74,8 @@ export async function notifyPostChange(input: {
 }) {
   const vapid = getVapidConfig();
   if (!vapid) return;
+  // Bot apagado en /notificaciones: ni push ni ventana de agrupado.
+  if (!isBotEnabled(await getPrefs(), input.bot.id)) return;
   const classified = classifyPublish(input.post);
   if (classified.type === "new_post") {
     const key = `new_post:${input.bot.id}`;
