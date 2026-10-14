@@ -5,6 +5,7 @@ export function titleFromPathname(pathname: string): string {
   if (pathname.startsWith("/agenda")) return "Agenda";
   if (pathname.startsWith("/buscar")) return "Buscar";
   if (pathname.startsWith("/favoritos")) return "Guardados";
+  if (pathname.startsWith("/publicaciones")) return "Publicaciones";
   if (pathname.startsWith("/pedidos")) return "Pedidos";
   if (pathname.startsWith("/estadisticas")) return "Estadísticas";
   if (pathname.startsWith("/audios")) return "Audios";
@@ -21,6 +22,7 @@ export function primaryTabFromPathname(pathname: string): PrimaryTab {
   if (pathname.startsWith("/buscar")) return "buscar";
   if (pathname.startsWith("/favoritos")) return "guardados";
   if (
+    pathname.startsWith("/publicaciones") ||
     pathname.startsWith("/pedidos") ||
     pathname.startsWith("/estadisticas") ||
     pathname.startsWith("/audios") ||
