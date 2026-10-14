@@ -1,6 +1,7 @@
 import { CalendarClock } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip, SegmentedControl } from "@/components/FilterChip";
+import { FilterGroup, FilterToolbar } from "@/components/FilterToolbar";
 import { getRepository } from "@/lib/data";
 import { listRoutines, type Routine } from "@/lib/routines";
 import { nextRun } from "@/lib/routines-schedule";
@@ -98,27 +99,37 @@ export default async function RutinasPage({
         <h1 className="page-heading text-2xl font-semibold tracking-tight">Rutinas</h1>
         <p className="mt-1.5 text-sm text-muted">Qué publica cada bot y cuándo.</p>
       </div>
-      <SegmentedControl
-        ariaLabel="Vista"
-        className="sm:w-auto sm:min-w-[18rem]"
-        value={timeline ? "timeline" : "bot"}
-        options={[
-          { id: "bot", label: "Por bot", href: qs({ bot: selected?.slug }) },
-          { id: "timeline", label: "Próximas", href: qs({ bot: selected?.slug, vista: "timeline" }) },
-        ]}
-      />
-      {botsWith.length > 1 ? (
-        <ChipRow>
-          <FilterChip href={qs({ vista })} selected={!selected}>
-            Todos
-          </FilterChip>
-          {botsWith.map((bot) => (
-            <FilterChip key={bot.id} href={qs({ bot: bot.slug, vista })} selected={selected?.id === bot.id}>
-              {bot.name}
-            </FilterChip>
-          ))}
-        </ChipRow>
-      ) : null}
+      <FilterToolbar
+        applied={selected ? 1 : 0}
+        clearHref={qs({ vista })}
+        activeChips={selected ? [{ label: selected.name, removeHref: qs({ vista }) }] : []}
+        primary={
+          <SegmentedControl
+            ariaLabel="Vista"
+            className="lg:w-auto lg:min-w-[18rem]"
+            value={timeline ? "timeline" : "bot"}
+            options={[
+              { id: "bot", label: "Por bot", href: qs({ bot: selected?.slug }) },
+              { id: "timeline", label: "Próximas", href: qs({ bot: selected?.slug, vista: "timeline" }) },
+            ]}
+          />
+        }
+      >
+        {botsWith.length > 1 ? (
+          <FilterGroup label="Bots">
+            <ChipRow>
+              <FilterChip href={qs({ vista })} selected={!selected}>
+                Todos
+              </FilterChip>
+              {botsWith.map((bot) => (
+                <FilterChip key={bot.id} href={qs({ bot: bot.slug, vista })} selected={selected?.id === bot.id}>
+                  {bot.name}
+                </FilterChip>
+              ))}
+            </ChipRow>
+          </FilterGroup>
+        ) : null}
+      </FilterToolbar>
       {rows.length === 0 ? (
         <div className="surface rounded-3xl p-6 text-center">
           <p className="font-medium">Todavía no hay rutinas</p>

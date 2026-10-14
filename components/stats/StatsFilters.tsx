@@ -40,7 +40,7 @@ export function StatsFilters({
         ))}
       </ChipRow>
       {bots.length > 1 ? (
-        <FilterToolbar applied={query.bots.length} title="Bots">
+        <FilterToolbar applied={query.bots.length} title="Bots" clearHref={statsHref(query, { bots: [] })}>
           <ChipRow>
             <FilterChip href={statsHref(query, { bots: [] })} selected={query.bots.length === 0}>
               Todos los bots

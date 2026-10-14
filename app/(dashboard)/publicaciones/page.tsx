@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpDown } from "lucide-react";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip, SegmentedControl } from "@/components/FilterChip";
+import { FilterGroup, FilterToolbar } from "@/components/FilterToolbar";
 import { KindBadge } from "@/components/KindBadge";
 import { TimeStamp } from "@/components/TimeStamp";
 import { PUBLICACIONES_PAGE, listAllPosts } from "@/lib/all-posts";
@@ -50,42 +51,53 @@ export default async function PublicacionesPage({ searchParams }: { searchParams
         <p className="mt-1.5 text-sm text-muted">Todo lo que publicaron tus bots, en un solo lugar.</p>
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <p className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
-          <ArrowUpDown size={13} strokeWidth={1.75} />
-          Ordenar por
-        </p>
-        <SegmentedControl
-          ariaLabel="Ordenar por"
-          className="w-full sm:w-auto sm:min-w-[18rem]"
-          value={oldest ? "antiguas" : "nuevas"}
-          options={[
-            { id: "nuevas", label: "Más nuevas", href: href({ ...base, oldest: false }) },
-            { id: "antiguas", label: "Más antiguas", href: href({ ...base, oldest: true }) },
-          ]}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Bots</p>
-        <ChipRow>
-          <FilterChip href={href({ ...base, bots: [] })} selected={!selectedSlugs.length}>
-            Todos
-          </FilterChip>
-          {bots.map((bot) => (
-            <FilterChip
-              key={bot.id}
-              href={href({ ...base, bots: toggleBot(bot.slug) })}
-              selected={selectedSlugs.includes(bot.slug)}
-              check={selectedSlugs.includes(bot.slug)}
-            >
-              {bot.name}
+      <FilterToolbar
+        applied={selectedSlugs.length + (kind ? 1 : 0)}
+        clearHref={href({ bots: [], oldest })}
+        activeChips={[
+          ...selectedSlugs.map((slug) => ({
+            label: bots.find((b) => b.slug === slug)?.name ?? slug,
+            removeHref: href({ ...base, bots: selectedSlugs.filter((s) => s !== slug) }),
+          })),
+          ...(kind ? [{ label: kindLabel(kind as PostKind), removeHref: href({ ...base, kind: undefined }) }] : []),
+        ]}
+        primary={
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted lg:inline-flex">
+              <ArrowUpDown size={13} strokeWidth={1.75} />
+              Ordenar por
+            </p>
+            <SegmentedControl
+              ariaLabel="Ordenar por"
+              className="lg:w-auto lg:min-w-[18rem]"
+              value={oldest ? "antiguas" : "nuevas"}
+              options={[
+                { id: "nuevas", label: "Más nuevas", href: href({ ...base, oldest: false }) },
+                { id: "antiguas", label: "Más antiguas", href: href({ ...base, oldest: true }) },
+              ]}
+            />
+          </div>
+        }
+      >
+        <FilterGroup label="Bots">
+          <ChipRow>
+            <FilterChip href={href({ ...base, bots: [] })} selected={!selectedSlugs.length}>
+              Todos
             </FilterChip>
-          ))}
-        </ChipRow>
+            {bots.map((bot) => (
+              <FilterChip
+                key={bot.id}
+                href={href({ ...base, bots: toggleBot(bot.slug) })}
+                selected={selectedSlugs.includes(bot.slug)}
+                check={selectedSlugs.includes(bot.slug)}
+              >
+                {bot.name}
+              </FilterChip>
+            ))}
+          </ChipRow>
+        </FilterGroup>
         {kinds.length > 1 ? (
-          <>
-            <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted">Tipo</p>
+          <FilterGroup label="Tipo">
             <ChipRow>
               <FilterChip href={href({ ...base, kind: undefined })} selected={!kind}>
                 Todos
@@ -96,9 +108,9 @@ export default async function PublicacionesPage({ searchParams }: { searchParams
                 </FilterChip>
               ))}
             </ChipRow>
-          </>
+          </FilterGroup>
         ) : null}
-      </div>
+      </FilterToolbar>
 
       {posts.length === 0 ? (
         <div className="surface rounded-3xl p-6 text-center">

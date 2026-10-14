@@ -1,4 +1,5 @@
 import { ChipRow, FilterChip } from "@/components/FilterChip";
+import { FilterGroup, FilterToolbar } from "@/components/FilterToolbar";
 import { getRepository } from "@/lib/data";
 import { listMessages, listRequests } from "@/lib/requests";
 
@@ -31,20 +32,28 @@ export default async function PedidosPage({
           Lo que le pediste a cada bot y sus respuestas.
         </p>
       </div>
-      <ChipRow>
-        <FilterChip href="/pedidos" selected={!params.status}>
-          Todos
-        </FilterChip>
-        {["pendiente", "en_progreso", "respondido", "descartado"].map((status) => (
-          <FilterChip
-            key={status}
-            href={`/pedidos?status=${status}`}
-            selected={params.status === status}
-          >
-            {status}
-          </FilterChip>
-        ))}
-      </ChipRow>
+      <FilterToolbar
+        applied={params.status ? 1 : 0}
+        clearHref="/pedidos"
+        activeChips={params.status ? [{ label: params.status, removeHref: "/pedidos" }] : []}
+      >
+        <FilterGroup label="Estado">
+          <ChipRow>
+            <FilterChip href="/pedidos" selected={!params.status}>
+              Todos
+            </FilterChip>
+            {["pendiente", "en_progreso", "respondido", "descartado"].map((status) => (
+              <FilterChip
+                key={status}
+                href={`/pedidos?status=${status}`}
+                selected={params.status === status}
+              >
+                {status}
+              </FilterChip>
+            ))}
+          </ChipRow>
+        </FilterGroup>
+      </FilterToolbar>
       {detailed.length === 0 ? (
         <p className="text-sm text-muted">Todavía no hay pedidos.</p>
       ) : (

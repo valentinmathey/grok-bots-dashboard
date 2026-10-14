@@ -43,7 +43,7 @@ export function AgendaFilters({
         />
       </div>
 
-      <FilterToolbar applied={countAgendaFilters(query)} title="Filtros">
+      <FilterToolbar applied={countAgendaFilters(query)} title="Filtros" clearHref="/agenda">
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
             Actividades
