@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  Bot,
   Bell,
   CalendarClock,
   CalendarDays,
@@ -42,7 +43,7 @@ const TABS = [
   { id: "inicio", href: "/", label: "Inicio", icon: Home },
   { id: "agenda", href: "/agenda", label: "Agenda", icon: CalendarDays },
   { id: "buscar", href: "/buscar", label: "Buscar", icon: Search },
-  { id: "guardados", href: "/favoritos", label: "Guardados", icon: Star },
+  { id: "bots", href: "/bots", label: "Bots", icon: Bot },
 ] as const;
 
 const LEFT_TABS = [
@@ -51,13 +52,14 @@ const LEFT_TABS = [
 ] as const;
 
 const RIGHT_TABS = [
-  { id: "guardados", href: "/favoritos", label: "Guardados", icon: Star },
+  { id: "bots", href: "/bots", label: "Bots", icon: Bot },
 ] as const;
 
 const MORE_LINKS = [
   { href: "/publicaciones", label: "Publicaciones", icon: Newspaper, badge: false },
   { href: "/audios", label: "Audios", icon: Headphones, badge: false },
   { href: "/pedidos", label: "Pedidos", icon: MessageSquare, badge: true },
+  { href: "/favoritos", label: "Favoritos", icon: Star, badge: false },
   { href: "/estadisticas", label: "Estadísticas", icon: BarChart3, badge: false },
   { href: "/rutinas", label: "Rutinas", icon: CalendarClock, badge: false },
   { href: "/notificaciones", label: "Notificaciones", icon: Bell, badge: false },
@@ -351,7 +353,7 @@ function TabLink({
       <Icon
         size={20}
         strokeWidth={active ? 2.35 : 1.75}
-        fill={active && tab.id === "guardados" ? "currentColor" : "none"}
+        fill="none"
         className="pointer-events-none"
       />
       <span className="pointer-events-none">{tab.label}</span>

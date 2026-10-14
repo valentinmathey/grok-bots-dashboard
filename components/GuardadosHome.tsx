@@ -22,7 +22,7 @@ export async function GuardadosHome() {
     >
       <span className="inline-flex items-center gap-2">
         <Star size={14} strokeWidth={1.75} className="text-amber-500" />
-        {favs.length} guardados
+        {favs.length} favoritos
       </span>
       <span className="truncate text-xs text-muted">
         {next ? `Próximo: ${next.title} · ${formatEventWhen(next.event_at as string)}` : "Ver todos"}

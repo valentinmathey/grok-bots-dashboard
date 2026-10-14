@@ -6,19 +6,22 @@ describe("pestañas principales", () => {
     expect(primaryTabFromPathname("/")).toBe("inicio");
     expect(primaryTabFromPathname("/agenda")).toBe("agenda");
     expect(primaryTabFromPathname("/buscar?q=hola")).toBe("buscar");
-    expect(primaryTabFromPathname("/favoritos")).toBe("guardados");
+    expect(primaryTabFromPathname("/favoritos")).toBe("mas");
+    expect(primaryTabFromPathname("/bots")).toBe("bots");
     expect(primaryTabFromPathname("/pedidos/abc")).toBe("mas");
     expect(primaryTabFromPathname("/estadisticas")).toBe("mas");
     expect(primaryTabFromPathname("/notificaciones")).toBe("mas");
     expect(primaryTabFromPathname("/ajustes")).toBe("mas");
     expect(primaryTabFromPathname("/bots/nuevo")).toBe("mas");
-    expect(primaryTabFromPathname("/bots/reportero")).toBe("inicio");
+    expect(primaryTabFromPathname("/bots/reportero")).toBe("bots");
   });
 
   it("marca Más en las rutas secundarias", () => {
     expect(isMoreRoute("/pedidos")).toBe(true);
     expect(isMoreRoute("/")).toBe(false);
     expect(titleFromPathname("/agenda")).toBe("Agenda");
-    expect(titleFromPathname("/favoritos")).toBe("Guardados");
+    expect(titleFromPathname("/favoritos")).toBe("Favoritos");
+    expect(titleFromPathname("/")).toBe("Resumen del día");
+    expect(titleFromPathname("/bots")).toBe("Tus bots");
   });
 });

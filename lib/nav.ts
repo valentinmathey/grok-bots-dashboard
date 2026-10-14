@@ -1,10 +1,11 @@
-export type PrimaryTab = "inicio" | "agenda" | "buscar" | "guardados" | "mas";
+export type PrimaryTab = "inicio" | "agenda" | "buscar" | "bots" | "mas";
 
 export function titleFromPathname(pathname: string): string {
-  if (pathname === "/") return "Tus bots";
+  if (pathname === "/") return "Resumen del día";
+  if (pathname === "/bots") return "Tus bots";
   if (pathname.startsWith("/agenda")) return "Agenda";
   if (pathname.startsWith("/buscar")) return "Buscar";
-  if (pathname.startsWith("/favoritos")) return "Guardados";
+  if (pathname.startsWith("/favoritos")) return "Favoritos";
   if (pathname.startsWith("/publicaciones")) return "Publicaciones";
   if (pathname.startsWith("/pedidos")) return "Pedidos";
   if (pathname.startsWith("/estadisticas")) return "Estadísticas";
@@ -20,10 +21,10 @@ export function titleFromPathname(pathname: string): string {
 export function primaryTabFromPathname(pathname: string): PrimaryTab {
   if (pathname.startsWith("/agenda")) return "agenda";
   if (pathname.startsWith("/buscar")) return "buscar";
-  if (pathname.startsWith("/favoritos")) return "guardados";
   if (
     pathname.startsWith("/publicaciones") ||
     pathname.startsWith("/pedidos") ||
+    pathname.startsWith("/favoritos") ||
     pathname.startsWith("/estadisticas") ||
     pathname.startsWith("/audios") ||
     pathname.startsWith("/rutinas") ||
@@ -33,7 +34,7 @@ export function primaryTabFromPathname(pathname: string): PrimaryTab {
   ) {
     return "mas";
   }
-  if (pathname === "/") return "inicio";
+  if (pathname === "/bots" || pathname.startsWith("/bots/")) return "bots";
   return "inicio";
 }
 
