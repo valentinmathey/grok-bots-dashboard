@@ -1,4 +1,5 @@
 import { AppNav } from "@/components/AppNav";
+import { AppBadgeSync } from "@/components/AppBadgeSync";
 import { FavoritesProvider } from "@/components/FavoritesProvider";
 import { NavProvider } from "@/components/nav-context";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -25,6 +26,7 @@ export default async function DashboardLayout({
       <FavoritesProvider>
         <NavProvider unreadPedidos={unreadPedidos}>
           <ResumeRefresh />
+          <AppBadgeSync />
           <PullToRefresh />
           <AppNav email={email} />
           <main className="safe-px safe-pb mx-auto w-full min-w-0 max-w-5xl flex-1 overflow-x-clip pt-4 sm:pt-8">

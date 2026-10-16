@@ -66,6 +66,7 @@ export function buildPushPayload(input: {
       tag: `new-post:${bot.slug}`,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
+      newPosts: count,
     };
   }
   return {
@@ -75,6 +76,7 @@ export function buildPushPayload(input: {
     tag: `new-post:${bot.slug}`,
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
+    newPosts: 1,
   };
 }
 

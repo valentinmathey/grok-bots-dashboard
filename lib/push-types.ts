@@ -28,6 +28,8 @@ export type PushPayload = {
   tag: string;
   icon?: string;
   badge?: string;
+  /** Posts nuevos que trae este aviso (para el número del ícono). */
+  newPosts?: number;
 };
 
 export type PushSubscriptionRow = {

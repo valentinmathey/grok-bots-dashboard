@@ -1,4 +1,4 @@
-const VERSION = "gb-pwa-v4";
+const VERSION = "gb-pwa-v5";
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const PRECACHE = [
@@ -117,6 +117,27 @@ self.addEventListener("message", (event) => {
   }
 });
 
+/** Número del ícono: lo calcula el server (novedades desde la última visita). */
+async function updateBadge(data) {
+  if (!("setAppBadge" in self.navigator)) return;
+  try {
+    const res = await fetch("/api/admin/badge", { credentials: "include", cache: "no-store" });
+    if (res.ok) {
+      const { count } = await res.json();
+      if (count > 0) await self.navigator.setAppBadge(Math.min(count, 99));
+      else await self.navigator.clearAppBadge();
+      return;
+    }
+  } catch {
+    /* sin red o sin sesión: usamos el respaldo */
+  }
+  try {
+    if (data.newPosts > 0) await self.navigator.setAppBadge();
+  } catch {
+    /* no soportado */
+  }
+}
+
 self.addEventListener("push", (event) => {
   let data = {
     title: "Grok Bots",
@@ -131,14 +152,15 @@ self.addEventListener("push", (event) => {
   } catch {
     /* payload vacío */
   }
+  const badge = updateBadge(data);
   event.waitUntil(
-    self.registration.showNotification(data.title, {
+    Promise.all([badge, self.registration.showNotification(data.title, {
       body: data.body,
       tag: data.tag,
       icon: data.icon,
       badge: data.badge,
       data: { url: data.url || "/" },
-    }),
+    })]),
   );
 });
 
