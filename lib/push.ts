@@ -30,6 +30,9 @@ export async function sendPush(payload: PushPayload, filter?: PushFilter): Promi
 
   webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
   const subs = await listSubscriptions();
+  // El número del ícono lo pide el service worker a /api/admin/badge (con la
+  // cookie de visita del Resumen); newPosts sirve de respaldo.
+  const body = JSON.stringify(payload);
   let sent = 0;
   for (const sub of subs) {
     try {
@@ -38,7 +41,7 @@ export async function sendPush(payload: PushPayload, filter?: PushFilter): Promi
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth },
         },
-        JSON.stringify(payload),
+        body,
       );
       await markSubscriptionSuccess(sub.id);
       sent += 1;
