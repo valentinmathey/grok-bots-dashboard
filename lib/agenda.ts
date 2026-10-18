@@ -1,3 +1,4 @@
+import { buildIcs } from "@/lib/ics";
 import { asAlojamiento, asOportunidades, isOpportunityClosed } from "@/lib/details";
 import { baCalendarDate } from "@/lib/event-time";
 import type { Bot, Post } from "@/lib/types";
@@ -23,6 +24,13 @@ export type AgendaEntry = {
   favorite?: boolean;
   allDay?: boolean;
   startsAt?: string;
+  /** Datos extra para el feed .ics. */
+  endsAt?: string;
+  tags?: string[];
+  details?: Record<string, unknown> | null;
+  body?: string;
+  link?: string;
+  updatedAt?: string;
 };
 
 export function collectAgendaEntries(
@@ -46,6 +54,11 @@ export function collectAgendaEntries(
         bot: post.bot,
         favorite: fav,
         startsAt: post.event_at,
+        endsAt: post.event_end_at ?? undefined,
+        tags: post.tags,
+        details: post.details,
+        body: post.body_markdown,
+        updatedAt: post.updated_at ?? post.created_at,
       });
     }
     if (post.kind === "oportunidades") {
@@ -59,9 +72,13 @@ export function collectAgendaEntries(
           type: "cierre",
           postId: post.id,
           bot: post.bot,
-          location: item.location || item.modality,
+          location: item.location || (item.modality === "online" ? "Online" : item.modality),
           favorite: fav,
           allDay: true,
+          tags: [item.category ?? "", ...(item.tags ?? [])],
+          details: { category: item.category, modality: item.modality, location: item.location, url: item.url },
+          link: item.url,
+          updatedAt: post.updated_at ?? post.created_at,
         });
       }
     }
@@ -82,6 +99,7 @@ export function collectAgendaEntries(
           bot: post.bot,
           favorite: fav,
           allDay: true,
+          updatedAt: post.updated_at ?? post.created_at,
         });
       }
     }
@@ -94,29 +112,8 @@ export function icsEscape(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
 }
 
-export function toIcs(entries: AgendaEntry[], calName = "Grok Bots"): string {
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Grok Bots//Agenda//ES",
-    `X-WR-CALNAME:${icsEscape(calName)}`,
-    "CALSCALE:GREGORIAN",
-  ];
-  for (const entry of entries) {
-    const start = entry.date.replace(/-/g, "");
-    const end = (entry.endDate ?? entry.date).replace(/-/g, "");
-    lines.push(
-      "BEGIN:VEVENT",
-      `UID:${entry.id}@grok-bots`,
-      `DTSTART;VALUE=DATE:${start}`,
-      `DTEND;VALUE=DATE:${end}`,
-      `SUMMARY:${icsEscape(entry.title)}`,
-      `DESCRIPTION:${icsEscape(`${entry.bot.name} · ${entry.type}`)}`,
-      "END:VEVENT",
-    );
-  }
-  lines.push("END:VCALENDAR");
-  return `${lines.join("\r\n")}\r\n`;
+export function toIcs(entries: AgendaEntry[], calName = "Grok Bots · Eventos", baseUrl = ""): string {
+  return buildIcs(entries, { baseUrl, calName });
 }
 
 export function googleCalendarUrl(entry: AgendaEntry): string {
