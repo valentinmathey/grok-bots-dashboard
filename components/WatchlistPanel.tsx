@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useWatchlist } from "@/components/WatchlistProvider";
 import { Eye, Plus, Trash2, TrendingDown, PackageCheck } from "lucide-react";
 import {
   WATCHLIST_STATUSES,
@@ -27,86 +28,37 @@ const fmt = (n: number, currency = "ARS") =>
     maximumFractionDigits: 0,
   }).format(n);
 
-async function api(method: string, body?: unknown, query = "") {
-  const res = await fetch(`/api/admin/watchlist${query}`, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok)
-    throw new Error(
-      (await res.json().catch(() => null))?.error?.message ?? "Error",
-    );
-  return res.json();
-}
-
 export function WatchlistPanel({
-  botId,
-  initialItems,
   rankings,
 }: {
-  botId: string;
-  initialItems: WatchlistItem[];
   rankings: Record<string, WatchRankingSummary>;
 }) {
-  const [items, setItems] = useState(initialItems);
+  const ctx = useWatchlist();
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
   const [filter, setFilter] = useState<WatchlistStatus | "todos">("siguiendo");
+  if (!ctx) return null;
+  const { items, error, pending } = ctx;
+  const patch = (id: string, change: Partial<WatchlistItem>) =>
+    void ctx.patch(id, change);
+  const remove = (id: string) => void ctx.remove(id);
 
   const shown = items.filter((i) => filter === "todos" || i.status === filter);
 
-  function add(event: React.FormEvent) {
+  async function add(event: React.FormEvent) {
     event.preventDefault();
     const clean = name.trim();
-    if (!clean) return;
+    if (!clean || !ctx) return;
     const price = target.replace(/[^\d]/g, "");
-    start(async () => {
-      try {
-        const { item } = await api("POST", {
-          bot_id: botId,
-          name: clean,
-          target_price: price ? Number(price) : null,
-        });
-        setItems((prev) => [...prev, item]);
-        setName("");
-        setTarget("");
-        setFilter("siguiendo");
-        setError(null);
-      } catch (e) {
-        setError((e as Error).message);
-      }
+    const item = await ctx.add({
+      name: clean,
+      target_price: price ? Number(price) : null,
     });
-  }
-
-  function patch(id: string, change: Partial<WatchlistItem>) {
-    const before = items;
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, ...change } : i)),
-    );
-    start(async () => {
-      try {
-        await api("PATCH", { id, ...change });
-      } catch (e) {
-        setItems(before);
-        setError((e as Error).message);
-      }
-    });
-  }
-
-  function remove(id: string) {
-    const before = items;
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    start(async () => {
-      try {
-        await api("DELETE", undefined, `?id=${encodeURIComponent(id)}`);
-      } catch (e) {
-        setItems(before);
-        setError((e as Error).message);
-      }
-    });
+    if (item) {
+      setName("");
+      setTarget("");
+      setFilter("siguiendo");
+    }
   }
 
   const counts = Object.fromEntries(

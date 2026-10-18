@@ -21,6 +21,7 @@ export const createWatchlistSchema = z
     name: z.string().trim().min(1).max(160),
     target_price: z.number().min(0).max(1_000_000_000).nullable().optional(),
     notes: z.string().trim().max(280).optional(),
+    status: z.enum(WATCHLIST_STATUSES).optional(),
   })
   .strict();
 
@@ -67,7 +68,7 @@ export async function createWatchlistItem(
     name: input.name,
     target_price: input.target_price ?? null,
     notes: input.notes ?? "",
-    status: "siguiendo" as WatchlistStatus,
+    status: (input.status ?? "siguiendo") as WatchlistStatus,
   };
   if (isPreviewMode()) {
     const item = {

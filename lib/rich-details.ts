@@ -43,6 +43,7 @@ export type NewsletterIcon = (typeof NEWSLETTER_ICONS)[number];
 
 export const rankingOfferSchema = z.object({
   store: z.string().trim().min(1).max(80),
+  seller: z.string().trim().max(80).optional(),
   url: requiredHttpUrl,
   price: money,
   price_as_shown: z.string().trim().max(80).optional(),

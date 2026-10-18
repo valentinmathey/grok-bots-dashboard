@@ -1,6 +1,7 @@
 "use client";
 
 import { foldStore, storeGroupName } from "@/lib/store-group";
+import { WatchStatusPicker } from "@/components/WatchStatusPicker";
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpDown, ExternalLink, PackageCheck, TrendingDown } from "lucide-react";
@@ -63,6 +64,7 @@ function StoreButton({ href }: { href: string }) {
 }
 
 function offerVariant(offer: RankingOffer, group: string): string | null {
+  if (offer.seller) return offer.seller;
   const rest = offer.store.trim();
   return foldStore(rest) === foldStore(group) ? null : rest;
 }
@@ -104,7 +106,8 @@ function OfferCard({
   best?: boolean;
   cardBest?: boolean;
 }) {
-  const title = label === undefined ? offer.store : label;
+  const title =
+    label === undefined ? (offer.seller ? `${offer.store} · ${offer.seller}` : offer.store) : label;
   return (
     <article
       className={`rounded-2xl border p-3 ${
@@ -304,6 +307,11 @@ export function RankingCard({
                     {details.checked_at ? ` · actualizado ${formatDate(details.checked_at)}` : ""}
                   </p>
                 ) : null}
+                <WatchStatusPicker
+                  className="mt-2"
+                  productName={details.product_name}
+                  sourceId={details.source_id}
+                />
                 {details.price_history?.length ? (
                   <div className="mt-2">
                     <Sparkline values={details.price_history.map((item) => item.best_price)} />
@@ -431,6 +439,7 @@ export function RankingCard({
                   >
                     <td className="py-2.5 pr-2 align-top">
                       <p className="font-medium">{offer.store}</p>
+                      {offer.seller ? <p className="text-xs text-muted">{offer.seller}</p> : null}
                       <OfferBadges best={bestRow} cardBest={cardRow} />
                     </td>
                     <td className="whitespace-nowrap py-2.5 pr-2 align-top font-semibold tabular-nums">
