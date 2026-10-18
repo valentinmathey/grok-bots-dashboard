@@ -37,6 +37,6 @@ describe("agenda ICS", () => {
     const ics = toIcs(entries);
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("BEGIN:VEVENT");
-    expect(ics).toContain("SUMMARY:Demo");
+    expect(ics).toContain("SUMMARY:📅 Demo");
   });
 });
