@@ -100,7 +100,7 @@ export function AgendaViva({
         ]}
       />
 
-      {kind === "evento-mza" && tab === "proximos" ? (
+      {tab === "proximos" ? (
         <SegmentedControl
           value={view}
           ariaLabel="Agrupar"
@@ -149,7 +149,7 @@ export function AgendaViva({
             <Group title="Promos vigentes">{buckets.promos.map(card)}</Group>
           ) : null}
 
-          {view === "categoria" && kind === "evento-mza" ? (
+          {view === "categoria" ? (
             [...byCategory.entries()].map(([cat, list]) => (
               <Group key={cat} title={`${mzaEmoji(kind, { [catKey]: cat })} ${catLabels[cat] ?? cat}`}>
                 {list.map(card)}
