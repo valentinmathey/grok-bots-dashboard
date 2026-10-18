@@ -55,6 +55,7 @@ describe("MCP Streamable HTTP", () => {
       "delete_audio",
       "set_routines",
       "list_routines",
+      "list_watchlist",
       "delete_post",
       "publish_weekly_summary",
       "list_requests",
