@@ -5,6 +5,10 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { NavTitle } from "@/components/nav-context";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { PostFeed } from "@/components/PostFeed";
+import { AgendaViva } from "@/components/mza/AgendaViva";
+import { cookies } from "next/headers";
+import { VISIT_COOKIE } from "@/lib/last-seen";
+import { MZA_BOT_SLUGS, MZA_KINDS, type MzaKind } from "@/lib/mendoza";
 import { GeneralRequestButton } from "@/components/RequestModal";
 import { TimeStamp } from "@/components/TimeStamp";
 import { resolveAvatar } from "@/lib/avatar";
@@ -27,6 +31,18 @@ export default async function BotPage({
   }
 
   const facets = await repo.listFacets(bot.id);
+  // Bots de Mendoza: vista "agenda viva" (con ?vista=feed se ve el feed clásico).
+  const mzaKind: MzaKind | undefined =
+    MZA_BOT_SLUGS[bot.slug] ??
+    MZA_KINDS.find((kind) => facets.kinds.includes(kind));
+  const showAgendaViva = Boolean(mzaKind) && search.vista !== "feed";
+  const mzaPosts =
+    showAgendaViva && mzaKind
+      ? await repo.listPostsByBot(bot.id, { kind: mzaKind })
+      : [];
+  const visitRaw = showAgendaViva
+    ? (await cookies()).get(VISIT_COOKIE)?.value
+    : undefined;
   const query = parseFeedQuery(search, {
     hasEvents: facets.has_events,
     hasAlojamientos: facets.has_alojamientos,
@@ -55,7 +71,10 @@ export default async function BotPage({
     >
       <NavTitle title={bot.name} />
       <div className="min-w-0">
-        <Link href="/" className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent">
+        <Link
+          href="/"
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent"
+        >
           <ArrowLeft size={16} strokeWidth={1.75} />
           Bots
         </Link>
@@ -67,7 +86,10 @@ export default async function BotPage({
                 {bot.name}
               </h1>
               <div className="flex shrink-0 items-center gap-2">
-                <GeneralRequestButton bot={requestBot} className="hidden sm:inline-flex" />
+                <GeneralRequestButton
+                  bot={requestBot}
+                  className="hidden sm:inline-flex"
+                />
                 <LiveRefresh />
               </div>
             </div>
@@ -77,8 +99,14 @@ export default async function BotPage({
               </p>
             ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <GeneralRequestButton bot={requestBot} className="inline-flex sm:hidden" />
-              <Link href={`/estadisticas?bot=${bot.slug}`} className="text-xs font-medium text-accent">
+              <GeneralRequestButton
+                bot={requestBot}
+                className="inline-flex sm:hidden"
+              />
+              <Link
+                href={`/estadisticas?bot=${bot.slug}`}
+                className="text-xs font-medium text-accent"
+              >
                 Estadísticas
               </Link>
             </div>
@@ -103,15 +131,34 @@ export default async function BotPage({
         </section>
       ) : null}
 
-      <PostFeed
-        key={JSON.stringify(query)}
-        slug={bot.slug}
-        query={query}
-        initialPosts={page.posts}
-        total={page.total}
-        facets={facets}
-        bot={bot}
-      />
+      {showAgendaViva && mzaKind ? (
+        <>
+          <AgendaViva
+            kind={mzaKind}
+            posts={mzaPosts}
+            nowIso={new Date().toISOString()}
+            baselineIso={visitRaw ? decodeURIComponent(visitRaw) : null}
+          />
+          <p className="text-center">
+            <Link
+              href={`/bots/${bot.slug}?vista=feed`}
+              className="text-xs font-medium text-accent"
+            >
+              Ver todas las publicaciones
+            </Link>
+          </p>
+        </>
+      ) : (
+        <PostFeed
+          key={JSON.stringify(query)}
+          slug={bot.slug}
+          query={query}
+          initialPosts={page.posts}
+          total={page.total}
+          facets={facets}
+          bot={bot}
+        />
+      )}
     </div>
   );
 }

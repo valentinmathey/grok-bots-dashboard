@@ -25,6 +25,7 @@ export type AgendaEntry = {
   allDay?: boolean;
   startsAt?: string;
   /** Datos extra para el feed .ics. */
+  kind?: string;
   endsAt?: string;
   tags?: string[];
   details?: Record<string, unknown> | null;
@@ -55,6 +56,7 @@ export function collectAgendaEntries(
         favorite: fav,
         startsAt: post.event_at,
         endsAt: post.event_end_at ?? undefined,
+        kind: post.kind,
         tags: post.tags,
         details: post.details,
         body: post.body_markdown,
