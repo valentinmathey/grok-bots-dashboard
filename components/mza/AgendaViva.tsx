@@ -1,7 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ExternalLink, MapPin, SlidersHorizontal, Ticket } from "lucide-react";
+import {
+  Building2,
+  ChevronDown,
+  ExternalLink,
+  LayoutList,
+  MapPin,
+  SlidersHorizontal,
+  Tag,
+  Ticket,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { FilterChip } from "@/components/FilterChip";
 import { SegmentedControl } from "@/components/FilterChip";
 import { Sheet, SheetFooter } from "@/components/Sheet";
@@ -32,7 +43,8 @@ import {
 import type { Post } from "@/lib/types";
 
 type D = Record<string, unknown>;
-const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+const str = (v: unknown) =>
+  typeof v === "string" && v.trim() ? v.trim() : undefined;
 
 const PRICE_STEPS = [5000, 10000, 20000, 40000];
 
@@ -41,7 +53,8 @@ function formatArs(n: number) {
 }
 
 function priceLabel(d: D) {
-  if (typeof d.price_from === "number") return d.price_from === 0 ? "Gratis" : `Desde ${formatArs(d.price_from)}`;
+  if (typeof d.price_from === "number")
+    return d.price_from === 0 ? "Gratis" : `Desde ${formatArs(d.price_from)}`;
   return str(d.price_text);
 }
 
@@ -51,11 +64,17 @@ type Presale = Money & { until?: string; status?: string; remaining?: number };
 function money(price: number | undefined, currency?: string) {
   if (typeof price !== "number") return null;
   if (price === 0) return "Gratis";
-  return currency === "USD" ? `US$${Math.round(price).toLocaleString("es-AR")}` : formatArs(price);
+  return currency === "USD"
+    ? `US$${Math.round(price).toLocaleString("es-AR")}`
+    : formatArs(price);
 }
 
 function arr<T>(v: unknown): T[] {
-  return Array.isArray(v) ? (v.filter((x) => x && (typeof x === "object" || typeof x === "string")) as T[]) : [];
+  return Array.isArray(v)
+    ? (v.filter(
+        (x) => x && (typeof x === "object" || typeof x === "string"),
+      ) as T[])
+    : [];
 }
 
 function timeOf(v: string) {
@@ -67,16 +86,24 @@ function timeOf(v: string) {
 function untilLabel(v?: string) {
   if (!v) return null;
   const d = new Date(/T/.test(v) ? v : `${v}T12:00:00-03:00`);
-  return Number.isNaN(d.getTime()) ? null : `hasta ${formatDate(d)}${/T/.test(v) ? ` ${formatTime(d)}` : ""}`;
+  return Number.isNaN(d.getTime())
+    ? null
+    : `hasta ${formatDate(d)}${/T/.test(v) ? ` ${formatTime(d)}` : ""}`;
 }
 
-const PRESALE_LABELS: Record<string, string> = { vigente: "Vigente", agotada: "Agotada", proxima: "Próxima" };
+const PRESALE_LABELS: Record<string, string> = {
+  vigente: "Vigente",
+  agotada: "Agotada",
+  proxima: "Próxima",
+};
 
 function presaleChip(p: Presale) {
   return [
     `Preventa ${p.label ?? ""}`.trim(),
     money(p.price, p.currency),
-    typeof p.remaining === "number" ? `quedan ${p.remaining}` : untilLabel(p.until),
+    typeof p.remaining === "number"
+      ? `quedan ${p.remaining}`
+      : untilLabel(p.until),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -105,17 +132,29 @@ export function AgendaViva({
   const [draft, setDraft] = useState<MzaFilters>(EMPTY_MZA_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const visible = posts.filter((post) => matchesMzaFilters(post, kind, filters));
+  const visible = posts.filter((post) =>
+    matchesMzaFilters(post, kind, filters),
+  );
   const buckets = bucketMzaPosts(visible, now);
   const active = countMzaFilters(filters);
   const catKey = mzaCategoryKey(kind);
   const catLabels = mzaCategoryLabels(kind);
   const venues = useMemo(
-    () => [...new Set(posts.map((p) => str((p.details as D)?.venue)).filter(Boolean) as string[])].sort(),
+    () =>
+      [
+        ...new Set(
+          posts
+            .map((p) => str((p.details as D)?.venue))
+            .filter(Boolean) as string[],
+        ),
+      ].sort(),
     [posts],
   );
 
-  const upcomingAll = [...buckets.days.flatMap((g) => g.posts), ...buckets.undated];
+  const upcomingAll = [
+    ...buckets.days.flatMap((g) => g.posts),
+    ...buckets.undated,
+  ];
   const byCategory = new Map<string, Post[]>();
   for (const post of upcomingAll) {
     const key = String((post.details as D)?.[catKey] ?? "otro");
@@ -123,7 +162,7 @@ export function AgendaViva({
   }
 
   const card = (post: Post) => (
-    <MzaCard key={post.id} post={post} kind={kind} today={today}  />
+    <MzaCard key={post.id} post={post} kind={kind} today={today} />
   );
 
   return (
@@ -132,30 +171,27 @@ export function AgendaViva({
         value={tab}
         ariaLabel="Próximos o pasados"
         options={[
-          { id: "proximos", label: "Próximos", onClick: () => setTab("proximos") },
-          { id: "pasados", label: `Pasados (${buckets.past.length})`, onClick: () => setTab("pasados") },
+          {
+            id: "proximos",
+            label: "Próximos",
+            onClick: () => setTab("proximos"),
+          },
+          {
+            id: "pasados",
+            label: `Pasados (${buckets.past.length})`,
+            onClick: () => setTab("pasados"),
+          },
         ]}
       />
 
-      {tab === "proximos" ? (
-        <SegmentedControl
-          value={view}
-          ariaLabel="Agrupar"
-          options={[
-            { id: "dia", label: "Por día", onClick: () => setView("dia") },
-            { id: "categoria", label: "Por categoría", onClick: () => setView("categoria") },
-          ]}
-        />
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={() => {
             setDraft(filters);
             setSheetOpen(true);
           }}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium"
+          className="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium"
         >
           <SlidersHorizontal size={16} strokeWidth={1.75} />
           Filtros
@@ -165,6 +201,20 @@ export function AgendaViva({
             </span>
           ) : null}
         </button>
+        {tab === "proximos" ? (
+          <label className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-line bg-card px-3 text-sm font-medium">
+            <LayoutList size={14} strokeWidth={1.75} />
+            <span className="sr-only">Agrupar</span>
+            <select
+              value={view}
+              onChange={(e) => setView(e.target.value as "dia" | "categoria")}
+              className="min-w-0 flex-1 bg-transparent font-medium"
+            >
+              <option value="dia">Por día</option>
+              <option value="categoria">Por categoría</option>
+            </select>
+          </label>
+        ) : null}
       </div>
 
       {tab === "pasados" ? (
@@ -188,7 +238,10 @@ export function AgendaViva({
 
           {view === "categoria" ? (
             [...byCategory.entries()].map(([cat, list]) => (
-              <Group key={cat} title={`${mzaEmoji(kind, { [catKey]: cat })} ${catLabels[cat] ?? cat}`}>
+              <Group
+                key={cat}
+                title={`${mzaEmoji(kind, { [catKey]: cat })} ${catLabels[cat] ?? cat}`}
+              >
                 {list.map(card)}
               </Group>
             ))
@@ -199,22 +252,40 @@ export function AgendaViva({
                   {group.posts.map(card)}
                 </Group>
               ))}
-              {buckets.undated.length ? <Group title="Sin fecha">{buckets.undated.map(card)}</Group> : null}
+              {buckets.undated.length ? (
+                <Group title="Sin fecha">{buckets.undated.map(card)}</Group>
+              ) : null}
             </>
           )}
 
-          {!buckets.days.length && !buckets.undated.length && !buckets.promos.length && !buckets.changes.length ? (
+          {!buckets.days.length &&
+          !buckets.undated.length &&
+          !buckets.promos.length &&
+          !buckets.changes.length ? (
             <p className="surface rounded-3xl px-4 py-8 text-center text-sm text-muted">
-              {active ? "No hay nada con estos filtros." : "No hay nada próximo por ahora."}
+              {active
+                ? "No hay nada con estos filtros."
+                : "No hay nada próximo por ahora."}
             </p>
           ) : null}
         </>
       )}
 
-      <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Filtros">
+      <Sheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title="Filtros"
+      >
         <div className="space-y-5 pb-2">
-          <FilterSection title="Zona">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Filtrar
+          </p>
+          <FilterSection
+            title="Zona"
+            icon={<MapPin size={13} strokeWidth={1.75} />}
+          >
             <FilterChip
+              size="sm"
               selected={GRAN_MENDOZA.every((z) => draft.zones.includes(z))}
               check={GRAN_MENDOZA.every((z) => draft.zones.includes(z))}
               onClick={() => {
@@ -222,7 +293,9 @@ export function AgendaViva({
                 setDraft({
                   ...draft,
                   zones: all
-                    ? draft.zones.filter((z) => !GRAN_MENDOZA.includes(z as MzaZone))
+                    ? draft.zones.filter(
+                        (z) => !GRAN_MENDOZA.includes(z as MzaZone),
+                      )
                     : [...new Set([...draft.zones, ...GRAN_MENDOZA])],
                 });
               }}
@@ -234,7 +307,9 @@ export function AgendaViva({
                 key={zone}
                 size="sm"
                 selected={draft.zones.includes(zone)}
-                onClick={() => setDraft({ ...draft, zones: toggle(draft.zones, zone) })}
+                onClick={() =>
+                  setDraft({ ...draft, zones: toggle(draft.zones, zone) })
+                }
               >
                 {ZONE_LABELS[zone]}
               </FilterChip>
@@ -242,64 +317,113 @@ export function AgendaViva({
             <FilterChip
               size="sm"
               selected={draft.zones.includes("fuera-de-zona")}
-              className={draft.zones.includes("fuera-de-zona") ? "" : "!bg-chip text-muted"}
-              onClick={() => setDraft({ ...draft, zones: toggle(draft.zones, "fuera-de-zona") })}
+              className={
+                draft.zones.includes("fuera-de-zona")
+                  ? ""
+                  : "!bg-chip text-muted"
+              }
+              onClick={() =>
+                setDraft({
+                  ...draft,
+                  zones: toggle(draft.zones, "fuera-de-zona"),
+                })
+              }
             >
               {ZONE_LABELS["fuera-de-zona"]}
             </FilterChip>
           </FilterSection>
 
-          <FilterSection title="Público">
+          <FilterSection
+            title="Público"
+            icon={<Users size={13} strokeWidth={1.75} />}
+          >
             {AUDIENCES.map((a) => (
               <FilterChip
+                size="sm"
                 key={a}
                 selected={draft.audience.includes(a)}
                 check={draft.audience.includes(a)}
-                onClick={() => setDraft({ ...draft, audience: toggle(draft.audience, a) })}
+                onClick={() =>
+                  setDraft({ ...draft, audience: toggle(draft.audience, a) })
+                }
               >
                 {AUDIENCE_LABELS[a]}
               </FilterChip>
             ))}
           </FilterSection>
 
-          <FilterSection title="Precio">
+          <FilterSection
+            title="Precio"
+            icon={<Wallet size={13} strokeWidth={1.75} />}
+          >
             <FilterChip
+              size="sm"
               selected={draft.free}
               check={draft.free}
-              onClick={() => setDraft({ ...draft, free: !draft.free, maxPrice: null })}
+              onClick={() =>
+                setDraft({ ...draft, free: !draft.free, maxPrice: null })
+              }
             >
               Gratis
             </FilterChip>
             {PRICE_STEPS.map((max) => (
               <FilterChip
+                size="sm"
                 key={max}
                 selected={draft.maxPrice === max}
-                onClick={() => setDraft({ ...draft, free: false, maxPrice: draft.maxPrice === max ? null : max })}
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    free: false,
+                    maxPrice: draft.maxPrice === max ? null : max,
+                  })
+                }
               >
                 Hasta {formatArs(max)}
               </FilterChip>
             ))}
           </FilterSection>
 
-          <FilterSection title={kind === "evento-mza" ? "Categoría" : kind === "gastro" ? "Tipo" : "Género"}>
+          <FilterSection
+            title={
+              kind === "evento-mza"
+                ? "Categoría"
+                : kind === "gastro"
+                  ? "Tipo"
+                  : "Género"
+            }
+            icon={<Tag size={13} strokeWidth={1.75} />}
+          >
             {Object.entries(catLabels).map(([id, label]) => (
               <FilterChip
                 key={id}
                 size="sm"
                 selected={draft.categories.includes(id)}
-                onClick={() => setDraft({ ...draft, categories: toggle(draft.categories, id) })}
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    categories: toggle(draft.categories, id),
+                  })
+                }
               >
                 {mzaEmoji(kind, { [catKey]: id })} {label}
               </FilterChip>
             ))}
           </FilterSection>
 
-          <FilterSection title="Lugar">
+          <FilterSection
+            title="Lugar"
+            icon={<Building2 size={13} strokeWidth={1.75} />}
+          >
             <input
               list="mza-venues"
               value={draft.venue}
               onChange={(e) => setDraft({ ...draft, venue: e.target.value })}
-              placeholder={kind === "recital" ? "Buscá un estadio, teatro o bar…" : "Buscá un lugar…"}
+              placeholder={
+                kind === "recital"
+                  ? "Buscá un estadio, teatro o bar…"
+                  : "Buscá un lugar…"
+              }
               className="min-h-11 w-full rounded-2xl border border-line bg-raised px-3 text-base sm:text-sm"
             />
             <datalist id="mza-venues">
@@ -333,21 +457,46 @@ export function AgendaViva({
   );
 }
 
-function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterSection({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <section>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{title}</h3>
+    <section className="border-t border-line pt-4 first-of-type:border-0 first-of-type:pt-0">
+      <h3 className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+        {icon}
+        {title}
+      </h3>
       <div className="flex flex-wrap gap-2">{children}</div>
     </section>
   );
 }
 
-function Group({ title, empty, children }: { title: string; empty?: string; children: React.ReactNode }) {
+function Group({
+  title,
+  empty,
+  children,
+}: {
+  title: string;
+  empty?: string;
+  children: React.ReactNode;
+}) {
   const list = Array.isArray(children) ? children : [children];
   return (
     <section className="space-y-2">
-      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{title}</h2>
-      {list.length ? <div className="space-y-2">{children}</div> : <p className="text-sm text-muted">{empty}</p>}
+      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+        {title}
+      </h2>
+      {list.length ? (
+        <div className="space-y-2">{children}</div>
+      ) : (
+        <p className="text-sm text-muted">{empty}</p>
+      )}
     </section>
   );
 }
@@ -370,7 +519,12 @@ function MzaCard({
   const promoTo = str(d.promo_to);
   const expiry = promoTo ? promoExpiryLabel(promoTo, today) : null;
   const zone = str(d.zone) as MzaZone | undefined;
-  const place = [str(d.venue), zone && (MZA_ZONES as readonly string[]).includes(zone) ? ZONE_LABELS[zone] : str(d.city)]
+  const place = [
+    str(d.venue),
+    zone && (MZA_ZONES as readonly string[]).includes(zone)
+      ? ZONE_LABELS[zone]
+      : str(d.city),
+  ]
     .filter(Boolean)
     .join(" · ");
   const price = priceLabel(d);
@@ -385,16 +539,17 @@ function MzaCard({
   const lineup = arr<string>(d.lineup).filter((x) => typeof x === "string");
   const ageMin = typeof d.age_min === "number" ? d.age_min : undefined;
   const openBar = d.open_bar === true;
-  const earlyBird = d.early_bird && typeof d.early_bird === "object" ? (d.early_bird as Presale) : undefined;
+  const earlyBird =
+    d.early_bird && typeof d.early_bird === "object"
+      ? (d.early_bird as Presale)
+      : undefined;
   const soldOut = ticket === "agotado" || status === "agotado";
   const image = str(d.image_url) ?? post.cover_image_url ?? undefined;
   const time = post.event_at ? formatTime(post.event_at) : null;
   const timeLabel = time && time !== "00:00" ? time : null;
 
   return (
-    <article
-      className="surface rounded-2xl p-3"
-    >
+    <article className="surface rounded-2xl p-3">
       <button
         type="button"
         onClick={() => {
@@ -412,14 +567,19 @@ function MzaCard({
             loading="lazy"
           />
         ) : (
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-chip text-2xl" aria-hidden>
+          <span
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-chip text-2xl"
+            aria-hidden
+          >
             {mzaEmoji(kind, d)}
           </span>
         )}
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-1.5">
             {countdown && !cancelled ? (
-              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">{countdown}</span>
+              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
+                {countdown}
+              </span>
             ) : null}
             {status === "cambiado" ? (
               <span className="rounded-full bg-amber-400/25 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
@@ -436,11 +596,13 @@ function MzaCard({
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${soldOut ? "bg-red-500/15 text-red-700 dark:text-red-400" : "bg-chip text-muted"}`}
               >
                 <Ticket size={11} className="mr-1 inline -translate-y-px" />
-                {soldOut ? "Agotado" : TICKET_LABELS[ticket] ?? ticket}
+                {soldOut ? "Agotado" : (TICKET_LABELS[ticket] ?? ticket)}
               </span>
             ) : null}
             {expiry ? (
-              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">{expiry}</span>
+              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">
+                {expiry}
+              </span>
             ) : null}
             {activePresale && !cancelled ? (
               <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -450,7 +612,9 @@ function MzaCard({
             {earlyBird && earlyBird.status !== "agotada" && !cancelled ? (
               <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-400">
                 {[
-                  earlyBird.status === "proxima" ? "Early bird (próx.)" : "Early bird",
+                  earlyBird.status === "proxima"
+                    ? "Early bird (próx.)"
+                    : "Early bird",
                   money(earlyBird.price, earlyBird.currency),
                   untilLabel(earlyBird.until),
                 ]
@@ -459,31 +623,50 @@ function MzaCard({
               </span>
             ) : null}
             {openBar ? (
-              <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-400">🍹 Barra libre</span>
+              <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-400">
+                🍹 Barra libre
+              </span>
             ) : null}
             {ageMin ? (
-              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">+{ageMin}</span>
+              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">
+                +{ageMin}
+              </span>
             ) : null}
           </span>
-          <span className={`mt-1 block text-sm font-semibold leading-5 ${cancelled ? "line-through opacity-70" : ""}`}>
+          <span
+            className={`mt-1 block text-sm font-semibold leading-5 ${cancelled ? "line-through opacity-70" : ""}`}
+          >
             <span aria-hidden className="mr-1">
               {mzaEmoji(kind, d)}
             </span>
             {post.title}
           </span>
           <span className="mt-0.5 block text-xs text-muted">
-            {[day ? `${dayHeading(day, today)}${timeLabel ? ` · ${timeLabel}` : ""}` : null, place || null, price || null]
+            {[
+              day
+                ? `${dayHeading(day, today)}${timeLabel ? ` · ${timeLabel}` : ""}`
+                : null,
+              place || null,
+              price || null,
+            ]
               .filter(Boolean)
               .join(" · ")}
           </span>
           {kind === "evento-mza" && lineup.length ? (
-            <span className="mt-0.5 block truncate text-xs font-medium">🎧 {lineup.join(" · ")}</span>
+            <span className="mt-0.5 block truncate text-xs font-medium">
+              🎧 {lineup.join(" · ")}
+            </span>
           ) : null}
           {str(d.change_note) && (status === "cambiado" || cancelled) ? (
-            <span className="mt-1 block text-xs font-medium text-amber-800 dark:text-amber-300">{str(d.change_note)}</span>
+            <span className="mt-1 block text-xs font-medium text-amber-800 dark:text-amber-300">
+              {str(d.change_note)}
+            </span>
           ) : null}
         </span>
-        <ChevronDown size={16} className={`mt-1 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          size={16}
+          className={`mt-1 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open ? (
@@ -491,20 +674,31 @@ function MzaCard({
           {audience.length ? (
             <p className="flex flex-wrap gap-1.5">
               {audience.map((a) => (
-                <span key={a} className="rounded-full bg-chip px-2 py-0.5 text-xs">
+                <span
+                  key={a}
+                  className="rounded-full bg-chip px-2 py-0.5 text-xs"
+                >
                   {AUDIENCE_LABELS[a as keyof typeof AUDIENCE_LABELS] ?? a}
                 </span>
               ))}
             </p>
           ) : null}
-          {kind === "recital" && Array.isArray(d.support) && d.support.length ? (
-            <p className="text-xs text-muted">Teloneros: {(d.support as string[]).join(", ")}</p>
+          {kind === "recital" &&
+          Array.isArray(d.support) &&
+          d.support.length ? (
+            <p className="text-xs text-muted">
+              Teloneros: {(d.support as string[]).join(", ")}
+            </p>
           ) : null}
-          {lineup.length ? <p className="text-xs text-muted">Lineup: {lineup.join(", ")}</p> : null}
+          {lineup.length ? (
+            <p className="text-xs text-muted">Lineup: {lineup.join(", ")}</p>
+          ) : null}
           {str(d.doors_at) || str(d.dress_code) || ageMin ? (
             <p className="text-xs text-muted">
               {[
-                str(d.doors_at) ? `Puertas: ${timeOf(str(d.doors_at) as string)}` : null,
+                str(d.doors_at)
+                  ? `Puertas: ${timeOf(str(d.doors_at) as string)}`
+                  : null,
                 ageMin ? `Edad mínima: ${ageMin}` : null,
                 str(d.dress_code) ? `Dress code: ${str(d.dress_code)}` : null,
               ]
@@ -514,12 +708,16 @@ function MzaCard({
           ) : null}
           {prices.length ? (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Entradas</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                Entradas
+              </p>
               <ul className="mt-1 space-y-0.5 text-sm">
                 {prices.map((p, i) => (
                   <li key={i} className="flex justify-between gap-3">
                     <span>{p.label}</span>
-                    <span className="font-medium tabular-nums">{money(p.price, p.currency)}</span>
+                    <span className="font-medium tabular-nums">
+                      {money(p.price, p.currency)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -527,43 +725,71 @@ function MzaCard({
           ) : null}
           {earlyBird ? (
             <p className="text-sm">
-              🐦 Early bird{money(earlyBird.price, earlyBird.currency) ? `: ${money(earlyBird.price, earlyBird.currency)}` : ""}{" "}
+              🐦 Early bird
+              {money(earlyBird.price, earlyBird.currency)
+                ? `: ${money(earlyBird.price, earlyBird.currency)}`
+                : ""}{" "}
               <span className="text-xs text-muted">
-                {[PRESALE_LABELS[earlyBird.status ?? ""] ?? earlyBird.status, untilLabel(earlyBird.until)].filter(Boolean).join(" · ")}
+                {[
+                  PRESALE_LABELS[earlyBird.status ?? ""] ?? earlyBird.status,
+                  untilLabel(earlyBird.until),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </p>
           ) : null}
           {presales.length ? (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Preventas</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                Preventas
+              </p>
               <ul className="mt-1 space-y-0.5 text-sm">
                 {presales.map((p, i) => (
-                  <li key={i} className={`flex justify-between gap-3 ${p.status === "agotada" ? "text-muted line-through" : ""}`}>
+                  <li
+                    key={i}
+                    className={`flex justify-between gap-3 ${p.status === "agotada" ? "text-muted line-through" : ""}`}
+                  >
                     <span>
                       {p.label}{" "}
                       <span className="text-xs text-muted">
-                        {[PRESALE_LABELS[p.status ?? ""] ?? p.status, typeof p.remaining === "number" ? `quedan ${p.remaining}` : null, untilLabel(p.until)]
+                        {[
+                          PRESALE_LABELS[p.status ?? ""] ?? p.status,
+                          typeof p.remaining === "number"
+                            ? `quedan ${p.remaining}`
+                            : null,
+                          untilLabel(p.until),
+                        ]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
                     </span>
-                    <span className="font-medium tabular-nums">{money(p.price, p.currency)}</span>
+                    <span className="font-medium tabular-nums">
+                      {money(p.price, p.currency)}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
           ) : null}
           {openBar || str(d.open_bar_text) ? (
-            <p className="text-sm">🍹 Barra libre{str(d.open_bar_text) ? `: ${str(d.open_bar_text)}` : ""}</p>
+            <p className="text-sm">
+              🍹 Barra libre
+              {str(d.open_bar_text) ? `: ${str(d.open_bar_text)}` : ""}
+            </p>
           ) : null}
           {combos.length ? (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Combos</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                Combos
+              </p>
               <ul className="mt-1 space-y-0.5 text-sm">
                 {combos.map((c, i) => (
                   <li key={i} className="flex justify-between gap-3">
                     <span>{c.label}</span>
-                    <span className="font-medium tabular-nums">{money(c.price, c.currency)}</span>
+                    <span className="font-medium tabular-nums">
+                      {money(c.price, c.currency)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -572,17 +798,31 @@ function MzaCard({
           {promos.length ? (
             <p className="flex flex-wrap gap-1.5">
               {promos.map((x, i) => (
-                <span key={i} className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent">
+                <span
+                  key={i}
+                  className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent"
+                >
                   🎁 {x}
                 </span>
               ))}
             </p>
           ) : null}
-          {str(d.ticketera) ? <p className="text-xs text-muted">Ticketera: {str(d.ticketera)}</p> : null}
+          {str(d.ticketera) ? (
+            <p className="text-xs text-muted">Ticketera: {str(d.ticketera)}</p>
+          ) : null}
           {kind === "gastro" ? (
             <p className="text-xs text-muted">
-              {[str(d.cuisine), str(d.price_range), str(d.hours), str(d.promo_days)].filter(Boolean).join(" · ")}
-              {promoTo ? ` · Hasta ${formatDate(`${promoTo}T12:00:00-03:00`)}` : ""}
+              {[
+                str(d.cuisine),
+                str(d.price_range),
+                str(d.hours),
+                str(d.promo_days),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              {promoTo
+                ? ` · Hasta ${formatDate(`${promoTo}T12:00:00-03:00`)}`
+                : ""}
             </p>
           ) : null}
           {str(d.address) ? (
@@ -590,7 +830,9 @@ function MzaCard({
               <MapPin size={12} /> {str(d.address)}
             </p>
           ) : null}
-          {str(d.note) ? <p className="text-sm leading-6">{str(d.note)}</p> : null}
+          {str(d.note) ? (
+            <p className="text-sm leading-6">{str(d.note)}</p>
+          ) : null}
           {post.body_markdown ? (
             <p className="line-clamp-6 whitespace-pre-line text-sm leading-6 text-muted">
               {post.body_markdown.replace(/[*_#>`]/g, "").trim()}
@@ -624,7 +866,9 @@ function MzaCard({
                 rel="noopener noreferrer"
                 className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-medium"
               >
-                {str(d.instagram)?.startsWith("@") ? str(d.instagram) : `@${str(d.instagram)}`}
+                {str(d.instagram)?.startsWith("@")
+                  ? str(d.instagram)
+                  : `@${str(d.instagram)}`}
               </a>
             ) : null}
           </div>
