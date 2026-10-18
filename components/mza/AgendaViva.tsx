@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ExternalLink, MapPin, SlidersHorizontal, Ticket } from "lucide-react";
 import { FilterChip } from "@/components/FilterChip";
 import { SegmentedControl } from "@/components/FilterChip";
@@ -29,7 +29,6 @@ import {
   type MzaKind,
   type MzaZone,
 } from "@/lib/mendoza";
-import { isPostSeen, loadSeen, saveSeen, seenToken } from "@/lib/seen-posts";
 import type { Post } from "@/lib/types";
 
 type D = Record<string, unknown>;
@@ -54,7 +53,7 @@ export function AgendaViva({
   kind,
   posts,
   nowIso,
-  baselineIso,
+  baselineIso: _baselineIso,
 }: {
   kind: MzaKind;
   posts: Post[];
@@ -68,29 +67,9 @@ export function AgendaViva({
   const [filters, setFilters] = useState<MzaFilters>(EMPTY_MZA_FILTERS);
   const [draft, setDraft] = useState<MzaFilters>(EMPTY_MZA_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [seen, setSeen] = useState<Set<string> | null>(null);
 
-  useEffect(() => setSeen(loadSeen()), []);
-
-  // Antes de leer localStorage (SSR) todo se ve como visto: sin saltos de "Nuevo".
-  const isSeen = (post: Post) => (seen ? isPostSeen(post, seen, baselineIso) : true);
-  const markSeen = (post: Post) => {
-    if (!seen || seen.has(seenToken(post))) return;
-    const next = new Set(seen);
-    next.add(seenToken(post));
-    setSeen(next);
-    saveSeen(next);
-  };
-  const markAllSeen = () => {
-    const next = new Set(seen ?? []);
-    for (const post of posts) next.add(seenToken(post));
-    setSeen(next);
-    saveSeen(next);
-  };
-
-  const visible = posts.filter((post) => matchesMzaFilters(post, kind, filters, isSeen));
+  const visible = posts.filter((post) => matchesMzaFilters(post, kind, filters));
   const buckets = bucketMzaPosts(visible, now);
-  const unseenCount = seen ? posts.filter((post) => !isSeen(post)).length : 0;
   const active = countMzaFilters(filters);
   const catKey = mzaCategoryKey(kind);
   const catLabels = mzaCategoryLabels(kind);
@@ -107,7 +86,7 @@ export function AgendaViva({
   }
 
   const card = (post: Post) => (
-    <MzaCard key={post.id} post={post} kind={kind} today={today} seen={isSeen(post)} onOpen={() => markSeen(post)} />
+    <MzaCard key={post.id} post={post} kind={kind} today={today}  />
   );
 
   return (
@@ -138,18 +117,6 @@ export function AgendaViva({
             </span>
           ) : null}
         </button>
-        <FilterChip
-          selected={filters.unseenOnly}
-          check={filters.unseenOnly}
-          onClick={() => setFilters({ ...filters, unseenOnly: !filters.unseenOnly })}
-        >
-          Solo no vistos{unseenCount ? ` (${unseenCount})` : ""}
-        </FilterChip>
-        {unseenCount ? (
-          <button type="button" onClick={markAllSeen} className="min-h-11 px-2 text-xs font-medium text-accent">
-            Marcar todo como visto
-          </button>
-        ) : null}
       </div>
 
       {kind === "evento-mza" && tab === "proximos" ? (
@@ -308,7 +275,7 @@ export function AgendaViva({
         <SheetFooter>
           <button
             type="button"
-            onClick={() => setDraft({ ...EMPTY_MZA_FILTERS, unseenOnly: draft.unseenOnly })}
+            onClick={() => setDraft(EMPTY_MZA_FILTERS)}
             className="min-h-11 flex-1 rounded-full border border-line px-4 text-sm font-medium"
           >
             Limpiar
@@ -352,14 +319,10 @@ function MzaCard({
   post,
   kind,
   today,
-  seen,
-  onOpen,
 }: {
   post: Post;
   kind: MzaKind;
   today: string;
-  seen: boolean;
-  onOpen: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const d = (post.details ?? {}) as D;
@@ -384,14 +347,12 @@ function MzaCard({
 
   return (
     <article
-      className={`surface rounded-2xl p-3 transition-opacity ${seen && !open ? "opacity-80" : ""}`}
-      data-seen={seen ? "1" : "0"}
+      className="surface rounded-2xl p-3"
     >
       <button
         type="button"
         onClick={() => {
           setOpen(!open);
-          onOpen();
         }}
         className="flex w-full items-start gap-3 text-left"
         aria-expanded={open}
@@ -406,7 +367,6 @@ function MzaCard({
         )}
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-1.5">
-            {!seen ? <span className="h-2 w-2 rounded-full bg-accent" aria-label="Nuevo" /> : null}
             {countdown && !cancelled ? (
               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">{countdown}</span>
             ) : null}
