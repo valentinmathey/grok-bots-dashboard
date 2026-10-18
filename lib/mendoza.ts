@@ -84,6 +84,45 @@ const commonFields = {
   note: z.string().trim().max(280).optional(),
 };
 
+const isoDateTime = z.string().trim().max(40).regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)?)?$/, "Fecha ISO");
+const shortText = (max: number) => z.string().trim().min(1).max(max);
+export const PRESALE_STATUSES = ["vigente", "agotada", "proxima"] as const;
+export const CURRENCIES = ["ARS", "USD"] as const;
+
+/** Entradas, preventas, barra libre, promos, combos y datos de puerta (Fiestas y Recitales). Todo opcional. */
+const ticketingFields = {
+  prices: z
+    .array(z.object({ label: shortText(40), price: z.number().min(0).max(100_000_000), currency: z.enum(CURRENCIES).default("ARS") }))
+    .max(12)
+    .optional(),
+  presales: z
+    .array(
+      z.object({
+        label: shortText(40),
+        price: z.number().min(0).max(100_000_000).optional(),
+        currency: z.enum(CURRENCIES).default("ARS"),
+        until: isoDateTime.optional(),
+        status: z.enum(PRESALE_STATUSES),
+        remaining: z.number().int().min(0).max(1_000_000).optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
+  open_bar: z.boolean().optional(),
+  open_bar_text: z.string().trim().max(120).optional(),
+  promos: z.array(shortText(120)).max(8).optional(),
+  combos: z
+    .array(z.object({ label: shortText(80), price: z.number().min(0).max(100_000_000).optional(), currency: z.enum(CURRENCIES).default("ARS") }))
+    .max(8)
+    .optional(),
+  age_min: z.number().int().min(0).max(99).optional(),
+  dress_code: z.string().trim().max(80).optional(),
+  doors_at: z.string().trim().max(40).optional(),
+  lineup: z.array(shortText(120)).max(16).optional(),
+  ticket_url: httpUrl.optional(),
+  ticketera: z.string().trim().max(60).optional(),
+};
+
 const baseStatus = z.enum(["activo", "cambiado", "cancelado"]).default("activo");
 
 export const EVENTO_MZA_CATEGORIES = [
@@ -101,6 +140,7 @@ export const EVENTO_MZA_CATEGORIES = [
 export const eventoMzaDetailsSchema = z.object({
   ...commonFields,
   status: baseStatus,
+  ...ticketingFields,
   category: z.enum(EVENTO_MZA_CATEGORIES),
   outdoor: z.boolean().optional(),
 });
@@ -142,10 +182,9 @@ export const recitalDetailsSchema = z.object({
   artist: z.string().trim().min(1).max(120),
   support: z.array(z.string().trim().min(1).max(120)).max(8).optional(),
   genre: z.enum(RECITAL_GENRES),
-  doors_at: z.string().trim().max(40).optional(),
-  ticketera: z.string().trim().max(60).optional(),
+  ...ticketingFields,
   ticket_url: httpUrl,
-  ticket_status: z.enum(TICKET_STATUSES),
+  ticket_status: z.enum(TICKET_STATUSES).optional(),
 });
 
 export type EventoMzaDetails = z.infer<typeof eventoMzaDetailsSchema>;
