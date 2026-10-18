@@ -56,3 +56,18 @@ describe("feed .ics", () => {
     expect(folded.replace(/\r\n /g, "")).toBe(`SUMMARY:${"ñ".repeat(80)}`);
   });
 });
+
+describe("emoji para cierres y viajes", () => {
+  it("cierre por categoría con fallback ⏳, viaje ✈️ con lugar en Brasil", () => {
+    expect(eventEmoji({ title: "Cierra: X", category: "beca", type: "cierre" })).toBe("🎓");
+    expect(eventEmoji({ title: "Cierra: X", category: "hackaton", type: "cierre" })).toBe("🏆");
+    expect(eventEmoji({ title: "Cierra: X", type: "cierre" })).toBe("⏳");
+    const ics = buildIcs(
+      [{ ...base, id: "tr-1", type: "viaje", title: "Viaje Brasil: Centro", startsAt: undefined, allDay: true, date: "2027-01-10", endDate: "2027-01-17", details: { area: "Centro, Balneário Camboriú" }, tags: [], body: undefined }],
+      { baseUrl: "" },
+    ).replace(/\r\n /g, "");
+    expect(ics).toContain("SUMMARY:✈️ Viaje Brasil: Centro");
+    expect(ics).toContain("LOCATION:Centro\\, Balneário Camboriú\\, Brasil");
+    expect(ics).toContain("DTEND;VALUE=DATE:20270118");
+  });
+});

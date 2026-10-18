@@ -9,8 +9,8 @@ const DEFAULT_DURATION_MS = 2 * 3_600_000;
 // ---------- emoji por tipo ----------
 
 const EMOJI_RULES: Array<[string, RegExp]> = [
-  ["🏆", /hackat[oó]n|hackathon|competencia|competition|premio|challenge|desaf[ií]o/i],
-  ["🎓", /\bcurso|bootcamp|taller|workshop|capacitaci[oó]n|diplomatura/i],
+  ["🏆", /hackat[oó]n|hackathon|competencia|competition|premio|concurso|challenge|desaf[ií]o/i],
+  ["🎓", /\bcurso|bootcamp|taller|workshop|capacitaci[oó]n|diplomatura|\bbecas?\b|scholarship/i],
   ["💼", /empleo|trabajo|\bjobs?\b|networking|\bferia|career/i],
   ["🎉", /festival|fiesta|\bparty\b|after\s?office/i],
   ["🎤", /meetup|charla|\btalks?\b|conferencia|conference|\bconf\b|summit|congreso|jornada|webinar|panel/i],
@@ -20,10 +20,26 @@ const EMOJI_RULES: Array<[string, RegExp]> = [
 
 const STARTS_WITH_EMOJI = /^\p{Extended_Pictographic}/u;
 
-export function eventEmoji(input: { title: string; tags?: string[]; category?: string | null }): string {
+export function eventEmoji(input: {
+  title: string;
+  tags?: string[];
+  category?: string | null;
+  type?: AgendaEntry["type"];
+}): string {
+  if (input.type === "viaje") return "✈️";
   const haystack = [input.category ?? "", ...(input.tags ?? []).map((tag) => tag.replace(/-/g, " ")), input.title].join(" · ");
   for (const [emoji, re] of EMOJI_RULES) if (re.test(haystack)) return emoji;
-  return "📅";
+  return input.type === "cierre" ? "⏳" : "📅";
+}
+
+/** Emoji de una entrada de agenda (feed .ics y chip de la lista). */
+export function entryEmoji(entry: AgendaEntry): string {
+  return eventEmoji({
+    title: entry.title,
+    tags: entry.tags,
+    category: detailString(entry.details, ["category", "type", "categoria"]),
+    type: entry.type,
+  });
 }
 
 export function summaryWithEmoji(title: string, emoji: string): string {
@@ -136,6 +152,10 @@ function detailString(details: Record<string, unknown> | null | undefined, keys:
 
 export function eventLocation(entry: AgendaEntry): string | undefined {
   const details = entry.details ?? null;
+  if (entry.type === "viaje") {
+    const area = detailString(details, ["area", "city"]);
+    return area ? (/brasil|brazil/i.test(area) ? area : `${area}, Brasil`) : "Brasil";
+  }
   const modality = detailString(details, ["modality", "modalidad", "format", "formato"]);
   const venue = detailString(details, ["venue", "location", "place", "lugar", "address", "direccion"]);
   const city = detailString(details, ["city", "ciudad"]);
@@ -187,7 +207,7 @@ function alarm(trigger: string, description: string) {
 export function buildVevent(entry: AgendaEntry, options: { baseUrl: string; now?: Date }): string[] {
   const summary = summaryWithEmoji(
     entry.title,
-    eventEmoji({ title: entry.title, tags: entry.tags, category: detailString(entry.details, ["category", "type", "categoria"]) }),
+    entryEmoji(entry),
   );
   const postUrl = `${options.baseUrl}/bots/${entry.bot.slug}#post-${entry.postId}`;
   const location = eventLocation(entry);

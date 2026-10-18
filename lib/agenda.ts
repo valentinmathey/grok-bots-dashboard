@@ -94,6 +94,9 @@ export function collectAgendaEntries(
           date: details.check_in,
           endDate: details.check_out,
           title: `Viaje Brasil: ${area}`,
+          details: {
+            area: [details.neighborhood, details.city || details.search_area].filter(Boolean).join(", ") || area,
+          },
           type: "viaje",
           postId: post.id,
           bot: post.bot,

@@ -7,6 +7,7 @@ import {
   formatAgendaTime,
   stripDateFromTitle,
 } from "@/lib/calendar";
+import { entryEmoji } from "@/lib/ics";
 
 export function AgendaEventRow({ entry }: { entry: AgendaEntry }) {
   const time = formatAgendaTime(entry.startsAt, entry.allDay);
@@ -26,6 +27,9 @@ export function AgendaEventRow({ entry }: { entry: AgendaEntry }) {
         </p>
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
           <span className="rounded-full bg-chip px-2 py-0.5 font-medium">
+            <span aria-hidden className="mr-1">
+              {entryEmoji(entry)}
+            </span>
             {AGENDA_TYPE_LABEL[entry.type]}
           </span>
           {location ? <span className="min-w-0 truncate">{location}</span> : null}
