@@ -541,3 +541,27 @@ export const WORKFLOW_STATUS_LABELS: Record<(typeof WORKFLOW_STATUSES)[number], 
   draft: "Borrador",
   error: "Error",
 };
+
+export function installmentsTotal(offer: RankingOffer): number {
+  const i = offer.installments;
+  if (!i) return offer.price;
+  if (i.total != null) return i.total;
+  if (i.amount != null) return i.amount * i.count;
+  return offer.price;
+}
+
+/** Los 3 apartados del ranking (5 c/u): contado, menor total con 3+ cuotas sin interés, más cuotas sin interés. */
+export function rankingSections(details: RankingDetails, size = 5) {
+  const available = (details.offers ?? []).filter((o) => o.in_stock !== false);
+  const sinInteres = available.filter((o) => o.installments?.interest_free === true && o.installments.count >= 2);
+  return {
+    contado: [...available].sort((a, b) => a.price - b.price).slice(0, size),
+    cuotasTotal: sinInteres
+      .filter((o) => (o.installments?.count ?? 0) >= 3)
+      .sort((a, b) => installmentsTotal(a) - installmentsTotal(b) || (b.installments!.count - a.installments!.count))
+      .slice(0, size),
+    masCuotas: [...sinInteres]
+      .sort((a, b) => b.installments!.count - a.installments!.count || installmentsTotal(a) - installmentsTotal(b))
+      .slice(0, size),
+  };
+}
