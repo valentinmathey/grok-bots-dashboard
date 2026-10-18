@@ -303,6 +303,18 @@ export const MCP_TOOLS = [
     inputSchema: { type: "object", additionalProperties: false, properties: {} },
   },
   {
+    name: "list_watchlist",
+    description:
+      "Lista de seguimiento que el dueño carga en el dashboard para este bot (productos a vigilar). Cada ítem trae id, name, target_price (precio objetivo en ARS, o null), status (siguiendo | comprado | no-por-ahora), notes y ranking_source_id. Vigilá solo los que están en 'siguiendo'. Publicá/actualizá el ranking de cada producto con kind=ranking y details.source_id = ranking_source_id para que quede vinculado al ítem. Filtro opcional: status.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        status: { type: "string", enum: ["siguiendo", "comprado", "no-por-ahora"] },
+      },
+    },
+  },
+  {
     name: "delete_post",
     description: "Borra un post propio. Args: post_id. Si no es de este bot, responde 404.",
     inputSchema: {
@@ -602,6 +614,8 @@ async function callTool(
       return (await import("@/lib/routines")).botSetRoutines(repo, authorization, args ?? {});
     case "list_routines":
       return (await import("@/lib/routines")).botGetRoutines(repo, authorization);
+    case "list_watchlist":
+      return (await import("@/lib/watchlist")).botListWatchlist(repo, authorization, args ?? {});
     case "delete_audio":
       return deleteAudio(repo, (await import("@/lib/audio-storage")).getAudioStorage(), authorization, args ?? {});
     case "publish_weekly_summary":

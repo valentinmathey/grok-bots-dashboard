@@ -14,6 +14,18 @@ import { TimeStamp } from "@/components/TimeStamp";
 import { resolveAvatar } from "@/lib/avatar";
 import { getRepository } from "@/lib/data";
 import { PAGE_SIZE, parseFeedQuery } from "@/lib/filters";
+import { getOwnerFromRequest } from "@/lib/auth";
+import { WatchlistPanel, type WatchRankingSummary } from "@/components/WatchlistPanel";
+import { listWatchlist } from "@/lib/watchlist";
+import { matchesWatchItem } from "@/lib/watchlist-shared";
+import {
+  rankingBestOffer,
+  rankingDetailsSchema,
+  rankingDropPct,
+  rankingLowest,
+} from "@/lib/rich-details";
+
+const WATCHLIST_BOT_SLUGS = new Set(["productos-compra"]);
 
 export default async function BotPage({
   params,
@@ -53,6 +65,11 @@ export default async function BotPage({
     limit: PAGE_SIZE,
     offset: 0,
   });
+
+  const watchlist =
+    WATCHLIST_BOT_SLUGS.has(bot.slug) && (await getOwnerFromRequest())
+      ? await loadWatchlist(repo, bot.id)
+      : null;
 
   const busy = Boolean(bot.status?.trim());
   const avatar = resolveAvatar(bot);
@@ -131,6 +148,14 @@ export default async function BotPage({
         </section>
       ) : null}
 
+      {watchlist ? (
+        <WatchlistPanel
+          botId={bot.id}
+          initialItems={watchlist.items}
+          rankings={watchlist.rankings}
+        />
+      ) : null}
+
       {showAgendaViva && mzaKind ? (
         <>
           <AgendaViva
@@ -161,4 +186,32 @@ export default async function BotPage({
       )}
     </div>
   );
+}
+
+async function loadWatchlist(repo: ReturnType<typeof getRepository>, botId: string) {
+  const items = await listWatchlist(botId).catch(() => []);
+  const posts = items.length ? await repo.listPostsByBot(botId, { kind: "ranking" }) : [];
+  const parsed = posts
+    .map((post) => ({ post, d: rankingDetailsSchema.safeParse(post.details ?? {}) }))
+    .filter((x) => x.d.success)
+    .map((x) => ({ post: x.post, d: x.d.data! }));
+  const rankings: Record<string, WatchRankingSummary> = {};
+  for (const item of items) {
+    const exact = parsed.find((x) => x.d.source_id === `watch:${item.id}`);
+    const hit = exact ?? parsed.find((x) => matchesWatchItem(item, null, x.d.product_name));
+    if (!hit) continue;
+    const best = rankingBestOffer(hit.d);
+    const lowest = rankingLowest(hit.d);
+    rankings[item.id] = {
+      post_id: hit.post.id,
+      best_price: best?.price ?? null,
+      best_store: best?.store ?? null,
+      currency: /^[A-Z]{3}$/.test(hit.d.currency ?? "") ? hit.d.currency! : "ARS",
+      lowest_price: lowest?.price ?? null,
+      drop_pct: rankingDropPct(hit.d),
+      back_in_stock: hit.d.back_in_stock === true,
+      checked_at: hit.d.checked_at ?? null,
+    };
+  }
+  return { items, rankings };
 }
