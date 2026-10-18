@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, ExternalLink, TrendingDown } from "lucide-react";
+import { ArrowUpDown, ExternalLink, PackageCheck, TrendingDown } from "lucide-react";
 import {
   cardCollapseProps,
   ExpandableBody,
@@ -13,10 +13,12 @@ import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
 import { SegmentedControl } from "@/components/FilterChip";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
-import { formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 import { collapsedCover } from "@/lib/images";
 import {
   asRanking,
+  installmentsLabel,
+  rankingLowest,
   rankingBestCardOffer,
   rankingBestOffer,
   rankingDropPct,
@@ -104,15 +106,18 @@ function OfferCard({
         <p className="min-w-0 truncate font-semibold">{offer.store}</p>
         <p className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">
           {formatMoney(offer.price, currency)}
+          <span className="ml-1 text-[11px] font-medium text-muted">contado</span>
         </p>
       </div>
       <OfferBadges best={best} cardBest={cardBest} />
+      {installmentsLabel(offer, currency, formatMoney) ? (
+        <p
+          className={`mt-1.5 text-xs ${offer.installments?.interest_free ? "font-semibold text-emerald-700 dark:text-emerald-300" : "text-muted"}`}
+        >
+          💳 {installmentsLabel(offer, currency, formatMoney)}
+        </p>
+      ) : null}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {offer.installments_text ? (
-          <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
-            {offer.installments_text}
-          </span>
-        ) : null}
         {offer.shipping_text ? (
           <span className="rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
             {offer.shipping_text}
@@ -154,6 +159,7 @@ export function RankingCard({
   const best = details ? rankingBestOffer(details) : null;
   const cardBest = details ? rankingBestCardOffer(details) : null;
   const drop = details ? rankingDropPct(details) : null;
+  const lowest = details ? rankingLowest(details) : null;
   const cover = details ? collapsedCover(post, details.product_image_url) : null;
   const offers = useMemo(() => {
     const list = [...(details?.offers ?? [])];
@@ -214,10 +220,28 @@ export function RankingCard({
                     </span>
                   </p>
                 ) : null}
-                {drop != null ? (
-                  <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                    <TrendingDown size={14} strokeWidth={1.75} />
-                    Bajó {drop}%
+                {drop != null || details.back_in_stock ? (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {drop != null ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                        <TrendingDown size={12} strokeWidth={1.75} />
+                        Bajó {drop}%
+                      </span>
+                    ) : null}
+                    {details.back_in_stock ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-300">
+                        <PackageCheck size={12} strokeWidth={1.75} />
+                        Volvió el stock
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {lowest && best ? (
+                  <p className="mt-1 text-xs text-muted">
+                    {best.price <= lowest.price ? "Precio más bajo visto" : `Mínimo histórico ${formatMoney(lowest.price, currency)}`}
+                    {best.price > lowest.price && lowest.store ? ` en ${lowest.store}` : ""}
+                    {best.price > lowest.price && lowest.date ? ` (${formatDate(lowest.date)})` : ""}
+                    {details.checked_at ? ` · actualizado ${formatDate(details.checked_at)}` : ""}
                   </p>
                 ) : null}
                 {details.price_history?.length ? (
@@ -272,7 +296,7 @@ export function RankingCard({
             <thead className="text-[11px] uppercase tracking-wide text-muted">
               <tr>
                 <th className="pb-2 font-medium">Tienda</th>
-                <th className="pb-2 font-medium">Precio</th>
+                <th className="pb-2 font-medium">Contado</th>
                 <th className="pb-2 font-medium">Cuotas</th>
                 <th className="pb-2 font-medium">Envío</th>
                 <th className="pb-2 font-medium">
@@ -298,8 +322,10 @@ export function RankingCard({
                     <td className="whitespace-nowrap py-2.5 pr-2 align-top font-semibold tabular-nums">
                       {formatMoney(offer.price, currency)}
                     </td>
-                    <td className="py-2.5 pr-2 align-top text-muted">
-                      {offer.installments_text ?? "—"}
+                    <td
+                      className={`py-2.5 pr-2 align-top ${offer.installments?.interest_free ? "font-medium text-emerald-700 dark:text-emerald-300" : "text-muted"}`}
+                    >
+                      {installmentsLabel(offer, currency, formatMoney) ?? "—"}
                     </td>
                     <td className="py-2.5 pr-2 align-top text-muted">
                       {offer.shipping_text ?? "—"}
