@@ -1,7 +1,13 @@
 "use client";
 
-import { WatchStatusPicker } from "@/components/WatchStatusPicker";
-import { useId, useMemo } from "react";
+import {
+  WatchStatusBadge,
+  WatchStatusButton,
+  useWatchItem,
+} from "@/components/WatchStatusPicker";
+import { WATCHLIST_STATUS_STYLES } from "@/lib/watchlist-shared";
+import { SegmentedControl } from "@/components/FilterChip";
+import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, PackageCheck, TrendingDown } from "lucide-react";
 import {
@@ -325,6 +331,11 @@ export function RankingCard({
     [details?.offers],
   );
 
+  const [section, setSection] = useState<
+    "contado" | "cuotasTotal" | "masCuotas"
+  >("contado");
+  const watch = useWatchItem(details?.product_name ?? "", details?.source_id);
+
   if (!details) return null;
 
   function isBest(offer: RankingOffer) {
@@ -339,7 +350,9 @@ export function RankingCard({
   return (
     <article
       id={`post-${post.id}`}
-      className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
+      className={`surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl ${
+        watch.item ? WATCHLIST_STATUS_STYLES[watch.item.status].ring : ""
+      }`}
       {...cardCollapseProps(open, toggle)}
     >
       <CardCover src={cover?.url} alt={details.product_name} fit="contain" />
@@ -356,6 +369,20 @@ export function RankingCard({
             bot={bot}
             allowRequest={allowRequest}
             kind="ranking"
+            meta={
+              watch.item ? (
+                <WatchStatusBadge
+                  productName={details.product_name}
+                  sourceId={details.source_id}
+                />
+              ) : undefined
+            }
+            extraActions={
+              <WatchStatusButton
+                productName={details.product_name}
+                sourceId={details.source_id}
+              />
+            }
             title={
               href ? (
                 <Link href={href} className="hover:underline">
@@ -410,11 +437,6 @@ export function RankingCard({
                       : ""}
                   </p>
                 ) : null}
-                <WatchStatusPicker
-                  className="mt-2"
-                  productName={details.product_name}
-                  sourceId={details.source_id}
-                />
                 {details.price_history?.length ? (
                   <div className="mt-2">
                     <Sparkline
@@ -439,33 +461,59 @@ export function RankingCard({
             {details.verdict}
           </p>
         ) : null}
-        <OfferSection
-          title="Más baratos de contado"
-          empty="Todavía no hay ofertas con stock."
-          offers={sections.contado}
-          currency={currency}
-          isBest={isBest}
-          isCardBest={isCardBest}
+        <SegmentedControl
+          ariaLabel="Ver ofertas"
+          value={section}
+          options={[
+            {
+              id: "contado",
+              label: "Contado",
+              onClick: () => setSection("contado"),
+            },
+            {
+              id: "cuotasTotal",
+              label: "Cuotas",
+              onClick: () => setSection("cuotasTotal"),
+            },
+            {
+              id: "masCuotas",
+              label: "Más cuotas",
+              onClick: () => setSection("masCuotas"),
+            },
+          ]}
         />
-        <OfferSection
-          title="Más baratos en cuotas sin interés"
-          hint="Menor total, con 3 o más cuotas sin interés"
-          empty="No hay ofertas con 3 o más cuotas sin interés."
-          offers={sections.cuotasTotal}
-          currency={currency}
-          isBest={isBest}
-          isCardBest={isCardBest}
-          showTotal
-        />
-        <OfferSection
-          title="Más cuotas sin interés"
-          empty="No hay ofertas en cuotas sin interés."
-          offers={sections.masCuotas}
-          currency={currency}
-          isBest={isBest}
-          isCardBest={isCardBest}
-          showTotal
-        />
+        {section === "contado" ? (
+          <OfferSection
+            title="Más baratos de contado"
+            empty="Todavía no hay ofertas con stock."
+            offers={sections.contado}
+            currency={currency}
+            isBest={isBest}
+            isCardBest={isCardBest}
+          />
+        ) : section === "cuotasTotal" ? (
+          <OfferSection
+            title="Más baratos en cuotas sin interés"
+            hint="Menor total, con 3 o más cuotas sin interés"
+            empty="No hay ofertas con 3 o más cuotas sin interés."
+            offers={sections.cuotasTotal}
+            currency={currency}
+            isBest={isBest}
+            isCardBest={isCardBest}
+            showTotal
+          />
+        ) : (
+          <OfferSection
+            title="Más cuotas sin interés"
+            hint="De la que tiene más cuotas a la que tiene menos"
+            empty="No hay ofertas en cuotas sin interés."
+            offers={sections.masCuotas}
+            currency={currency}
+            isBest={isBest}
+            isCardBest={isCardBest}
+            showTotal
+          />
+        )}
         {post.body_markdown.trim() ? (
           <details className="text-sm text-muted">
             <summary className="cursor-pointer font-medium text-foreground">

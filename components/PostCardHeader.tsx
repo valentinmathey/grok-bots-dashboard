@@ -24,6 +24,7 @@ export function PostCardActions({
   kind,
   allowRequest = true,
   showFavorite = true,
+  extraActions,
 }: {
   post?: Post;
   bot?: PostCardBot | null;
@@ -31,6 +32,7 @@ export function PostCardActions({
   kind?: string;
   allowRequest?: boolean;
   showFavorite?: boolean;
+  extraActions?: ReactNode;
 }) {
   return (
     <div className="flex shrink-0 items-start gap-0.5" data-no-collapse>
@@ -39,6 +41,7 @@ export function PostCardActions({
           <KindBadge kind={kind} />
         </span>
       ) : null}
+      {extraActions}
       {post && showFavorite && post.kind === "evento" ? <RegisteredToggle postId={post.id} /> : null}
       {post && showFavorite ? <FavoriteStar postId={post.id} /> : null}
       {post && allowRequest ? (
@@ -68,6 +71,7 @@ export function PostCardHeader({
   titleAs: TitleTag = "h3",
   titleClassName = "text-[1.05rem] font-semibold leading-snug tracking-tight",
   className = "",
+  extraActions,
 }: {
   open: boolean;
   title: ReactNode;
@@ -82,6 +86,7 @@ export function PostCardHeader({
   titleAs?: "h2" | "h3";
   titleClassName?: string;
   className?: string;
+  extraActions?: ReactNode;
 }) {
   return (
     <div className={className || undefined}>
@@ -111,6 +116,7 @@ export function PostCardHeader({
           kind={kind}
           allowRequest={allowRequest}
           showFavorite={showFavorite}
+          extraActions={extraActions}
         />
       </div>
       <PostAudio post={post} />
