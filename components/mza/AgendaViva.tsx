@@ -45,6 +45,43 @@ function priceLabel(d: D) {
   return str(d.price_text);
 }
 
+type Money = { label?: string; price?: number; currency?: string };
+type Presale = Money & { until?: string; status?: string; remaining?: number };
+
+function money(price: number | undefined, currency?: string) {
+  if (typeof price !== "number") return null;
+  if (price === 0) return "Gratis";
+  return currency === "USD" ? `US$${Math.round(price).toLocaleString("es-AR")}` : formatArs(price);
+}
+
+function arr<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v.filter((x) => x && (typeof x === "object" || typeof x === "string")) as T[]) : [];
+}
+
+function timeOf(v: string) {
+  if (/^\d{1,2}:\d{2}$/.test(v)) return v;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : formatTime(d);
+}
+
+function untilLabel(v?: string) {
+  if (!v) return null;
+  const d = new Date(/T/.test(v) ? v : `${v}T12:00:00-03:00`);
+  return Number.isNaN(d.getTime()) ? null : `hasta ${formatDate(d)}${/T/.test(v) ? ` ${formatTime(d)}` : ""}`;
+}
+
+const PRESALE_LABELS: Record<string, string> = { vigente: "Vigente", agotada: "Agotada", proxima: "Próxima" };
+
+function presaleChip(p: Presale) {
+  return [
+    `Preventa ${p.label ?? ""}`.trim(),
+    money(p.price, p.currency),
+    typeof p.remaining === "number" ? `quedan ${p.remaining}` : untilLabel(p.until),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function toggle(list: string[], id: string) {
   return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 }
@@ -340,6 +377,14 @@ function MzaCard({
   const audience = Array.isArray(d.audience) ? (d.audience as string[]) : [];
   const ticket = kind === "recital" ? str(d.ticket_status) : undefined;
   const ticketUrl = str(d.ticket_url);
+  const prices = arr<Money>(d.prices);
+  const presales = arr<Presale>(d.presales);
+  const activePresale = presales.find((p) => p.status === "vigente");
+  const promos = arr<string>(d.promos).filter((x) => typeof x === "string");
+  const combos = arr<Money>(d.combos);
+  const lineup = arr<string>(d.lineup).filter((x) => typeof x === "string");
+  const ageMin = typeof d.age_min === "number" ? d.age_min : undefined;
+  const openBar = d.open_bar === true;
   const soldOut = ticket === "agotado" || status === "agotado";
   const image = str(d.image_url) ?? post.cover_image_url ?? undefined;
   const time = post.event_at ? formatTime(post.event_at) : null;
@@ -391,6 +436,17 @@ function MzaCard({
             {expiry ? (
               <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">{expiry}</span>
             ) : null}
+            {activePresale && !cancelled ? (
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                {presaleChip(activePresale)}
+              </span>
+            ) : null}
+            {openBar ? (
+              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">🍹 Barra libre</span>
+            ) : null}
+            {ageMin ? (
+              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">+{ageMin}</span>
+            ) : null}
           </span>
           <span className={`mt-1 block text-sm font-semibold leading-5 ${cancelled ? "line-through opacity-70" : ""}`}>
             <span aria-hidden className="mr-1">
@@ -424,9 +480,77 @@ function MzaCard({
           {kind === "recital" && Array.isArray(d.support) && d.support.length ? (
             <p className="text-xs text-muted">Teloneros: {(d.support as string[]).join(", ")}</p>
           ) : null}
-          {kind === "recital" && str(d.doors_at) ? (
-            <p className="text-xs text-muted">Puertas: {formatTime(str(d.doors_at) as string)}</p>
+          {lineup.length ? <p className="text-xs text-muted">Lineup: {lineup.join(", ")}</p> : null}
+          {str(d.doors_at) || str(d.dress_code) || ageMin ? (
+            <p className="text-xs text-muted">
+              {[
+                str(d.doors_at) ? `Puertas: ${timeOf(str(d.doors_at) as string)}` : null,
+                ageMin ? `Edad mínima: ${ageMin}` : null,
+                str(d.dress_code) ? `Dress code: ${str(d.dress_code)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           ) : null}
+          {prices.length ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Entradas</p>
+              <ul className="mt-1 space-y-0.5 text-sm">
+                {prices.map((p, i) => (
+                  <li key={i} className="flex justify-between gap-3">
+                    <span>{p.label}</span>
+                    <span className="font-medium tabular-nums">{money(p.price, p.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {presales.length ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Preventas</p>
+              <ul className="mt-1 space-y-0.5 text-sm">
+                {presales.map((p, i) => (
+                  <li key={i} className={`flex justify-between gap-3 ${p.status === "agotada" ? "text-muted line-through" : ""}`}>
+                    <span>
+                      {p.label}{" "}
+                      <span className="text-xs text-muted">
+                        {[PRESALE_LABELS[p.status ?? ""] ?? p.status, typeof p.remaining === "number" ? `quedan ${p.remaining}` : null, untilLabel(p.until)]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </span>
+                    <span className="font-medium tabular-nums">{money(p.price, p.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {openBar || str(d.open_bar_text) ? (
+            <p className="text-sm">🍹 Barra libre{str(d.open_bar_text) ? `: ${str(d.open_bar_text)}` : ""}</p>
+          ) : null}
+          {combos.length ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Combos</p>
+              <ul className="mt-1 space-y-0.5 text-sm">
+                {combos.map((c, i) => (
+                  <li key={i} className="flex justify-between gap-3">
+                    <span>{c.label}</span>
+                    <span className="font-medium tabular-nums">{money(c.price, c.currency)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {promos.length ? (
+            <p className="flex flex-wrap gap-1.5">
+              {promos.map((x, i) => (
+                <span key={i} className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent">
+                  🎁 {x}
+                </span>
+              ))}
+            </p>
+          ) : null}
+          {str(d.ticketera) ? <p className="text-xs text-muted">Ticketera: {str(d.ticketera)}</p> : null}
           {kind === "gastro" ? (
             <p className="text-xs text-muted">
               {[str(d.cuisine), str(d.price_range), str(d.hours), str(d.promo_days)].filter(Boolean).join(" · ")}
@@ -445,7 +569,7 @@ function MzaCard({
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2 pt-1">
-            {kind === "recital" && ticketUrl && !soldOut && !cancelled ? (
+            {kind !== "gastro" && ticketUrl && !soldOut && !cancelled ? (
               <a
                 href={ticketUrl}
                 target="_blank"

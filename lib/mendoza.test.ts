@@ -28,6 +28,14 @@ describe("kinds de Mendoza", () => {
     expect(parsePostDetails("gastro", undefined).ok).toBe(false);
   });
 
+  it("entradas opcionales y ticket_status opcional en recital", () => {
+    expect(parsePostDetails("recital", { ...payloads.recital.details, ticket_status: undefined }).ok).toBe(true);
+    const bad = parsePostDetails("evento-mza", { ...payloads["evento-mza"].details, presales: [{ label: "1ra", status: "rara" }] });
+    expect(bad.ok).toBe(false);
+    const ok = parsePostDetails("evento-mza", payloads["evento-mza"].details);
+    expect(ok.ok && (ok.details as Record<string, unknown>).open_bar).toBe(true);
+  });
+
   it("fechas: countdown, vencimiento y encabezados", () => {
     expect(countdownLabel("2026-10-18", "2026-10-18")).toBe("Hoy");
     expect(countdownLabel("2026-10-19", "2026-10-18")).toBe("Mañana");

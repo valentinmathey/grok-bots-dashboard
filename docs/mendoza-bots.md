@@ -9,4 +9,6 @@
 - Payloads de ejemplo: `docs/mendoza-payloads.json` (validados en `lib/mendoza.test.ts`).
 - Upsert: re-enviar `publish_post` con el mismo `details.source_id` actualiza el post (no duplica).
 - `evento-mza` y `recital` requieren `event_at`; `gastro` lo tiene opcional.
+- Entradas (opcional, `evento-mza` y `recital`): `prices`, `presales`, `open_bar`/`open_bar_text`, `promos`, `combos`, `age_min`, `dress_code`, `doors_at`, `lineup`, `ticket_url`, `ticketera`. En `recital`, `ticket_status` es opcional (solo si está verificado).
+- El upsert reemplaza `details` entero: al re-enviar, mandar todos los campos.
 - Migración opcional (solo performance, NO aplicada): `supabase/migrations/20261018150000_posts_source_id_index.sql`.
