@@ -16,6 +16,7 @@ import { getRepository } from "@/lib/data";
 import { PAGE_SIZE, parseFeedQuery } from "@/lib/filters";
 import { getOwnerFromRequest } from "@/lib/auth";
 import { WatchlistPanel, type WatchRankingSummary } from "@/components/WatchlistPanel";
+import { WatchlistProvider } from "@/components/WatchlistProvider";
 import { listWatchlist } from "@/lib/watchlist";
 import { matchesWatchItem } from "@/lib/watchlist-shared";
 import {
@@ -81,7 +82,7 @@ export default async function BotPage({
     avatar_url: bot.avatar_url,
   };
 
-  return (
+  const content = (
     <div
       className="bot-skin mx-auto min-w-0 max-w-2xl space-y-5 sm:space-y-6"
       style={{ "--bot-fill": avatar.fill } as React.CSSProperties}
@@ -149,11 +150,7 @@ export default async function BotPage({
       ) : null}
 
       {watchlist ? (
-        <WatchlistPanel
-          botId={bot.id}
-          initialItems={watchlist.items}
-          rankings={watchlist.rankings}
-        />
+        <WatchlistPanel rankings={watchlist.rankings} />
       ) : null}
 
       {showAgendaViva && mzaKind ? (
@@ -185,6 +182,13 @@ export default async function BotPage({
         />
       )}
     </div>
+  );
+  return watchlist ? (
+    <WatchlistProvider botId={bot.id} initialItems={watchlist.items}>
+      {content}
+    </WatchlistProvider>
+  ) : (
+    content
   );
 }
 
