@@ -6,6 +6,7 @@ import { Eye, Plus, Trash2, TrendingDown, PackageCheck } from "lucide-react";
 import {
   WATCHLIST_STATUSES,
   WATCHLIST_STATUS_LABELS,
+  WATCHLIST_STATUS_STYLES,
   type WatchlistItem,
   type WatchlistStatus,
 } from "@/lib/watchlist-shared";
@@ -228,11 +229,7 @@ export function WatchlistPanel({
                     }
                     className={`min-h-8 rounded-full px-3 text-xs font-medium ${
                       item.status === s
-                        ? s === "comprado"
-                          ? "bg-emerald-500 text-white"
-                          : s === "no-por-ahora"
-                            ? "bg-foreground/70 text-background"
-                            : "bg-accent text-white"
+                        ? WATCHLIST_STATUS_STYLES[s].chip
                         : "bg-foreground/5 text-muted"
                     }`}
                   >
