@@ -100,6 +100,17 @@ export function AgendaViva({
         ]}
       />
 
+      {kind === "evento-mza" && tab === "proximos" ? (
+        <SegmentedControl
+          value={view}
+          ariaLabel="Agrupar"
+          options={[
+            { id: "dia", label: "Por día", onClick: () => setView("dia") },
+            { id: "categoria", label: "Por categoría", onClick: () => setView("categoria") },
+          ]}
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -118,17 +129,6 @@ export function AgendaViva({
           ) : null}
         </button>
       </div>
-
-      {kind === "evento-mza" && tab === "proximos" ? (
-        <SegmentedControl
-          value={view}
-          ariaLabel="Agrupar"
-          options={[
-            { id: "dia", label: "Por día", onClick: () => setView("dia") },
-            { id: "categoria", label: "Por categoría", onClick: () => setView("categoria") },
-          ]}
-        />
-      ) : null}
 
       {tab === "pasados" ? (
         <Group title="Pasados" empty="Todavía no hay pasados.">
