@@ -1,5 +1,6 @@
 "use client";
 
+import { foldStore, storeGroupName } from "@/lib/store-group";
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpDown, ExternalLink, PackageCheck, TrendingDown } from "lucide-react";
@@ -61,6 +62,11 @@ function StoreButton({ href }: { href: string }) {
   );
 }
 
+function offerVariant(offer: RankingOffer, group: string): string | null {
+  const rest = offer.store.trim();
+  return foldStore(rest) === foldStore(group) ? null : rest;
+}
+
 function OfferBadges({
   best,
   cardBest,
@@ -87,15 +93,18 @@ function OfferBadges({
 
 function OfferCard({
   offer,
+  label,
   currency,
   best,
   cardBest,
 }: {
   offer: RankingOffer;
+  label?: string | null;
   currency: string;
   best?: boolean;
   cardBest?: boolean;
 }) {
+  const title = label === undefined ? offer.store : label;
   return (
     <article
       className={`rounded-2xl border p-3 ${
@@ -103,7 +112,9 @@ function OfferCard({
       }`}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <p className="min-w-0 truncate font-semibold">{offer.store}</p>
+        <p className={`min-w-0 truncate ${label === undefined ? "font-semibold" : "text-sm font-medium"}`}>
+          {title ?? <span className="text-muted">Oferta</span>}
+        </p>
         <p className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">
           {formatMoney(offer.price, currency)}
           <span className="ml-1 text-[11px] font-medium text-muted">contado</span>
@@ -135,6 +146,44 @@ function OfferCard({
         <StoreButton href={offer.url} />
       </div>
     </article>
+  );
+}
+
+function OfferRow({
+  offer,
+  label,
+  currency,
+  best,
+  cardBest,
+}: {
+  offer: RankingOffer;
+  label: string | null;
+  currency: string;
+  best: boolean;
+  cardBest: boolean;
+}) {
+  return (
+    <tr className={`border-t border-line ${best ? "border-l-[3px] border-l-accent bg-accent/5" : ""}`}>
+      <td className="py-2.5 pl-3 pr-2 align-top">
+        <p className="text-sm">{label ?? <span className="text-muted">Oferta</span>}</p>
+        <OfferBadges best={best} cardBest={cardBest} />
+      </td>
+      <td className="whitespace-nowrap py-2.5 pr-2 align-top font-semibold tabular-nums">
+        {formatMoney(offer.price, currency)}
+      </td>
+      <td
+        className={`py-2.5 pr-2 align-top ${offer.installments?.interest_free ? "font-medium text-emerald-700 dark:text-emerald-300" : "text-muted"}`}
+      >
+        {installmentsLabel(offer, currency, formatMoney) ?? "—"}
+      </td>
+      <td className="py-2.5 pr-2 align-top text-muted">
+        {offer.shipping_text ?? "—"}
+        {offer.in_stock === false ? <span className="ml-1 text-red-700 dark:text-red-300">· Sin stock</span> : null}
+      </td>
+      <td className="py-2.5 align-top">
+        <StoreButton href={offer.url} />
+      </td>
+    </tr>
   );
 }
 
@@ -170,11 +219,22 @@ export function RankingCard({
     }
     return list;
   }, [details?.offers, sort]);
+  const groups = useMemo(() => {
+    if (sort !== "store") return [];
+    const map = new Map<string, RankingOffer[]>();
+    for (const offer of details?.offers ?? []) {
+      const name = storeGroupName(offer.store);
+      map.set(name, [...(map.get(name) ?? []), offer]);
+    }
+    return [...map.entries()]
+      .map(([name, list]) => ({ name, offers: [...list].sort((a, b) => a.price - b.price) }))
+      .sort((a, b) => a.offers[0].price - b.offers[0].price || a.name.localeCompare(b.name, "es"));
+  }, [details?.offers, sort]);
 
   if (!details) return null;
 
   function isBest(offer: RankingOffer) {
-    return Boolean(best && (offer.url === best.url || offer.store === best.store));
+    return Boolean(best && offer.url === best.url && offer.price === best.price);
   }
   function isCardBest(offer: RankingOffer) {
     return Boolean(cardBest && offer.url === cardBest.url);
@@ -273,7 +333,35 @@ export function RankingCard({
             ]}
           />
         </div>
-        <div className="space-y-2 min-[700px]:hidden">
+        {sort === "store" ? (
+          <div className="space-y-3 min-[700px]:hidden">
+            {groups.map((group) => (
+              <section key={group.name} className="overflow-hidden rounded-2xl border border-line">
+                <header className="flex items-baseline justify-between gap-3 bg-raised px-3 py-2">
+                  <p className="min-w-0 truncate font-semibold">{group.name}</p>
+                  <p className="shrink-0 text-xs text-muted">
+                    {group.offers.length > 1
+                      ? `${group.offers.length} ofertas · desde ${formatMoney(group.offers[0].price, currency)}`
+                      : "1 oferta"}
+                  </p>
+                </header>
+                <div className="space-y-2 p-2">
+                  {group.offers.map((offer) => (
+                    <OfferCard
+                      key={`${offer.store}-${offer.url}`}
+                      offer={offer}
+                      label={offerVariant(offer, group.name)}
+                      currency={currency}
+                      best={isBest(offer)}
+                      cardBest={isCardBest(offer)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : null}
+        <div className={`space-y-2 min-[700px]:hidden ${sort === "store" ? "hidden" : ""}`}>
           {offers.map((offer) => (
             <OfferCard
               key={`${offer.store}-${offer.url}`}
@@ -304,7 +392,33 @@ export function RankingCard({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            {sort === "store"
+              ? groups.map((group) => (
+                  <tbody key={group.name}>
+                    <tr className="border-t border-line bg-raised">
+                      <td colSpan={5} className="px-2 py-2">
+                        <span className="font-semibold">{group.name}</span>
+                        <span className="ml-2 text-xs text-muted">
+                          {group.offers.length > 1
+                            ? `${group.offers.length} ofertas · desde ${formatMoney(group.offers[0].price, currency)}`
+                            : "1 oferta"}
+                        </span>
+                      </td>
+                    </tr>
+                    {group.offers.map((offer) => (
+                      <OfferRow
+                        key={`${offer.store}-${offer.url}`}
+                        offer={offer}
+                        label={offerVariant(offer, group.name)}
+                        currency={currency}
+                        best={isBest(offer)}
+                        cardBest={isCardBest(offer)}
+                      />
+                    ))}
+                  </tbody>
+                ))
+              : null}
+            <tbody className={sort === "store" ? "hidden" : ""}>
               {offers.map((offer) => {
                 const bestRow = isBest(offer);
                 const cardRow = isCardBest(offer);
