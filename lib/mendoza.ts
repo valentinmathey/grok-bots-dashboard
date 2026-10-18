@@ -108,6 +108,14 @@ const ticketingFields = {
     )
     .max(8)
     .optional(),
+  early_bird: z
+    .object({
+      price: z.number().min(0).max(100_000_000).optional(),
+      currency: z.enum(CURRENCIES).default("ARS"),
+      until: isoDateTime.optional(),
+      status: z.enum(PRESALE_STATUSES),
+    })
+    .optional(),
   open_bar: z.boolean().optional(),
   open_bar_text: z.string().trim().max(120).optional(),
   promos: z.array(shortText(120)).max(8).optional(),

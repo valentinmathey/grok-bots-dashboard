@@ -385,6 +385,7 @@ function MzaCard({
   const lineup = arr<string>(d.lineup).filter((x) => typeof x === "string");
   const ageMin = typeof d.age_min === "number" ? d.age_min : undefined;
   const openBar = d.open_bar === true;
+  const earlyBird = d.early_bird && typeof d.early_bird === "object" ? (d.early_bird as Presale) : undefined;
   const soldOut = ticket === "agotado" || status === "agotado";
   const image = str(d.image_url) ?? post.cover_image_url ?? undefined;
   const time = post.event_at ? formatTime(post.event_at) : null;
@@ -404,7 +405,12 @@ function MzaCard({
       >
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" loading="lazy" />
+          <img
+            src={image}
+            alt=""
+            className={`h-14 w-14 shrink-0 object-cover ${kind === "evento-mza" ? "rounded-xl" : "rounded-full"}`}
+            loading="lazy"
+          />
         ) : (
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-chip text-2xl" aria-hidden>
             {mzaEmoji(kind, d)}
@@ -441,8 +447,19 @@ function MzaCard({
                 {presaleChip(activePresale)}
               </span>
             ) : null}
+            {earlyBird && earlyBird.status !== "agotada" && !cancelled ? (
+              <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:text-sky-400">
+                {[
+                  earlyBird.status === "proxima" ? "Early bird (próx.)" : "Early bird",
+                  money(earlyBird.price, earlyBird.currency),
+                  untilLabel(earlyBird.until),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            ) : null}
             {openBar ? (
-              <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">🍹 Barra libre</span>
+              <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-400">🍹 Barra libre</span>
             ) : null}
             {ageMin ? (
               <span className="rounded-full bg-chip px-2 py-0.5 text-xs font-medium text-muted">+{ageMin}</span>
@@ -459,6 +476,9 @@ function MzaCard({
               .filter(Boolean)
               .join(" · ")}
           </span>
+          {kind === "evento-mza" && lineup.length ? (
+            <span className="mt-0.5 block truncate text-xs font-medium">🎧 {lineup.join(" · ")}</span>
+          ) : null}
           {str(d.change_note) && (status === "cambiado" || cancelled) ? (
             <span className="mt-1 block text-xs font-medium text-amber-800 dark:text-amber-300">{str(d.change_note)}</span>
           ) : null}
@@ -504,6 +524,14 @@ function MzaCard({
                 ))}
               </ul>
             </div>
+          ) : null}
+          {earlyBird ? (
+            <p className="text-sm">
+              🐦 Early bird{money(earlyBird.price, earlyBird.currency) ? `: ${money(earlyBird.price, earlyBird.currency)}` : ""}{" "}
+              <span className="text-xs text-muted">
+                {[PRESALE_LABELS[earlyBird.status ?? ""] ?? earlyBird.status, untilLabel(earlyBird.until)].filter(Boolean).join(" · ")}
+              </span>
+            </p>
           ) : null}
           {presales.length ? (
             <div>

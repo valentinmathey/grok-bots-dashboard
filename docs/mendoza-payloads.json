@@ -67,7 +67,13 @@
         "DJ Dos"
       ],
       "ticketera": "Passline",
-      "ticket_url": "https://www.passline.com/eventos/ejemplo"
+      "ticket_url": "https://www.passline.com/eventos/ejemplo",
+      "early_bird": {
+        "price": 10000,
+        "currency": "ARS",
+        "until": "2026-10-25T23:59:00-03:00",
+        "status": "vigente"
+      }
     }
   },
   "gastro": {
