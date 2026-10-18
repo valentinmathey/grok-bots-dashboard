@@ -51,6 +51,15 @@ export const rankingOfferSchema = z.object({
   shipping_text: z.string().trim().max(120).optional(),
   shipping_cost: money.optional(),
   installments_text: z.string().trim().max(120).optional(),
+  installments: z
+    .object({
+      count: z.coerce.number().int().min(1).max(72),
+      amount: money.optional(),
+      total: money.optional(),
+      interest_free: z.boolean().optional(),
+      card: z.string().trim().max(60).optional(),
+    })
+    .optional(),
   in_stock: z.boolean().optional(),
   seller_rating: z.coerce.number().finite().min(0).max(5).optional(),
   condition: z.enum(OFFER_CONDITIONS).optional(),
@@ -79,6 +88,11 @@ export const rankingDetailsSchema = z.object({
     .optional(),
   previous_best_price: money.optional(),
   checked_at: z.string().trim().max(40).optional(),
+  lowest_price: money.optional(),
+  lowest_price_at: ymd.optional(),
+  lowest_price_store: z.string().trim().max(80).optional(),
+  back_in_stock: z.boolean().optional(),
+  source_id: z.string().trim().min(1).max(160).optional(),
 });
 
 export const newsletterStorySchema = z.object({
@@ -468,6 +482,31 @@ export function rankingBestCardOffer(details: RankingDetails): RankingOffer | nu
       (offer) => /cuota/i.test(offer.installments_text ?? "") && offer.url !== cash?.url,
     ) ?? null
   );
+}
+
+/** Mínimo histórico: el informado por el bot o, si no, el menor de price_history / precio actual. */
+export function rankingLowest(details: RankingDetails): { price: number; date?: string; store?: string } | null {
+  if (details.lowest_price != null) {
+    return { price: details.lowest_price, date: details.lowest_price_at, store: details.lowest_price_store };
+  }
+  const points: { price: number; date?: string }[] = (details.price_history ?? []).map((p) => ({ price: p.best_price, date: p.date }));
+  const best = rankingBestOffer(details);
+  if (best) points.push({ price: best.price, date: details.checked_at?.slice(0, 10) });
+  if (!points.length) return null;
+  return points.reduce((a, b) => (b.price < a.price ? b : a));
+}
+
+export function installmentsLabel(offer: RankingOffer, currency: string, fmt: (n: number, c: string) => string): string | null {
+  const i = offer.installments;
+  if (!i) return offer.installments_text ?? null;
+  return [
+    `${i.count} cuotas${i.amount != null ? ` de ${fmt(i.amount, currency)}` : ""}`,
+    i.interest_free === true ? "sin interés" : i.interest_free === false ? "con interés" : null,
+    i.total != null ? `total ${fmt(i.total, currency)}` : null,
+    i.card ?? null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function rankingDropPct(details: RankingDetails): number | null {
