@@ -68,6 +68,8 @@ export type BotsRepository = {
     details?: Record<string, unknown>;
   }): Promise<CreatedPost>;
   getPostById(id: string): Promise<Post | null>;
+  /** Post del bot con details.source_id = sourceId (para upsert de re-envíos). */
+  findPostBySourceId?(botId: string, sourceId: string): Promise<Post | null>;
   updatePost(
     id: string,
     patch: {
@@ -204,7 +206,7 @@ export async function publishPost(
   repo: BotsRepository,
   authorization: string | null,
   payload: unknown,
-): Promise<Result<{ post: CreatedPost; bot: AuthenticatedBot }>> {
+): Promise<Result<{ post: CreatedPost; bot: AuthenticatedBot; upserted?: boolean }>> {
   const auth = await authenticateBot(repo, authorization);
   if (!auth.ok) {
     return auth;
@@ -239,6 +241,34 @@ export async function publishPost(
     return details;
   }
   details.data = withAudio(details.data, parsed.data, parsed.data.details);
+
+  if ((parsed.data.kind === "evento-mza" || parsed.data.kind === "recital") && !eventTimes.data.event_at) {
+    return fail(400, "invalid_input", `kind ${parsed.data.kind} requiere event_at`);
+  }
+
+  // Upsert por details.source_id: si el bot re-envía el mismo ítem, se actualiza.
+  const sourceId = typeof details.data.source_id === "string" ? details.data.source_id : null;
+  const existing = sourceId && repo.findPostBySourceId ? await repo.findPostBySourceId(auth.data.botId, sourceId) : null;
+  if (existing) {
+    const prevStatus = String((existing.details as Record<string, unknown> | null)?.status ?? "activo");
+    const updated = await repo.updatePost(existing.id, {
+      title: parsed.data.title,
+      body: parsed.data.body,
+      kind: parsed.data.kind,
+      product: normalizeProduct(parsed.data.product),
+      tags: normalizeTags(parsed.data.tags),
+      cover_image_url: normalizeHttpUrl(parsed.data.cover_image_url),
+      images: normalizePostImages(parsed.data.images),
+      event_at: eventTimes.data.event_at,
+      event_end_at: eventTimes.data.event_end_at,
+      details: details.data,
+    });
+    const status = String(details.data.status ?? "activo");
+    if (status !== prevStatus && (status === "cambiado" || status === "cancelado")) {
+      schedulePublishPush(repo, auth.data, existing.id);
+    }
+    return { ok: true, status: 200, data: { post: toCreatedPost(updated), bot: auth.data, upserted: true } };
+  }
 
   const post = await repo.insertPost({
     botId: auth.data.botId,

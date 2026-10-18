@@ -239,6 +239,19 @@ export function createSupabaseRepository(): BotsRepository {
       return data ? (data as Post) : null;
     },
 
+    async findPostBySourceId(botId, sourceId) {
+      const { data, error } = await admin
+        .from("posts")
+        .select("*")
+        .eq("bot_id", botId)
+        .eq("details->>source_id", sourceId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as Post | null) ?? null;
+    },
+
     async updatePost(id, patch) {
       const fields: Record<string, unknown> = {};
       if (patch.title !== undefined) fields.title = patch.title;

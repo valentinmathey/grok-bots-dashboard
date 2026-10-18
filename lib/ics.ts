@@ -1,6 +1,7 @@
 import type { AgendaEntry } from "@/lib/agenda";
 import { BA_TIMEZONE, baCalendarDate, isDateOnlyMidnightBa } from "@/lib/event-time";
 import { stripEventFactLines } from "@/lib/event-facts";
+import { ZONE_LABELS, mzaEmoji, type MzaZone } from "@/lib/mendoza";
 
 /** Zona del feed (Mendoza: UTC−3 todo el año, sin horario de verano). */
 export const ICS_TZID = BA_TIMEZONE;
@@ -34,6 +35,8 @@ export function eventEmoji(input: {
 
 /** Emoji de una entrada de agenda (feed .ics y chip de la lista). */
 export function entryEmoji(entry: AgendaEntry): string {
+  const mza = entry.kind ? mzaEmoji(entry.kind, entry.details) : null;
+  if (mza) return mza;
   return eventEmoji({
     title: entry.title,
     tags: entry.tags,
@@ -158,20 +161,27 @@ export function eventLocation(entry: AgendaEntry): string | undefined {
   }
   const modality = detailString(details, ["modality", "modalidad", "format", "formato"]);
   const venue = detailString(details, ["venue", "location", "place", "lugar", "address", "direccion"]);
-  const city = detailString(details, ["city", "ciudad"]);
+  const zone = detailString(details, ["zone"]);
+  const city =
+    detailString(details, ["city", "ciudad"]) ??
+    (zone && zone !== "fuera-de-zona" ? ZONE_LABELS[zone as MzaZone] : undefined);
   const bodyPlace = entry.body ? factLine(entry.body, /lugar|ubicaci[oó]n|location/) : undefined;
   const online =
     /online|virtual|remot/i.test(modality ?? "") ||
     (!venue && /^\s*(online|virtual)/i.test(cleanMarkdown(bodyPlace ?? ""))) ||
     (!venue && !bodyPlace && (entry.tags ?? []).some((tag) => /^(online|virtual)$/i.test(tag)));
   if (online && !venue) return "Online";
-  if (venue) return city && !venue.includes(city) ? `${venue}, ${city}` : venue;
+  if (venue) {
+    const address = detailString(details, ["address"]);
+    const place = address && !venue.includes(address) ? `${venue}, ${address}` : venue;
+    return city && !place.includes(city) ? `${place}, ${city}` : place;
+  }
   if (bodyPlace) return cleanMarkdown(bodyPlace);
   return entry.location;
 }
 
 export function registrationUrl(entry: AgendaEntry): string | undefined {
-  const fromDetails = detailString(entry.details, ["registration_url", "rsvp_url", "url", "link", "ticket_url"]);
+  const fromDetails = detailString(entry.details, ["registration_url", "ticket_url", "rsvp_url", "url", "link", "source_url"]);
   if (fromDetails && URL_RE.test(fromDetails)) return fromDetails;
   if (entry.link) return entry.link;
   const line = entry.body ? factLine(entry.body, /inscripci[oó]n|rsvp|entradas|registro|link/) : undefined;
@@ -212,7 +222,16 @@ export function buildVevent(entry: AgendaEntry, options: { baseUrl: string; now?
   const postUrl = `${options.baseUrl}/bots/${entry.bot.slug}#post-${entry.postId}`;
   const location = eventLocation(entry);
   const signup = registrationUrl(entry);
-  const description = [shortSummary(entry), signup ? `Inscripción: ${signup}` : null, `Ver en el dashboard: ${postUrl}`]
+  const changeNote = detailString(entry.details, ["change_note"]);
+  const statusText = detailString(entry.details, ["status"]);
+  const signupLabel = entry.kind === "recital" ? "Entradas" : "Inscripción";
+  const description = [
+    statusText === "cancelado" ? `❌ Cancelado${changeNote ? `: ${changeNote}` : ""}` : null,
+    statusText === "cambiado" ? `⚠️ Cambio${changeNote ? `: ${changeNote}` : ""}` : null,
+    shortSummary(entry),
+    signup ? `${signupLabel}: ${signup}` : null,
+    `Ver en el dashboard: ${postUrl}`,
+  ]
     .filter(Boolean)
     .join("\n\n");
   const stamp = utcStamp(entry.updatedAt ? new Date(entry.updatedAt) : (options.now ?? new Date()));
@@ -233,6 +252,9 @@ export function buildVevent(entry: AgendaEntry, options: { baseUrl: string; now?
   lines.push(`SUMMARY:${icsText(summary)}`);
   if (location) lines.push(`LOCATION:${icsText(location)}`);
   lines.push(`DESCRIPTION:${icsText(description)}`, `URL:${postUrl}`, "TRANSP:OPAQUE");
+  const status = detailString(entry.details, ["status"]);
+  if (status === "cancelado") lines.push("STATUS:CANCELLED");
+  else lines.push("STATUS:CONFIRMED");
   if (isTimed(entry)) {
     lines.push(...alarm("-PT30M", `${summary} en 30 minutos`), ...alarm("-PT5M", `${summary} en 5 minutos`));
   } else {

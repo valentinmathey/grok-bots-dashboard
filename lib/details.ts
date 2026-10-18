@@ -1,3 +1,4 @@
+import { MZA_SCHEMAS, isMzaKind } from "@/lib/mendoza";
 import { z } from "zod";
 import {
   baCalendarDate,
@@ -388,10 +389,25 @@ export function parsePostDetails(
         message: "kind oportunidades requiere details.items (1 a 60)",
       };
     }
+    if (isMzaKind(kind)) {
+      return { ok: false, message: `kind ${kind} requiere details (zone, source_url, source_id…)` };
+    }
     return { ok: true, details: null };
   }
   if (typeof raw !== "object" || Array.isArray(raw)) {
     return { ok: false, message: "details tiene que ser un objeto JSON" };
+  }
+
+  if (isMzaKind(kind)) {
+    const parsed = MZA_SCHEMAS[kind].safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: `Los details de ${kind} no son válidos`,
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: parsed.data as PostDetails };
   }
 
   if (kind === "alojamiento") {

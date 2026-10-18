@@ -94,6 +94,14 @@ export class MemoryRepository implements BotsRepository {
     return this.posts.find((post) => post.id === id) ?? null;
   }
 
+  async findPostBySourceId(botId: string, sourceId: string) {
+    return (
+      this.posts.find(
+        (post) => post.bot_id === botId && (post.details as Record<string, unknown> | null)?.source_id === sourceId,
+      ) ?? null
+    );
+  }
+
   async updatePost(
     id: string,
     patch: {

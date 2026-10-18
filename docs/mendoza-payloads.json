@@ -1,0 +1,76 @@
+{
+  "evento-mza": {
+    "title": "Sunset en Bodega Lagarde",
+    "body": "DJ set al atardecer entre viñedos, con food trucks y vinos de la casa.",
+    "kind": "evento-mza",
+    "tags": ["sunset", "bodega", "lujan"],
+    "event_at": "2026-10-24T18:00:00-03:00",
+    "event_end_at": "2026-10-24T23:00:00-03:00",
+    "details": {
+      "status": "activo",
+      "category": "sunset",
+      "outdoor": true,
+      "zone": "lujan",
+      "city": "Luján de Cuyo",
+      "audience": ["amigos", "pareja"],
+      "venue": "Bodega Lagarde",
+      "address": "San Martín 1745, Mayor Drummond",
+      "price_from": 15000,
+      "price_text": "Entrada $15.000 con copa",
+      "image_url": "https://example.com/sunset-lagarde.jpg",
+      "source_url": "https://www.instagram.com/p/ABC123/",
+      "source_id": "ig:ABC123",
+      "note": "Llevar abrigo: refresca después de las 21."
+    }
+  },
+  "gastro": {
+    "title": "2x1 en pastas en Francesco",
+    "body": "Promo de martes a jueves en todas las pastas caseras.",
+    "kind": "gastro",
+    "tags": ["promo", "pastas", "capital"],
+    "details": {
+      "status": "activo",
+      "type": "promo",
+      "cuisine": "Italiana",
+      "price_range": "$$",
+      "hours": "Mar a jue 20:00 a 00:00",
+      "promo_from": "2026-10-20",
+      "promo_to": "2026-11-15",
+      "promo_days": "Martes a jueves",
+      "instagram": "@francescomza",
+      "zone": "capital",
+      "audience": ["pareja", "familiar"],
+      "venue": "Francesco Ristorante",
+      "address": "Chile 1268, Ciudad",
+      "price_text": "2x1 en pastas",
+      "source_url": "https://www.instagram.com/p/DEF456/",
+      "source_id": "ig:DEF456"
+    }
+  },
+  "recital": {
+    "title": "Divididos en el Arena Maipú",
+    "body": "Gira aniversario: repaso de todos los discos.",
+    "kind": "recital",
+    "tags": ["rock", "maipu"],
+    "event_at": "2026-11-07T21:30:00-03:00",
+    "details": {
+      "status": "activo",
+      "artist": "Divididos",
+      "support": ["Banda local invitada"],
+      "genre": "rock",
+      "doors_at": "2026-11-07T20:00:00-03:00",
+      "ticketera": "Entrada Web",
+      "ticket_url": "https://www.entradaweb.com.ar/evento/divididos-mendoza",
+      "ticket_status": "pocas",
+      "zone": "maipu",
+      "audience": ["amigos"],
+      "venue": "Arena Maipú",
+      "address": "Emilio Civit y Maza, Maipú",
+      "price_from": 38000,
+      "price_text": "Desde $38.000 + service",
+      "image_url": "https://example.com/divididos.jpg",
+      "source_url": "https://www.entradaweb.com.ar/evento/divididos-mendoza",
+      "source_id": "entradaweb:divididos-2026-11-07"
+    }
+  }
+}
