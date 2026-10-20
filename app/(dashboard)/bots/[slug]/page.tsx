@@ -5,6 +5,8 @@ import { BotAvatar } from "@/components/BotAvatar";
 import { NavTitle } from "@/components/nav-context";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { PostFeed } from "@/components/PostFeed";
+import { EventoChanges } from "@/components/EventoChanges";
+import { pickEventoChanges } from "@/lib/evento-changes";
 import { AgendaViva } from "@/components/mza/AgendaViva";
 import { cookies } from "next/headers";
 import { VISIT_COOKIE } from "@/lib/last-seen";
@@ -61,6 +63,10 @@ export default async function BotPage({
     hasAlojamientos: facets.has_alojamientos,
     hasOportunidades: facets.has_oportunidades,
   });
+  const eventoChanges =
+    !showAgendaViva && facets.kinds.includes("evento") && query.when !== "past"
+      ? pickEventoChanges(await repo.listPostsByBot(bot.id, { kind: "evento" }))
+      : [];
   const page = await repo.listPostsPage(bot.id, query, {
     sort: query.sort,
     limit: PAGE_SIZE,
@@ -171,6 +177,8 @@ export default async function BotPage({
           </p>
         </>
       ) : (
+        <>
+        <EventoChanges posts={eventoChanges} basePath={`/bots/${bot.slug}`} bot={bot} />
         <PostFeed
           key={JSON.stringify(query)}
           slug={bot.slug}
@@ -180,6 +188,7 @@ export default async function BotPage({
           facets={facets}
           bot={bot}
         />
+        </>
       )}
     </div>
   );
