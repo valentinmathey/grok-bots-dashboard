@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { hashPostId, scrollToPostSettled } from "@/lib/scroll-to-post";
 import {
   Building2,
   ChevronDown,
@@ -161,8 +162,59 @@ export function AgendaViva({
     byCategory.set(key, [...(byCategory.get(key) ?? []), post]);
   }
 
+  // Deep link (#post-<id>): elegir la pestaña donde está, sacar filtros que lo
+  // oculten, abrir la card y centrarla (re-centrando mientras se asienta el layout).
+  const [target, setTarget] = useState<string | null>(null);
+  const [scrollTick, setScrollTick] = useState(0);
+  useEffect(() => {
+    function applyHash() {
+      const id = hashPostId(window.location.hash);
+      setTarget(id);
+      if (!id) return;
+      const post = posts.find((p) => p.id === id);
+      if (!post) {
+        // No es de esta agenda (otro kind): lo buscamos en el feed clásico.
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("vista") !== "feed") {
+          url.searchParams.set("vista", "feed");
+          window.location.replace(url.toString());
+        }
+        return;
+      }
+      if (!matchesMzaFilters(post, kind, filters)) {
+        setFilters(EMPTY_MZA_FILTERS);
+        setDraft(EMPTY_MZA_FILTERS);
+      }
+      const isPast = bucketMzaPosts([post], now).past.length > 0;
+      setTab(isPast ? "pasados" : "proximos");
+      setScrollTick((n) => n + 1);
+    }
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+    // Solo al montar y en hashchange; posts/filtros se leen en ese momento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!target || !scrollTick) return;
+    let cancel: (() => void) | null = null;
+    const frame = requestAnimationFrame(() => {
+      cancel = scrollToPostSettled(target);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      cancel?.();
+    };
+  }, [target, scrollTick]);
+
   const card = (post: Post) => (
-    <MzaCard key={post.id} post={post} kind={kind} today={today} />
+    <MzaCard
+      key={post.id}
+      post={post}
+      kind={kind}
+      today={today}
+      defaultOpen={post.id === target}
+    />
   );
 
   return (
@@ -505,12 +557,19 @@ function MzaCard({
   post,
   kind,
   today,
+  defaultOpen = false,
 }: {
   post: Post;
   kind: MzaKind;
   today: string;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+  const [wasTarget, setWasTarget] = useState(defaultOpen);
+  if (defaultOpen !== wasTarget) {
+    setWasTarget(defaultOpen);
+    if (defaultOpen) setOpen(true);
+  }
   const d = (post.details ?? {}) as D;
   const status = String(d.status ?? "activo");
   const cancelled = status === "cancelado";
@@ -549,7 +608,7 @@ function MzaCard({
   const timeLabel = time && time !== "00:00" ? time : null;
 
   return (
-    <article className="surface rounded-2xl p-3">
+    <article id={`post-${post.id}`} className="surface scroll-mt-20 rounded-2xl p-3">
       <button
         type="button"
         onClick={() => {
