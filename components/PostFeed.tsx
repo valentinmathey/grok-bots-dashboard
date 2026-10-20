@@ -51,7 +51,7 @@ export function PostFeed({
   const oportunidades = facets.has_oportunidades && !facets.has_events && !alojamiento;
   const view = query.view === "table" && alojamiento ? "table" : "cards";
 
-  const loadMore = useCallback(async () => {
+  const loadMore = useCallback(async (pageSize: number = PAGE_SIZE) => {
     if (lock.current) {
       return;
     }
@@ -60,11 +60,12 @@ export function PostFeed({
     try {
       const params = filtersToSearchParams(query);
       params.set("offset", String(posts.length));
-      params.set("limit", String(PAGE_SIZE));
+      params.set("limit", String(pageSize));
       if (!postsApi) {
         params.set("slug", slug);
       }
       const response = await fetch(`${postsApi ?? "/api/admin/posts"}?${params}`);
+      if (!response.ok) throw new Error(`posts ${response.status}`);
       const payload = (await response.json()) as { posts?: Post[] };
       setPosts((current) => {
         const seen = new Set(current.map((post) => post.id));
@@ -77,23 +78,48 @@ export function PostFeed({
     }
   }, [posts.length, postsApi, query, slug]);
 
+  // Deep link (#post-<id>): si el post no está en las páginas cargadas, seguimos
+  // pidiendo páginas (de a 50) hasta encontrarlo o llegar al total, y recién ahí scrolleamos.
+  const [pendingScroll, setPendingScroll] = useState<string | null>(null);
+  const [chaseFailed, setChaseFailed] = useState(false);
+
   useEffect(() => {
     function applyHash() {
       const raw = window.location.hash;
-      const id = raw.startsWith("#post-") ? raw.slice(6) : null;
+      const id = raw.startsWith("#post-") ? decodeURIComponent(raw.slice(6)) : null;
       setHashPostId(id);
-      if (!id) return;
-      requestAnimationFrame(() => {
-        document.getElementById(`post-${id}`)?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
+      setChaseFailed(false);
+      setPendingScroll(id);
     }
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, []);
+
+  useEffect(() => {
+    if (!pendingScroll) return;
+    if (posts.some((post) => post.id === pendingScroll)) {
+      const id = pendingScroll;
+      let tries = 0;
+      let frame = 0;
+      const tick = () => {
+        const el = document.getElementById(`post-${id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          setPendingScroll(null);
+        } else if (tries++ < 30) {
+          frame = requestAnimationFrame(tick);
+        }
+      };
+      frame = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(frame);
+    }
+    if (posts.length >= total || loading || chaseFailed) {
+      if (posts.length >= total) setPendingScroll(null);
+      return;
+    }
+    loadMore(50).catch(() => setChaseFailed(true));
+  }, [pendingScroll, posts, total, loading, chaseFailed, loadMore]);
 
   useEffect(() => {
     const node = sentinel.current;
@@ -103,7 +129,7 @@ export function PostFeed({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          void loadMore();
+          void loadMore().catch(() => undefined);
         }
       },
       { rootMargin: "320px" },
@@ -222,7 +248,7 @@ export function PostFeed({
           ) : (
             <button
               type="button"
-              onClick={() => void loadMore()}
+              onClick={() => void loadMore().catch(() => undefined)}
               className="text-sm font-medium text-accent"
             >
               Cargar más
