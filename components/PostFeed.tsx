@@ -15,6 +15,7 @@ import {
   type FeedQuery,
 } from "@/lib/filters";
 import type { Post, PostFacets } from "@/lib/types";
+import { hashPostId as parseHashPostId, scrollToPostSettled } from "@/lib/scroll-to-post";
 
 export function PostFeed({
   slug,
@@ -85,8 +86,7 @@ export function PostFeed({
 
   useEffect(() => {
     function applyHash() {
-      const raw = window.location.hash;
-      const id = raw.startsWith("#post-") ? decodeURIComponent(raw.slice(6)) : null;
+      const id = parseHashPostId(window.location.hash);
       setHashPostId(id);
       setChaseFailed(false);
       setPendingScroll(id);
@@ -103,9 +103,9 @@ export function PostFeed({
       let tries = 0;
       let frame = 0;
       const tick = () => {
-        const el = document.getElementById(`post-${id}`);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (document.getElementById(`post-${id}`)) {
+          // No se cancela al limpiar el efecto: pendingScroll pasa a null enseguida.
+          scrollToPostSettled(id);
           setPendingScroll(null);
         } else if (tries++ < 30) {
           frame = requestAnimationFrame(tick);
