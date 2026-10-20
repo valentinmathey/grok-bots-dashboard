@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExpandChevron, ExpandableBody } from "@/components/ExpandableCard";
+import { ChangesSection } from "@/components/ChangesSection";
 import { hashPostId, scrollToPostSettled } from "@/lib/scroll-to-post";
 import {
   Building2,
@@ -280,26 +280,14 @@ export function AgendaViva({
       ) : (
         <>
           {buckets.changes.length ? (
-            <section className="rounded-3xl border border-amber-500/40 bg-amber-500/5 p-3">
-              <button
-                type="button"
-                onClick={() => setChangesOpen((v) => !v)}
-                aria-expanded={changesOpen}
-                aria-controls="mza-cambios"
-                className="-my-1 flex min-h-11 w-full items-center gap-2 text-left"
-              >
-                <h2 className="flex-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-400">
-                  Cambios
-                </h2>
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-amber-500/15 px-1.5 text-[11px] font-semibold tabular-nums text-amber-700 dark:text-amber-400">
-                  {buckets.changes.length}
-                </span>
-                <ExpandChevron open={changesOpen} compact />
-              </button>
-              <ExpandableBody open={changesOpen} id="mza-cambios">
-                <div className="space-y-2 pt-2">{buckets.changes.map(card)}</div>
-              </ExpandableBody>
-            </section>
+            <ChangesSection
+              count={buckets.changes.length}
+              open={changesOpen}
+              onToggle={() => setChangesOpen((v) => !v)}
+              id="mza-cambios"
+            >
+              {buckets.changes.map(card)}
+            </ChangesSection>
           ) : null}
 
           {kind === "gastro" && buckets.promos.length ? (

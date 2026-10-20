@@ -348,6 +348,12 @@ export const oportunidadesDetailsSchema = z.object({
   items: z.array(oportunidadItemSchema).min(1).max(60),
 });
 
+/** kind=evento: objeto libre, con status/change_note opcionales validados. */
+export const eventoStatusSchema = z.looseObject({
+  status: z.enum(["activo", "cambiado", "cancelado"]).optional(),
+  change_note: z.string().trim().max(280).optional(),
+});
+
 export const looseDetailsSchema = z
   .record(z.string(), z.unknown())
   .refine((value) => Object.keys(value).length <= 40, {
@@ -492,6 +498,17 @@ export function parsePostDetails(
       };
     }
     return { ok: true, details: parsed.data };
+  }
+
+  if (kind === "evento") {
+    const status = eventoStatusSchema.safeParse(raw);
+    if (!status.success) {
+      return {
+        ok: false,
+        message: "Los details de evento no son válidos (status: activo|cambiado|cancelado)",
+        issues: status.error.issues,
+      };
+    }
   }
 
   const parsed = looseDetailsSchema.safeParse(raw);
