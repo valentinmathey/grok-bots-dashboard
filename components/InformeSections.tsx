@@ -37,6 +37,7 @@ import {
   INFORME_VERDICT_LABEL,
   findTechnicalBlock,
   inflationLineAmount,
+  inflationScale,
   informeLead,
   leftoverTechnicalBlocks,
   moneyActions,
@@ -518,7 +519,12 @@ export function VsInflacion({ details }: { details: InformeDetails }) {
   const block = details.vs_inflacion;
   if (!block) return null;
   const inflationAmount = inflationLineAmount(block.example_amount, block.inflation_pct);
-  const max = Math.max(inflationAmount, ...block.options.map((option) => option.result_amount), 1);
+  const scale = inflationScale(
+    block.example_amount,
+    inflationAmount,
+    block.options.map((option) => option.result_amount),
+  );
+  const markerLeft = scale.pct(inflationAmount);
   const verdictCls =
     block.verdict === "si"
       ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
@@ -539,31 +545,68 @@ export function VsInflacion({ details }: { details: InformeDetails }) {
         </p>
       </div>
       {block.options.length ? (
-        <div className="mt-3 space-y-2.5">
-          {block.options.map((option) => (
-            <div key={option.name}>
-              <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
-                <span className="font-medium">
-                  {option.name} · {formatPct(option.monthly_rate_pct)}
-                </span>
-                <span className="tabular-nums">{formatMoney(option.result_amount, "ARS")}</span>
-              </div>
-              <div className="relative h-2.5 overflow-hidden rounded-full bg-chip">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-accent"
-                  style={{ width: `${Math.min(100, (option.result_amount / max) * 100)}%` }}
-                />
-                <div
-                  className="absolute top-0 h-full w-0.5 bg-red-500"
-                  style={{ left: `${Math.min(100, (inflationAmount / max) * 100)}%` }}
-                  title={`Inflación ${formatMoney(inflationAmount, "ARS")}`}
-                />
-              </div>
+        <div className="mt-3">
+          <div className="relative pt-5">
+            <span
+              className="absolute top-0 whitespace-nowrap rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+              style={{
+                left: `${Math.min(86, Math.max(14, markerLeft))}%`,
+                transform: "translateX(-50%)",
+              }}
+            >
+              Inflación {formatPct(block.inflation_pct)}
+            </span>
+            <div
+              className="pointer-events-none absolute bottom-0 top-4 z-10 w-[3px] -translate-x-1/2 rounded-full bg-red-500"
+              style={{ left: `${markerLeft}%` }}
+              aria-hidden
+            />
+            <div className="space-y-3">
+              {block.options.map((option) => {
+                const diff = Math.round(option.result_amount - inflationAmount);
+                const wins = diff > 0;
+                const ties = diff === 0;
+                const barCls = wins ? "bg-emerald-500" : ties ? "bg-amber-500" : "bg-red-400";
+                const diffCls = wins
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : ties
+                    ? "text-amber-700 dark:text-amber-300"
+                    : "text-red-700 dark:text-red-300";
+                const diffText = ties
+                  ? "empata"
+                  : `${wins ? "+" : "−"}${formatMoney(Math.abs(diff), "ARS")}`;
+                return (
+                  <div key={option.name}>
+                    <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                      <span className="min-w-0 font-medium">
+                        {option.name} · {formatPct(option.monthly_rate_pct)}
+                      </span>
+                      <span className="shrink-0 text-right tabular-nums">
+                        {formatMoney(option.result_amount, "ARS")}{" "}
+                        <span className={`font-semibold ${diffCls}`}>{diffText}</span>
+                      </span>
+                    </div>
+                    <div className="relative h-3 overflow-hidden rounded-full bg-chip">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-full ${barCls}`}
+                        style={{ width: `${Math.max(2, scale.pct(option.result_amount))}%` }}
+                        title={`${option.name}: ${formatMoney(option.result_amount, "ARS")}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-          <p className="text-[11px] text-muted">
-            La raya roja es lo que tendrían que valer {formatMoney(block.example_amount, "ARS")} para
-            empatar la inflación ({formatMoney(inflationAmount, "ARS")}).
+          </div>
+          <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-muted">
+            <span>{formatMoney(Math.round(scale.min), "ARS")}</span>
+            <span>{formatMoney(Math.round(scale.max), "ARS")}</span>
+          </div>
+          <p className="mt-2 text-[11px] leading-5 text-muted">
+            Cuánto valdrían {formatMoney(block.example_amount, "ARS")} al final del período. La raya
+            roja marca lo que necesitás para empatar la inflación ({formatMoney(inflationAmount, "ARS")}):
+            verde le gana, rojo pierde, y al lado ves la diferencia. La escala está ampliada para que se
+            noten las diferencias.
           </p>
         </div>
       ) : null}

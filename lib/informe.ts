@@ -185,6 +185,21 @@ export function inflationLineAmount(exampleAmount: number, inflationPct: number)
   return exampleAmount * (1 + inflationPct / 100);
 }
 
+/**
+ * Escala con zoom para las barras de "¿le ganan a la inflación?": arranca en el
+ * monto inicial (o un poco abajo del menor) y termina un poco arriba del mayor o
+ * de la inflación, para que las diferencias chicas se vean.
+ */
+export function inflationScale(exampleAmount: number, inflationAmount: number, values: number[]) {
+  const lo = Math.min(exampleAmount, inflationAmount, ...values);
+  const hi = Math.max(exampleAmount, inflationAmount, ...values);
+  const span = Math.max(hi - lo, Math.abs(exampleAmount) * 0.005, 1);
+  const min = lo < exampleAmount ? lo - span * 0.1 : exampleAmount;
+  const max = hi + span * 0.12;
+  const pct = (value: number) => Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+  return { min, max, pct };
+}
+
 export function isInformeSectionId(value: string): value is InformeSectionId {
   return (INFORME_SECTION_IDS as readonly string[]).includes(value);
 }
