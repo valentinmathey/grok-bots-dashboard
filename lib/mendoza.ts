@@ -422,7 +422,7 @@ export type MzaFilters = {
   categories: string[];
   venue: string;
   unseenOnly: boolean;
-  /** Edad (details.age_min): menores = sin límite o < 18; "+N" = exige age_min >= N. */
+  /** Edad (details.age_min): menores = sin límite o < 18; "+N" = age_min exactamente N. */
   age: MzaAgeFilter | null;
 };
 
@@ -443,13 +443,13 @@ export function mzaKindHasAge(kind: MzaKind): boolean {
 
 /**
  * - menores: oculta lo que tiene age_min >= 18; si falta age_min, se muestra.
- * - 18 / 21 / 23 / 25 / 28: solo lo que tiene age_min >= N; si falta age_min, se oculta.
+ * - 18 / 21 / 23 / 25 / 28: solo lo que tiene age_min === N (exacto); si falta age_min, se oculta.
  */
 export function matchesMzaAge(d: Record<string, unknown>, age: MzaAgeFilter | null): boolean {
   if (!age) return true;
   const min = typeof d.age_min === "number" ? d.age_min : null;
   if (age === "menores") return min === null || min < 18;
-  return min !== null && min >= Number(age);
+  return min !== null && min === Number(age);
 }
 
 export const EMPTY_MZA_FILTERS: MzaFilters = {

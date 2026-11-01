@@ -115,21 +115,19 @@ describe("filtro de edad (age_min)", () => {
     expect(matchesMzaFilters(mk("recital", 14), "recital", f("menores"))).toBe(true);
     expect(matchesMzaFilters(mk("recital", 18), "recital", f("menores"))).toBe(false);
   });
-  it("+18 y +21 exigen age_min", () => {
-    expect(matchesMzaFilters(mk("evento-mza"), "evento-mza", f("18"))).toBe(false);
-    expect(matchesMzaFilters(mk("evento-mza", 18), "evento-mza", f("18"))).toBe(true);
-    expect(matchesMzaFilters(mk("evento-mza", 21), "evento-mza", f("18"))).toBe(true);
-    expect(matchesMzaFilters(mk("evento-mza", 18), "evento-mza", f("21"))).toBe(false);
-    expect(matchesMzaFilters(mk("evento-mza", 21), "evento-mza", f("21"))).toBe(true);
-  });
-  it("+23, +25 y +28 son estrictos", () => {
-    for (const n of [23, 25, 28] as const) {
+  it("cada +N es exacto y exige age_min", () => {
+    for (const n of [18, 21, 23, 25, 28] as const) {
       const age = String(n) as MzaFilters["age"];
       expect(matchesMzaFilters(mk("recital"), "recital", f(age))).toBe(false);
-      expect(matchesMzaFilters(mk("recital", n - 1), "recital", f(age))).toBe(false);
       expect(matchesMzaFilters(mk("recital", n), "recital", f(age))).toBe(true);
-      expect(matchesMzaFilters(mk("evento-mza", 30), "evento-mza", f(age))).toBe(true);
+      expect(matchesMzaFilters(mk("evento-mza", n), "evento-mza", f(age))).toBe(true);
+      expect(matchesMzaFilters(mk("recital", n - 1), "recital", f(age))).toBe(false);
+      expect(matchesMzaFilters(mk("recital", n + 1), "recital", f(age))).toBe(false);
     }
+    expect(matchesMzaFilters(mk("evento-mza", 23), "evento-mza", f("21"))).toBe(false);
+  });
+  it("apto menores: sin dato, 0 o < 18", () => {
+    expect(matchesMzaFilters(mk("recital", 0), "recital", f("menores"))).toBe(true);
     expect(matchesMzaFilters(mk("recital", 25), "recital", f("menores"))).toBe(false);
   });
   it("gastro ignora la edad y cuenta como filtro activo", () => {
