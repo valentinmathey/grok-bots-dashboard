@@ -58,7 +58,11 @@ describe("kinds de Mendoza", () => {
       now,
     );
     expect(b.changes.map((p) => p.id)).toEqual(["cancelado"]);
-    expect(b.days.map((d) => d.day)).toEqual(["2026-10-18"]);
+    // El cambiado/cancelado también aparece abajo, por su fecha, con la etiqueta.
+    expect(b.days.map((d) => [d.day, d.posts.map((p) => p.id)])).toEqual([
+      ["2026-10-18", ["hoy"]],
+      ["2026-10-20", ["cancelado"]],
+    ]);
     expect(b.promos.map((p) => p.id)).toEqual(["promo"]);
     expect(b.undated.map((p) => p.id)).toEqual(["sinfecha"]);
     expect(b.past.map((p) => p.id).sort()).toEqual(["sinfecha-vieja", "viejo"]);
