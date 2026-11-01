@@ -5,6 +5,8 @@ import { parsePostDetails } from "@/lib/details";
 import { entryEmoji } from "@/lib/ics";
 import {
   EMPTY_MZA_FILTERS,
+  countMzaFilters,
+  type MzaFilters,
   GRAN_MENDOZA,
   bucketMzaPosts,
   countdownLabel,
@@ -101,5 +103,27 @@ describe("kinds de Mendoza", () => {
     expect((repo.posts[0].details as Record<string, unknown>).ticket_status).toBe("agotado");
     const noDate = await publishPost(repo, `Bearer ${key}`, { ...payloads.recital, event_at: undefined, details: { ...payloads.recital.details, source_id: "otro" } });
     expect(noDate.ok).toBe(false);
+  });
+});
+
+describe("filtro de edad (age_min)", () => {
+  const mk = (kind: "recital" | "evento-mza" | "gastro", age_min?: number) =>
+    ({ id: "x", kind, details: age_min === undefined ? {} : { age_min } }) as unknown as Post;
+  const f = (age: MzaFilters["age"]): MzaFilters => ({ ...EMPTY_MZA_FILTERS, age });
+  it("apto menores incluye sin dato y menores de 18", () => {
+    expect(matchesMzaFilters(mk("recital"), "recital", f("menores"))).toBe(true);
+    expect(matchesMzaFilters(mk("recital", 14), "recital", f("menores"))).toBe(true);
+    expect(matchesMzaFilters(mk("recital", 18), "recital", f("menores"))).toBe(false);
+  });
+  it("+18 y +21 exigen age_min", () => {
+    expect(matchesMzaFilters(mk("evento-mza"), "evento-mza", f("18"))).toBe(false);
+    expect(matchesMzaFilters(mk("evento-mza", 18), "evento-mza", f("18"))).toBe(true);
+    expect(matchesMzaFilters(mk("evento-mza", 21), "evento-mza", f("18"))).toBe(true);
+    expect(matchesMzaFilters(mk("evento-mza", 18), "evento-mza", f("21"))).toBe(false);
+    expect(matchesMzaFilters(mk("evento-mza", 21), "evento-mza", f("21"))).toBe(true);
+  });
+  it("gastro ignora la edad y cuenta como filtro activo", () => {
+    expect(matchesMzaFilters(mk("gastro"), "gastro", f("21"))).toBe(true);
+    expect(countMzaFilters(f("18"))).toBe(1);
   });
 });
