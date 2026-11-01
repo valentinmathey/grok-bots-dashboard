@@ -433,8 +433,8 @@ export function AgendaViva({
                 </FilterChip>
               ))}
               <p className="basis-full text-[11px] leading-5 text-muted">
-                «Apto menores» incluye los que no informan edad; +18 y +21 muestran solo los que
-                la informan.
+                «Apto menores» incluye los que no informan edad. +18, +21, +23, +25 y +28 muestran
+                solo los que informan esa edad mínima o más.
               </p>
             </FilterSection>
           ) : null}

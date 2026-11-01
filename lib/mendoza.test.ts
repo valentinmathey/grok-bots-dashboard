@@ -122,6 +122,16 @@ describe("filtro de edad (age_min)", () => {
     expect(matchesMzaFilters(mk("evento-mza", 18), "evento-mza", f("21"))).toBe(false);
     expect(matchesMzaFilters(mk("evento-mza", 21), "evento-mza", f("21"))).toBe(true);
   });
+  it("+23, +25 y +28 son estrictos", () => {
+    for (const n of [23, 25, 28] as const) {
+      const age = String(n) as MzaFilters["age"];
+      expect(matchesMzaFilters(mk("recital"), "recital", f(age))).toBe(false);
+      expect(matchesMzaFilters(mk("recital", n - 1), "recital", f(age))).toBe(false);
+      expect(matchesMzaFilters(mk("recital", n), "recital", f(age))).toBe(true);
+      expect(matchesMzaFilters(mk("evento-mza", 30), "evento-mza", f(age))).toBe(true);
+    }
+    expect(matchesMzaFilters(mk("recital", 25), "recital", f("menores"))).toBe(false);
+  });
   it("gastro ignora la edad y cuenta como filtro activo", () => {
     expect(matchesMzaFilters(mk("gastro"), "gastro", f("21"))).toBe(true);
     expect(countMzaFilters(f("18"))).toBe(1);

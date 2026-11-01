@@ -422,16 +422,19 @@ export type MzaFilters = {
   categories: string[];
   venue: string;
   unseenOnly: boolean;
-  /** Edad (details.age_min): menores = sin límite o < 18; "18"/"21" = exige age_min >= N. */
+  /** Edad (details.age_min): menores = sin límite o < 18; "+N" = exige age_min >= N. */
   age: MzaAgeFilter | null;
 };
 
-export const MZA_AGE_FILTERS = ["menores", "18", "21"] as const;
+export const MZA_AGE_FILTERS = ["menores", "18", "21", "23", "25", "28"] as const;
 export type MzaAgeFilter = (typeof MZA_AGE_FILTERS)[number];
 export const MZA_AGE_LABELS: Record<MzaAgeFilter, string> = {
   menores: "Apto menores",
   "18": "+18",
   "21": "+21",
+  "23": "+23",
+  "25": "+25",
+  "28": "+28",
 };
 /** Solo evento-mza y recital tienen age_min (campos de entradas). */
 export function mzaKindHasAge(kind: MzaKind): boolean {
@@ -440,7 +443,7 @@ export function mzaKindHasAge(kind: MzaKind): boolean {
 
 /**
  * - menores: oculta lo que tiene age_min >= 18; si falta age_min, se muestra.
- * - 18 / 21: solo lo que tiene age_min >= 18 / >= 21; si falta age_min, se oculta.
+ * - 18 / 21 / 23 / 25 / 28: solo lo que tiene age_min >= N; si falta age_min, se oculta.
  */
 export function matchesMzaAge(d: Record<string, unknown>, age: MzaAgeFilter | null): boolean {
   if (!age) return true;
