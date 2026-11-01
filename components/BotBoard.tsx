@@ -43,6 +43,7 @@ function SortableBot({
       className={`relative h-full min-w-0 ${isDragging ? "z-20 scale-[1.02] shadow-xl" : ""} ${
         sorting ? "cursor-grab active:cursor-grabbing" : ""
       }`}
+      data-press={sorting ? "none" : undefined}
       {...(sorting ? { ...attributes, ...listeners } : {})}
     >
       {sorting ? (

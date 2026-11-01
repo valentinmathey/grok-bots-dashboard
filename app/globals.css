@@ -163,7 +163,11 @@ html {
   font-size: 0.62rem;
   font-weight: 550;
   line-height: 1;
-  transition: transform 160ms ease, color 160ms ease;
+  --press-scale: 0.9;
+  transition:
+    transform 160ms ease,
+    scale 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 160ms ease;
 }
 
 .tab-item-active {
@@ -175,9 +179,6 @@ html {
   font-weight: 750;
 }
 
-.tab-item:active {
-  transform: scale(0.95);
-}
 
 .tab-indicator {
   position: absolute;
@@ -205,11 +206,11 @@ html {
   color: var(--accent-ink);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 42%, transparent);
   transform: translate(-50%, -1.05rem);
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-.tab-fab:active {
-  transform: translate(-50%, -1.05rem) scale(0.95);
+  --press-scale: 0.9;
+  transition:
+    transform 160ms ease,
+    scale 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 160ms ease;
 }
 
 .tab-fab-active {
@@ -606,5 +607,155 @@ input[type="date"].date-native::-webkit-calendar-picker-indicator {
   textarea,
   select {
     font-size: 16px;
+  }
+}
+
+
+/* ------------------------------------------------------------------
+ * Press: sensación de "apretar" en todo lo tocable (botones, links en bloque,
+ * chips, cards, íconos, nav). Usa la propiedad `scale` (no `transform`) para
+ * componer con translate/rotate existentes (FAB, drag & drop, chevrons).
+ * :where() deja la especificidad en 0: cualquier regla propia gana.
+ * Links en línea dentro de texto no escalan (scale no aplica a cajas inline).
+ * Opt-out: data-press="none". Cards grandes: data-press="soft" o .pressable-soft.
+ * ------------------------------------------------------------------ */
+:where(button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], a[href], summary, label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), .pressable, .pressable-soft) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition-property: scale, filter, opacity, color, background-color, border-color, box-shadow,
+    outline-color, text-decoration-color, fill, stroke, transform, translate, rotate;
+  transition-duration: 260ms, 160ms, 160ms, 160ms, 160ms, 160ms, 160ms, 160ms, 160ms, 160ms, 160ms,
+    220ms, 220ms, 220ms;
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1), ease, ease, ease, ease, ease, ease,
+    ease, ease, ease, ease, cubic-bezier(0.32, 0.72, 0, 1), cubic-bezier(0.32, 0.72, 0, 1),
+    cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:where(.pressable-soft, [data-press="soft"]) {
+  --press-scale: 0.985;
+}
+
+/* Tocables anchos (cards, filas, botones a lo ancho): escala más sutil. */
+:where(a[href], button, [role="button"], summary):where(.surface, .w-full, .flex-1, [class*="rounded-3xl"]) {
+  --press-scale: 0.98;
+}
+
+:where(button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], a[href], summary, label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), .pressable, .pressable-soft):where(:active):where(:not(:disabled, [aria-disabled="true"], [data-press="none"])) {
+  scale: var(--press-scale, 0.96);
+  filter: brightness(0.93);
+  transition-duration: 70ms;
+  transition-timing-function: ease-out;
+}
+
+:where(.dark) :where(button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], a[href], summary, label:has(> input[type="checkbox"]), label:has(> input[type="radio"]), .pressable, .pressable-soft):where(:active):where(:not(:disabled, [aria-disabled="true"], [data-press="none"])) {
+  filter: brightness(1.15);
+}
+
+/* Si se aprieta algo de adentro (estrella, link, chip), el contenedor no se hunde. */
+:where(button, [role="button"], a[href], summary, .pressable, .pressable-soft):has(:where(button, a[href], [role="button"], input, select, textarea, [data-no-collapse]):active) {
+  scale: 1;
+  filter: none;
+}
+
+/* Link tocado que está navegando: atenuado con pulso suave hasta que carga. */
+a[data-nav-pending] {
+  animation: nav-pending-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes nav-pending-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Barra de progreso de navegación (arriba, sobre el notch). */
+.nav-progress {
+  pointer-events: none;
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 100;
+  height: calc(env(safe-area-inset-top, 0px) + 3px);
+  opacity: 0;
+  transition: opacity 200ms ease 60ms;
+}
+
+.nav-progress-bar {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 60%, transparent);
+  transform-origin: left center;
+  transform: scaleX(0);
+  border-radius: 0 999px 999px 0;
+  will-change: transform;
+}
+
+.nav-progress[data-state="loading"] {
+  opacity: 1;
+  transition-delay: 0ms;
+}
+
+.nav-progress[data-state="loading"] .nav-progress-bar {
+  animation: nav-progress-grow 8s cubic-bezier(0.08, 0.82, 0.17, 1) forwards;
+}
+
+.nav-progress[data-state="done"] {
+  opacity: 0;
+}
+
+.nav-progress[data-state="done"] .nav-progress-bar {
+  transform: scaleX(1);
+  transition: transform 180ms ease-out;
+}
+
+@keyframes nav-progress-grow {
+  0% {
+    transform: scaleX(0);
+  }
+  6% {
+    transform: scaleX(0.3);
+  }
+  100% {
+    transform: scaleX(0.92);
+  }
+}
+
+/* Esqueleto de ruta (loading.tsx): aparece con fade corto para no "parpadear". */
+.route-loading {
+  animation: route-loading-in 180ms ease-out 60ms both;
+}
+
+@keyframes route-loading-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], a[href], summary, label, .pressable, .pressable-soft) {
+    --press-scale: 1 !important;
+  }
+  a[data-nav-pending] {
+    animation: none;
+    opacity: 0.7;
+  }
+  .nav-progress[data-state="loading"] .nav-progress-bar {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+  .route-loading {
+    animation: none;
   }
 }

@@ -2,6 +2,7 @@ import { AppNav } from "@/components/AppNav";
 import { AppBadgeSync } from "@/components/AppBadgeSync";
 import { FavoritesProvider } from "@/components/FavoritesProvider";
 import { NavProvider } from "@/components/nav-context";
+import { NavProgress } from "@/components/NavProgress";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ResumeRefresh } from "@/components/ResumeRefresh";
 import { ToastHost } from "@/components/Toast";
@@ -25,6 +26,7 @@ export default async function DashboardLayout({
     <div className="flex min-h-full min-h-dvh flex-1 flex-col lg:pl-60">
       <FavoritesProvider>
         <NavProvider unreadPedidos={unreadPedidos}>
+          <NavProgress />
           <ResumeRefresh />
           <AppBadgeSync />
           <PullToRefresh />
