@@ -131,6 +131,7 @@ export function ExpandableHeader({
       aria-controls={controlsId}
       onClick={onClick}
       onKeyDown={onKeyDown}
+      data-press="soft"
       className={`cursor-pointer ${className}`}
     >
       {children}

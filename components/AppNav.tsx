@@ -73,7 +73,24 @@ export function AppNav({ email }: { email: string }) {
   const [hideBar, setHideBar] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const heading = title ?? titleFromPathname(pathname);
-  const activeTab = primaryTabFromPathname(pathname);
+  // Pestaña optimista: se marca activa al tocarla, sin esperar que cargue la ruta.
+  const [pendingTab, setPendingTab] = useState<{
+    tab: ReturnType<typeof primaryTabFromPathname>;
+    from: string;
+  } | null>(null);
+  const activeTab =
+    pendingTab && pendingTab.from === pathname
+      ? pendingTab.tab
+      : primaryTabFromPathname(pathname);
+  function onTabClickCapture(event: React.MouseEvent<HTMLElement>) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const anchor = (event.target as Element).closest("a[href]");
+    const href = anchor?.getAttribute("href");
+    if (!href || !href.startsWith("/")) return;
+    const target = new URL(href, window.location.origin).pathname;
+    if (target === pathname) return;
+    setPendingTab({ tab: primaryTabFromPathname(target), from: pathname });
+  }
 
   function closeMore() {
     setMoreOpen(false);
@@ -127,6 +144,7 @@ export function AppNav({ email }: { email: string }) {
       <DesktopSidebar email={email} pathname={pathname} unread={unreadPedidos} />
       <MobileHeader title={heading} compact={compact} />
       <MobileTabBar
+        onClickCapture={onTabClickCapture}
         activeTab={activeTab}
         hidden={hideBar}
         unread={unreadPedidos}
@@ -235,12 +253,14 @@ function MobileHeader({ title, compact }: { title: string; compact: boolean }) {
 }
 
 function MobileTabBar({
+  onClickCapture,
   activeTab,
   hidden,
   unread,
   moreOpen,
   onMore,
 }: {
+  onClickCapture?: (event: React.MouseEvent<HTMLElement>) => void;
   activeTab: ReturnType<typeof primaryTabFromPathname>;
   hidden: boolean;
   unread: number;
@@ -255,6 +275,7 @@ function MobileTabBar({
   return (
     <nav
       aria-label="Principal"
+      onClickCapture={onClickCapture}
       className={`tab-dock lg:hidden ${hidden ? "tab-dock-hidden" : ""}`}
     >
       <div className="tab-dock-bar">

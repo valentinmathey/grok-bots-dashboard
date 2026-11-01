@@ -78,6 +78,7 @@ function SortableCard({
           type="button"
           className="absolute left-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-card/90 text-muted shadow-sm"
           aria-label="Arrastrar card"
+          data-press="none"
           {...attributes}
           {...listeners}
         >
