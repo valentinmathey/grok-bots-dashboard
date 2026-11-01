@@ -422,7 +422,32 @@ export type MzaFilters = {
   categories: string[];
   venue: string;
   unseenOnly: boolean;
+  /** Edad (details.age_min): menores = sin límite o < 18; "18"/"21" = exige age_min >= N. */
+  age: MzaAgeFilter | null;
 };
+
+export const MZA_AGE_FILTERS = ["menores", "18", "21"] as const;
+export type MzaAgeFilter = (typeof MZA_AGE_FILTERS)[number];
+export const MZA_AGE_LABELS: Record<MzaAgeFilter, string> = {
+  menores: "Apto menores",
+  "18": "+18",
+  "21": "+21",
+};
+/** Solo evento-mza y recital tienen age_min (campos de entradas). */
+export function mzaKindHasAge(kind: MzaKind): boolean {
+  return kind !== "gastro";
+}
+
+/**
+ * - menores: oculta lo que tiene age_min >= 18; si falta age_min, se muestra.
+ * - 18 / 21: solo lo que tiene age_min >= 18 / >= 21; si falta age_min, se oculta.
+ */
+export function matchesMzaAge(d: Record<string, unknown>, age: MzaAgeFilter | null): boolean {
+  if (!age) return true;
+  const min = typeof d.age_min === "number" ? d.age_min : null;
+  if (age === "menores") return min === null || min < 18;
+  return min !== null && min >= Number(age);
+}
 
 export const EMPTY_MZA_FILTERS: MzaFilters = {
   zones: [],
@@ -432,6 +457,7 @@ export const EMPTY_MZA_FILTERS: MzaFilters = {
   categories: [],
   venue: "",
   unseenOnly: false,
+  age: null,
 };
 
 export function countMzaFilters(f: MzaFilters): number {
@@ -441,7 +467,8 @@ export function countMzaFilters(f: MzaFilters): number {
     Number(f.free || f.maxPrice !== null) +
     Number(f.categories.length > 0) +
     Number(Boolean(f.venue.trim())) +
-    Number(f.unseenOnly)
+    Number(f.unseenOnly) +
+    Number(f.age !== null)
   );
 }
 
@@ -469,5 +496,6 @@ export function matchesMzaFilters(
   if (f.categories.length && !f.categories.includes(String(d[mzaCategoryKey(kind)]))) return false;
   if (f.venue.trim() && !String(d.venue ?? "").toLowerCase().includes(f.venue.trim().toLowerCase())) return false;
   if (f.unseenOnly && isSeen(post)) return false;
+  if (mzaKindHasAge(kind) && !matchesMzaAge(d, f.age ?? null)) return false;
   return true;
 }

@@ -13,6 +13,7 @@ import {
   Tag,
   Ticket,
   Users,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 import { FilterChip } from "@/components/FilterChip";
@@ -24,6 +25,9 @@ import {
   AUDIENCES,
   AUDIENCE_LABELS,
   EMPTY_MZA_FILTERS,
+  MZA_AGE_FILTERS,
+  MZA_AGE_LABELS,
+  mzaKindHasAge,
   GRAN_MENDOZA,
   MZA_ZONES,
   TICKET_LABELS,
@@ -409,6 +413,31 @@ export function AgendaViva({
               </FilterChip>
             ))}
           </FilterSection>
+
+          {mzaKindHasAge(kind) ? (
+            <FilterSection
+              title="Edad"
+              icon={<ShieldCheck size={13} strokeWidth={1.75} />}
+            >
+              {MZA_AGE_FILTERS.map((a) => (
+                <FilterChip
+                  size="sm"
+                  key={a}
+                  selected={draft.age === a}
+                  check={draft.age === a}
+                  onClick={() =>
+                    setDraft({ ...draft, age: draft.age === a ? null : a })
+                  }
+                >
+                  {MZA_AGE_LABELS[a]}
+                </FilterChip>
+              ))}
+              <p className="basis-full text-[11px] leading-5 text-muted">
+                «Apto menores» incluye los que no informan edad; +18 y +21 muestran solo los que
+                la informan.
+              </p>
+            </FilterSection>
+          ) : null}
 
           <FilterSection
             title="Precio"
