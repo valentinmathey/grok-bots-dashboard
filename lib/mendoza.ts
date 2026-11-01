@@ -381,10 +381,10 @@ export function bucketMzaPosts(posts: Post[], now = new Date()): MzaBuckets {
       out.past.push(post);
       continue;
     }
-    // Cambiados y cancelados van fijos arriba (hasta que pasa su fecha original).
+    // Cambiados y cancelados van fijos arriba (hasta que pasa su fecha original)
+    // y también aparecen en la lista de abajo, por fecha, con su etiqueta.
     if (status === "cambiado" || status === "cancelado") {
       out.changes.push(post);
-      continue;
     }
     if (isPromo && !post.event_at) {
       out.promos.push(post);
