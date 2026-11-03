@@ -130,8 +130,19 @@ describe("filtro de edad (age_min)", () => {
     expect(matchesMzaFilters(mk("recital", 0), "recital", f("menores"))).toBe(true);
     expect(matchesMzaFilters(mk("recital", 25), "recital", f("menores"))).toBe(false);
   });
-  it("gastro ignora la edad y cuenta como filtro activo", () => {
-    expect(matchesMzaFilters(mk("gastro"), "gastro", f("21"))).toBe(true);
+  it("gastro filtra por edad con la misma regla exacta", () => {
+    expect(matchesMzaFilters(mk("gastro"), "gastro", f("21"))).toBe(false);
+    expect(matchesMzaFilters(mk("gastro", 18), "gastro", f("18"))).toBe(true);
+    expect(matchesMzaFilters(mk("gastro", 21), "gastro", f("18"))).toBe(false);
+    expect(matchesMzaFilters(mk("gastro"), "gastro", f("menores"))).toBe(true);
+    expect(matchesMzaFilters(mk("gastro", 18), "gastro", f("menores"))).toBe(false);
     expect(countMzaFilters(f("18"))).toBe(1);
+  });
+  it("el schema de gastro conserva age_min y valida el rango", () => {
+    const base = payloads.gastro.details;
+    const ok = parsePostDetails("gastro", { ...base, age_min: 18 });
+    expect(ok.ok && (ok.details as Record<string, unknown>).age_min).toBe(18);
+    expect(parsePostDetails("gastro", { ...base, age_min: 18.5 }).ok).toBe(false);
+    expect(parsePostDetails("gastro", { ...base, age_min: 120 }).ok).toBe(false);
   });
 });
