@@ -159,6 +159,7 @@ export const gastroDetailsSchema = z.object({
   ...commonFields,
   status: baseStatus,
   type: z.enum(GASTRO_TYPES),
+  age_min: z.number().int().min(0).max(99).optional(),
   cuisine: z.string().trim().max(60).optional(),
   price_range: z.enum(["$", "$$", "$$$", "$$$$"]).optional(),
   hours: z.string().trim().max(120).optional(),
@@ -436,9 +437,9 @@ export const MZA_AGE_LABELS: Record<MzaAgeFilter, string> = {
   "25": "+25",
   "28": "+28",
 };
-/** Solo evento-mza y recital tienen age_min (campos de entradas). */
-export function mzaKindHasAge(kind: MzaKind): boolean {
-  return kind !== "gastro";
+/** evento-mza y recital (campos de entradas) y gastro tienen age_min. */
+export function mzaKindHasAge(_kind: MzaKind): boolean {
+  return true;
 }
 
 /**
