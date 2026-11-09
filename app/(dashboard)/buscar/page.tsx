@@ -174,13 +174,13 @@ export default async function BuscarPage({
                   >
                     <BotAvatar bot={hit.bot} size="sm" />
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold">{hit.title}</p>
-                        <KindBadge kind={hit.kind} />
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {hit.importance ? (
-                          <ImportanceBadge details={{ importance: hit.importance }} />
+                          <ImportanceBadge details={{ importance: hit.importance }} compact />
                         ) : null}
+                        <KindBadge kind={hit.kind} />
                       </div>
+                      <p className="mt-1 font-semibold [overflow-wrap:anywhere]">{hit.title}</p>
                       <p
                         className="mt-1 text-sm leading-6 text-muted [&_mark]:rounded [&_mark]:bg-accent/20 [&_mark]:px-0.5 [&_mark]:text-foreground"
                         dangerouslySetInnerHTML={{ __html: hit.snippet }}

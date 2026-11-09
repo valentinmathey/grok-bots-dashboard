@@ -169,6 +169,9 @@ function StandardPostCard({
               post.title
             )
           }
+          badges={
+            <ImportanceBadge details={post.details as Record<string, unknown>} />
+          }
           meta={
             eventIso ? (
               <>
@@ -182,7 +185,6 @@ function StandardPostCard({
                     Pasado
                   </span>
                 ) : null}
-                <ImportanceBadge details={post.details as Record<string, unknown>} />
                 <time
                   dateTime={eventIso}
                   title={formatEventWhen(eventIso, post.event_end_at)}
@@ -215,13 +217,13 @@ function StandardPostCard({
                   {eventFacts.place ? (
                     <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
                       <MapPin size={11} strokeWidth={1.75} className="shrink-0" />
-                      <span className="truncate">{eventFacts.place}</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{eventFacts.place}</span>
                     </span>
                   ) : null}
                   {eventFacts.price ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
-                      <Ticket size={11} strokeWidth={1.75} />
-                      {eventFacts.price}
+                    <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-medium">
+                      <Ticket size={11} strokeWidth={1.75} className="shrink-0" />
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{eventFacts.price}</span>
                     </span>
                   ) : null}
                   {eventFacts.modality ? (
