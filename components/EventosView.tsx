@@ -335,7 +335,9 @@ function EventosRow({ item }: { item: EventosItem }) {
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 block text-sm font-semibold leading-5">{item.title}</span>
+        <span className="mt-1 block text-sm font-semibold leading-5 [overflow-wrap:anywhere]">
+          {item.title}
+        </span>
         <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
           {item.event_at ? (
             <span className="inline-flex items-center gap-1 font-medium tabular-nums">
@@ -346,7 +348,9 @@ function EventosRow({ item }: { item: EventosItem }) {
           <span className="rounded-full bg-chip px-2 py-0.5 font-medium">
             {EVENT_BOT_LABELS[item.bot.slug as keyof typeof EVENT_BOT_LABELS] ?? item.bot.name}
           </span>
-          {venue ? <span className="min-w-0 truncate">{venue}</span> : null}
+          {venue ? (
+            <span className="min-w-0 [overflow-wrap:anywhere]">{venue}</span>
+          ) : null}
         </span>
       </span>
     </Link>

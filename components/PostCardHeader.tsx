@@ -57,12 +57,18 @@ export function PostCardActions({
   );
 }
 
+/**
+ * Header de card: fila superior (badges | acciones) y cuerpo a ancho completo
+ * debajo, para que en mobile (~320px) el título y los chips no queden
+ * apretados junto a los íconos.
+ */
 export function PostCardHeader({
   open,
   title,
   meta,
   subtitle,
   extra,
+  badges,
   kind,
   post,
   bot,
@@ -78,6 +84,8 @@ export function PostCardHeader({
   meta?: ReactNode;
   subtitle?: ReactNode;
   extra?: ReactNode;
+  /** Badges de importancia / estado: van en la fila de acciones, no junto al título. */
+  badges?: ReactNode;
   kind?: string;
   post?: Post;
   bot?: PostCardBot | null;
@@ -88,36 +96,45 @@ export function PostCardHeader({
   className?: string;
   extraActions?: ReactNode;
 }) {
+  const showTopBar = Boolean(badges) || Boolean(kind) || Boolean(post) || Boolean(extraActions);
+  const showRegistered = post?.kind === "evento";
+
   return (
     <div className={className || undefined}>
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
-          {meta || kind ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {post?.kind === "evento" ? <RegisteredBadge postId={post.id} /> : null}
-              {meta}
-              {kind ? (
-                <span className="min-[480px]:hidden">
-                  <KindBadge kind={kind} />
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          <TitleTag className={`min-w-0 break-words ${titleClassName}`}>
-            {title}
-          </TitleTag>
-          {subtitle}
-          {extra}
+      {showTopBar ? (
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            {showRegistered ? <RegisteredBadge postId={post!.id} /> : null}
+            {badges}
+            {kind ? (
+              <span className="min-[480px]:hidden">
+                <KindBadge kind={kind} />
+              </span>
+            ) : null}
+          </div>
+          <PostCardActions
+            post={post}
+            bot={bot}
+            open={open}
+            kind={kind}
+            allowRequest={allowRequest}
+            showFavorite={showFavorite}
+            extraActions={extraActions}
+          />
         </div>
-        <PostCardActions
-          post={post}
-          bot={bot}
-          open={open}
-          kind={kind}
-          allowRequest={allowRequest}
-          showFavorite={showFavorite}
-          extraActions={extraActions}
-        />
+      ) : null}
+
+      <div className={`min-w-0 ${showTopBar ? "mt-2" : ""}`}>
+        {meta ? (
+          <div className="flex flex-wrap items-center gap-1.5">{meta}</div>
+        ) : null}
+        <TitleTag
+          className={`min-w-0 break-words [overflow-wrap:anywhere] ${titleClassName} ${meta ? "mt-1.5" : ""}`}
+        >
+          {title}
+        </TitleTag>
+        {subtitle}
+        {extra}
       </div>
       <PostAudio post={post} />
     </div>

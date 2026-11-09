@@ -769,7 +769,7 @@ function MzaCard({
             ) : null}
           </span>
           <span
-            className={`mt-1 block text-sm font-semibold leading-5 ${cancelled ? "line-through opacity-70" : ""}`}
+            className={`mt-1 block text-sm font-semibold leading-5 [overflow-wrap:anywhere] ${cancelled ? "line-through opacity-70" : ""}`}
           >
             <span aria-hidden className="mr-1">
               {mzaEmoji(kind, d)}
