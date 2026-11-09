@@ -103,6 +103,18 @@ export function defaultAvatar(slug: string): {
   };
 }
 
+/** Avatares servidos desde /public/avatars (mismo origen, estables). */
+const LOCAL_AVATAR_SLUGS = new Set([
+  "fiestas-mendoza",
+  "gastronomia-mendoza",
+  "recitales-mendoza",
+  "eventos-tech-mdz",
+]);
+
+export function localAvatarPath(slug: string): string | null {
+  return LOCAL_AVATAR_SLUGS.has(slug) ? `/avatars/${slug}.png` : null;
+}
+
 export function resolveAvatar(bot: {
   slug: string;
   name?: string;
@@ -127,10 +139,14 @@ export function resolveAvatar(bot: {
     : fallback.shape;
   const palette = AVATAR_PALETTE[color];
   const letter = (bot.name?.trim()?.[0] ?? bot.slug[0] ?? "G").toUpperCase();
+  const local = localAvatarPath(bot.slug);
+  // Preferimos el PNG del dashboard (mismo origen) si existe; evita CDNs
+  // externos (weserv/Wikimedia) que a veces fallan en mobile.
+  const url = local || bot.avatar_url?.trim() || null;
   return {
     color,
     shape,
-    url: bot.avatar_url?.trim() || null,
+    url,
     letter,
     fill: palette.fill,
     ink: palette.ink,
