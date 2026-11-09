@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { isHttpUrl } from "@/lib/images";
+import { imageUrlFallback, preferCompatibleImageUrl } from "@/lib/remote-image";
 
 export function MediaImage({
   src,
@@ -14,7 +15,16 @@ export function MediaImage({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  if (!isHttpUrl(src)) {
+  const normalized = isHttpUrl(src) ? preferCompatibleImageUrl(src) : "";
+  const [current, setCurrent] = useState(normalized);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setCurrent(normalized);
+    setFailed(false);
+  }, [normalized]);
+
+  if (!current || !isHttpUrl(current) || failed) {
     return null;
   }
 
@@ -28,10 +38,19 @@ export function MediaImage({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={src}
+          src={current}
           alt={alt}
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
+          onError={() => {
+            const next = imageUrlFallback(current);
+            if (next && next !== current) {
+              setCurrent(next);
+              return;
+            }
+            setFailed(true);
+          }}
           className={`aspect-[16/10] h-auto w-full object-cover ${className}`}
         />
       </button>
@@ -53,8 +72,9 @@ export function MediaImage({
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={src}
+            src={current}
             alt={alt}
+            referrerPolicy="no-referrer"
             className="max-h-[92vh] max-w-[92vw] rounded-2xl object-contain"
           />
         </div>
