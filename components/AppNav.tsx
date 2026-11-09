@@ -10,6 +10,7 @@ import {
   Bell,
   CalendarClock,
   CalendarDays,
+  CalendarRange,
   Headphones,
   Home,
   LogOut,
@@ -56,6 +57,7 @@ const RIGHT_TABS = [
 ] as const;
 
 const MORE_LINKS = [
+  { href: "/eventos", label: "Eventos", icon: CalendarRange, badge: false },
   { href: "/publicaciones", label: "Publicaciones", icon: Newspaper, badge: false },
   { href: "/audios", label: "Audios", icon: Headphones, badge: false },
   { href: "/pedidos", label: "Pedidos", icon: MessageSquare, badge: true },
