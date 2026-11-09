@@ -41,6 +41,9 @@ export function BotAvatar({
         <img
           src={avatar.url ?? ""}
           alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
           className="absolute inset-0 h-full w-full object-cover"
           onError={() => {
             if (avatar.url) {
