@@ -1,5 +1,6 @@
 import { MZA_SCHEMAS, isMzaKind } from "@/lib/mendoza";
 import { z } from "zod";
+import { importanceFields } from "@/lib/importance";
 import {
   baCalendarDate,
   parseEventInstant,
@@ -352,6 +353,7 @@ export const oportunidadesDetailsSchema = z.object({
 export const eventoStatusSchema = z.looseObject({
   status: z.enum(["activo", "cambiado", "cancelado"]).optional(),
   change_note: z.string().trim().max(280).optional(),
+  ...importanceFields,
 });
 
 export const looseDetailsSchema = z

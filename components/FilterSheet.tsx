@@ -26,6 +26,12 @@ import {
   type FeedSort,
   type SortOrder,
 } from "@/lib/filters";
+import {
+  IMPORTANCE_BADGE,
+  IMPORTANCE_FILTER_LEVELS,
+  IMPORTANCE_LABELS,
+  type ImportanceLevel,
+} from "@/lib/importance";
 import { kindLabel } from "@/lib/format";
 import type { PostFacets } from "@/lib/types";
 
@@ -68,6 +74,14 @@ export function FilterSheet({
         query.product ? { key: "product", label: query.product } : null,
         query.kind ? { key: "kind", label: kindLabel(query.kind) } : null,
         query.tag ? { key: "tag", label: `#${query.tag}` } : null,
+        query.importance?.length
+          ? {
+              key: "importance",
+              label: query.importance
+                .map((level) => IMPORTANCE_LABELS[level as ImportanceLevel] ?? level)
+                .join(", "),
+            }
+          : null,
         query.from || query.to
           ? {
               key: "dates",
@@ -131,6 +145,7 @@ export function FilterSheet({
     if (key === "category") next.category = undefined;
     if (key === "recommended") next.recommended = undefined;
     if (key === "open") next.openOnly = undefined;
+    if (key === "importance") next.importance = undefined;
     push(next);
   }
 
@@ -562,6 +577,43 @@ export function FilterSheet({
                         }
                       >
                         {amenityLabel(amenity)}
+                      </Chip>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {facets.has_events ? (
+              <section className="mt-5">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                  Importancia
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {IMPORTANCE_FILTER_LEVELS.map((level) => {
+                    const selected = (draft.importance ?? []).includes(level);
+                    const badge =
+                      level !== "normal"
+                        ? IMPORTANCE_BADGE[level as Exclude<ImportanceLevel, "normal">]
+                        : null;
+                    return (
+                      <Chip
+                        key={level}
+                        active={selected}
+                        onClick={() =>
+                          setDraft((current) => {
+                            const cur = current.importance ?? [];
+                            return {
+                              ...current,
+                              importance: selected
+                                ? cur.filter((x) => x !== level)
+                                : [...cur, level],
+                            };
+                          })
+                        }
+                      >
+                        {badge ? `${badge.emoji} ` : ""}
+                        {IMPORTANCE_LABELS[level]}
                       </Chip>
                     );
                   })}

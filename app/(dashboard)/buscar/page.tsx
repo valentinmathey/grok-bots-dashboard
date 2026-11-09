@@ -2,9 +2,17 @@ import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
 import { FilterToolbar } from "@/components/FilterToolbar";
+import { ImportanceBadge } from "@/components/ImportanceBadge";
 import { KindBadge } from "@/components/KindBadge";
 import { BuscarLive } from "@/components/BuscarLive";
 import { getRepository } from "@/lib/data";
+import {
+  IMPORTANCE_BADGE,
+  IMPORTANCE_FILTER_LEVELS,
+  IMPORTANCE_LABELS,
+  parseImportanceList,
+  type ImportanceLevel,
+} from "@/lib/importance";
 import { emptyResultLabel, resultCountLabel } from "@/lib/search-copy";
 
 export const dynamic = "force-dynamic";
@@ -18,14 +26,16 @@ export default async function BuscarPage({
     kind?: string;
     sort?: string;
     favorites?: string;
+    importance?: string;
   }>;
 }) {
   const params = await searchParams;
   const q = (params.q ?? "").trim();
+  const importance = parseImportanceList(params.importance);
   const repo = getRepository();
   const [bots, result] = await Promise.all([
     repo.listBots(),
-    q.length >= 2 || params.kind
+    q.length >= 2 || params.kind || importance?.length
       ? repo.searchPosts({
           q,
           bots: params.bot ? [params.bot] : undefined,
@@ -33,6 +43,7 @@ export default async function BuscarPage({
           favoritesOnly: params.favorites === "1",
           sort: params.sort === "newest" ? "newest" : "relevance",
           limit: 40,
+          importance,
         })
       : Promise.resolve({ hits: [], total: 0 }),
   ]);
@@ -50,12 +61,21 @@ export default async function BuscarPage({
       kind: params.kind,
       sort: params.sort,
       favorites: params.favorites,
+      importance: params.importance,
       ...next,
     };
     for (const [key, value] of Object.entries(merged)) {
       if (value) query.set(key, value);
     }
     return `/buscar?${query.toString()}`;
+  }
+
+  function toggleImportance(level: ImportanceLevel) {
+    const cur = new Set(importance ?? []);
+    if (cur.has(level)) cur.delete(level);
+    else cur.add(level);
+    const next = IMPORTANCE_FILTER_LEVELS.filter((item) => cur.has(item));
+    return href({ importance: next.length ? next.join(",") : undefined });
   }
 
   const count =
@@ -74,15 +94,18 @@ export default async function BuscarPage({
           bots.length ? (
             <FilterToolbar
               applied={
-                Number(Boolean(params.bot)) + Number(params.favorites === "1")
+                Number(Boolean(params.bot)) +
+                Number(params.favorites === "1") +
+                Number(Boolean(importance?.length))
               }
-              clearHref={href({ bot: undefined, favorites: undefined })}
+              clearHref={href({
+                bot: undefined,
+                favorites: undefined,
+                importance: undefined,
+              })}
             >
               <ChipRow>
-                <FilterChip
-                  href={href({ bot: undefined })}
-                  selected={!params.bot}
-                >
+                <FilterChip href={href({ bot: undefined })} selected={!params.bot}>
                   Todos
                 </FilterChip>
                 {bots.map((bot) => (
@@ -104,11 +127,31 @@ export default async function BuscarPage({
                   Solo favoritos
                 </FilterChip>
               </ChipRow>
+              <ChipRow>
+                {IMPORTANCE_FILTER_LEVELS.map((level) => {
+                  const selected = Boolean(importance?.includes(level));
+                  const badge =
+                    level !== "normal"
+                      ? IMPORTANCE_BADGE[level as Exclude<ImportanceLevel, "normal">]
+                      : null;
+                  return (
+                    <FilterChip
+                      key={level}
+                      href={toggleImportance(level)}
+                      selected={selected}
+                      check={selected}
+                    >
+                      {badge ? `${badge.emoji} ` : ""}
+                      {IMPORTANCE_LABELS[level]}
+                    </FilterChip>
+                  );
+                })}
+              </ChipRow>
             </FilterToolbar>
           ) : null
         }
       >
-        {q.length < 2 && !params.kind ? (
+        {q.length < 2 && !params.kind && !importance?.length ? (
           <p className="text-sm text-muted">
             Escribí al menos dos letras para buscar en todo lo que publicaron
             tus bots.
@@ -134,6 +177,9 @@ export default async function BuscarPage({
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{hit.title}</p>
                         <KindBadge kind={hit.kind} />
+                        {hit.importance ? (
+                          <ImportanceBadge details={{ importance: hit.importance }} />
+                        ) : null}
                       </div>
                       <p
                         className="mt-1 text-sm leading-6 text-muted [&_mark]:rounded [&_mark]:bg-accent/20 [&_mark]:px-0.5 [&_mark]:text-foreground"

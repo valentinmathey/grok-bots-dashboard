@@ -10,6 +10,7 @@ import {
   ExpandableHeader,
   useExpandable,
 } from "@/components/ExpandableCard";
+import { ImportanceBadge } from "@/components/ImportanceBadge";
 import { InformeCard } from "@/components/InformeCard";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { MediaImage } from "@/components/MediaImage";
@@ -181,6 +182,7 @@ function StandardPostCard({
                     Pasado
                   </span>
                 ) : null}
+                <ImportanceBadge details={post.details as Record<string, unknown>} />
                 <time
                   dateTime={eventIso}
                   title={formatEventWhen(eventIso, post.event_end_at)}
