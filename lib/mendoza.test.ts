@@ -146,3 +146,19 @@ describe("filtro de edad (age_min)", () => {
     expect(parsePostDetails("gastro", { ...base, age_min: 120 }).ok).toBe(false);
   });
 });
+
+describe("filtro de importancia", () => {
+  const mk = (importance?: string) =>
+    ({
+      id: "x",
+      kind: "evento-mza",
+      details: importance ? { importance } : {},
+    }) as unknown as Post;
+  const f = (importance: string[]): MzaFilters => ({ ...EMPTY_MZA_FILTERS, importance });
+  it("multi-select exige importance en la lista", () => {
+    expect(matchesMzaFilters(mk(), "evento-mza", f(["imperdible"]))).toBe(false);
+    expect(matchesMzaFilters(mk("imperdible"), "evento-mza", f(["imperdible", "bueno"]))).toBe(true);
+    expect(matchesMzaFilters(mk("bueno"), "evento-mza", f(["imperdible"]))).toBe(false);
+    expect(countMzaFilters(f(["destacado"]))).toBe(1);
+  });
+});

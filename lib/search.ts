@@ -1,4 +1,5 @@
 import { previewPlain } from "@/lib/format";
+import { matchesImportance, readImportance } from "@/lib/importance";
 import type { Bot, Post } from "@/lib/types";
 
 export type SearchFilters = {
@@ -11,6 +12,8 @@ export type SearchFilters = {
   sort?: "relevance" | "newest";
   limit?: number;
   offset?: number;
+  /** Multi-select details.importance. */
+  importance?: string[];
 };
 
 export type SearchHit = {
@@ -21,6 +24,7 @@ export type SearchHit = {
   created_at: string;
   bot: Pick<Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url">;
   url: string;
+  importance?: string | null;
 };
 
 function fold(value: string): string {
@@ -110,6 +114,12 @@ export function memorySearch(
       if (filters.kinds?.length && !filters.kinds.includes(post.kind)) return false;
       if (filters.from && post.created_at.slice(0, 10) < filters.from) return false;
       if (filters.to && post.created_at.slice(0, 10) > filters.to) return false;
+      if (
+        filters.importance?.length &&
+        !matchesImportance((post.details ?? {}) as Record<string, unknown>, filters.importance)
+      ) {
+        return false;
+      }
       return true;
     })
     .map((post) => {
@@ -152,6 +162,7 @@ export function memorySearch(
         avatar_url: post.bot.avatar_url,
       },
       url: `/bots/${post.bot.slug}#post-${post.id}`,
+      importance: readImportance(post.details as Record<string, unknown>).level,
     })),
   };
 }

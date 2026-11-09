@@ -12,6 +12,7 @@ import {
   isEventUpcoming,
 } from "@/lib/event-time";
 import type { FeedSort, Post, PostKind } from "@/lib/types";
+import { matchesImportance, parseImportanceList } from "@/lib/importance";
 import { isKindSlug } from "@/lib/validations";
 
 export type SortOrder = "newest" | "oldest";
@@ -44,6 +45,8 @@ export type PostFilters = {
   view?: FeedView;
   bot?: string;
   q?: string;
+  /** Multi-select: imperdible|destacado|bueno|normal (details.importance). */
+  importance?: string[];
 };
 
 export type FeedQuery = PostFilters & {
@@ -123,6 +126,7 @@ export function parsePostFilters(
     registered: registeredRaw === "si" || registeredRaw === "no" ? registeredRaw : undefined,
     availability: dispRaw === "disponible" || dispRaw === "ocupado" ? dispRaw : undefined,
     view: viewRaw === "table" ? "table" : undefined,
+    importance: parseImportanceList(searchParams.importance),
   };
 }
 
@@ -201,6 +205,7 @@ export function filtersToSearchParams(
   if (filters.recommended) params.set("recommended", "1");
   if (filters.openOnly) params.set("open", "1");
   if (filters.registered) params.set("inscripto", filters.registered);
+  if (filters.importance?.length) params.set("importance", filters.importance.join(","));
   if (filters.availability) params.set("disp", filters.availability);
   if (filters.view && filters.view !== "cards") params.set("view", filters.view);
   if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
@@ -226,7 +231,12 @@ export function countActiveFilters(filters: PostFilters): number {
     filters.category,
     filters.recommended ? "recommended" : null,
     filters.openOnly ? "open" : null,
+    filters.importance?.length ? "importance" : null,
   ].filter(Boolean).length;
+}
+
+export function hasImportanceFilters(filters: PostFilters = {}): boolean {
+  return Boolean(filters.importance && filters.importance.length > 0);
 }
 
 export function hasAlojamientoFilters(filters: PostFilters = {}): boolean {
@@ -300,6 +310,12 @@ export function matchesFilters(post: Post, filters: PostFilters): boolean {
     return false;
   }
   if (filters.kind && post.kind !== filters.kind) {
+    return false;
+  }
+  if (
+    filters.importance?.length &&
+    !matchesImportance((post.details ?? {}) as Record<string, unknown>, filters.importance)
+  ) {
     return false;
   }
   if (

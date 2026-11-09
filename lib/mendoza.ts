@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { baCalendarDate } from "@/lib/event-time";
+import { importanceFields, matchesImportance } from "@/lib/importance";
 import type { Post } from "@/lib/types";
 
 /**
@@ -82,6 +83,7 @@ const commonFields = {
   venue: z.string().trim().max(120).optional(),
   address: z.string().trim().max(160).optional(),
   note: z.string().trim().max(280).optional(),
+  ...importanceFields,
 };
 
 const isoDateTime = z.string().trim().max(40).regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?([+-]\d{2}:\d{2}|Z)?)?$/, "Fecha ISO");
@@ -423,8 +425,10 @@ export type MzaFilters = {
   categories: string[];
   venue: string;
   unseenOnly: boolean;
-  /** Edad (details.age_min): menores = sin límite o < 18; "+N" = age_min exactamente N. */
+  /** Edad (details.age_min): menores = sin dato o < 18; "+N" = age_min === N. */
   age: MzaAgeFilter | null;
+  /** Multi-select de importance (imperdible|destacado|bueno|normal). */
+  importance: string[];
 };
 
 export const MZA_AGE_FILTERS = ["menores", "18", "21", "23", "25", "28"] as const;
@@ -462,6 +466,7 @@ export const EMPTY_MZA_FILTERS: MzaFilters = {
   venue: "",
   unseenOnly: false,
   age: null,
+  importance: [],
 };
 
 export function countMzaFilters(f: MzaFilters): number {
@@ -472,7 +477,8 @@ export function countMzaFilters(f: MzaFilters): number {
     Number(f.categories.length > 0) +
     Number(Boolean(f.venue.trim())) +
     Number(f.unseenOnly) +
-    Number(f.age !== null)
+    Number(f.age !== null) +
+    Number(f.importance.length > 0)
   );
 }
 
@@ -501,5 +507,6 @@ export function matchesMzaFilters(
   if (f.venue.trim() && !String(d.venue ?? "").toLowerCase().includes(f.venue.trim().toLowerCase())) return false;
   if (f.unseenOnly && isSeen(post)) return false;
   if (mzaKindHasAge(kind) && !matchesMzaAge(d, f.age ?? null)) return false;
+  if (!matchesImportance(d, f.importance)) return false;
   return true;
 }

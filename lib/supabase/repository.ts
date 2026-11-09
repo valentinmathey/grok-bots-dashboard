@@ -5,7 +5,7 @@ import { baEndOfDay, baStartOfDay, baStartOfToday, eventSortAscending } from "@/
 import {
   dayEndIso,
   dayStartIso,
-  hasAlojamientoFilters,
+  hasAlojamientoFilters, hasImportanceFilters,
   hasOportunidadesFilters,
   isAlojamientoSort,
   isOportunidadesSort,
@@ -441,6 +441,7 @@ export function createSupabaseRepository(): BotsRepository {
       const needsJs =
         isAlojamientoSort(options.sort) ||
         hasAlojamientoFilters(filters) ||
+        hasImportanceFilters(filters) ||
         isOportunidadesSort(options.sort) ||
         hasOportunidadesFilters(filters);
       if (needsJs) {
@@ -651,9 +652,28 @@ export function createSupabaseRepository(): BotsRepository {
 
     async searchPosts(filters) {
       const { highlightSnippet, memorySearch } = await import("@/lib/search");
+      const { readImportance } = await import("@/lib/importance");
       const q = filters.q.trim();
-      const hasScope = Boolean(filters.kinds?.length || filters.from || filters.to || filters.bots?.length);
+      const hasScope = Boolean(
+        filters.kinds?.length ||
+          filters.from ||
+          filters.to ||
+          filters.bots?.length ||
+          filters.importance?.length,
+      );
       if (q.length < 2 && !hasScope) return { hits: [], total: 0 };
+      if (filters.importance?.length) {
+        const fallback = await admin
+          .from("posts")
+          .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)");
+        const rows = (fallback.data ?? []).map((row) => {
+          const { bots, ...post } = row as Post & {
+            bots: Pick<Bot, "id" | "name" | "slug" | "avatar_color" | "avatar_url">;
+          };
+          return { ...(post as Post), bot: bots };
+        });
+        return memorySearch(rows, filters);
+      }
       const limit = Math.min(filters.limit ?? 20, 50);
       const offset = filters.offset ?? 0;
       let query = admin
@@ -706,6 +726,7 @@ export function createSupabaseRepository(): BotsRepository {
           created_at: post.created_at,
           bot: bots,
           url: `/bots/${bots.slug}#post-${post.id}`,
+          importance: readImportance(post.details as Record<string, unknown>).level,
         };
       });
       if (filters.sort !== "newest") {

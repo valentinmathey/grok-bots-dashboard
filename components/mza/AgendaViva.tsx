@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChangesSection } from "@/components/ChangesSection";
+import { ImportanceBadge } from "@/components/ImportanceBadge";
+import {
+  IMPORTANCE_FILTER_LEVELS,
+  IMPORTANCE_LABELS,
+  IMPORTANCE_BADGE,
+  type ImportanceLevel,
+} from "@/lib/importance";
 import { hashPostId, scrollToPostSettled } from "@/lib/scroll-to-post";
 import {
   Building2,
@@ -10,6 +17,7 @@ import {
   LayoutList,
   MapPin,
   SlidersHorizontal,
+  Sparkles,
   Tag,
   Ticket,
   Users,
@@ -414,6 +422,38 @@ export function AgendaViva({
             ))}
           </FilterSection>
 
+          <FilterSection
+            title="Importancia"
+            icon={<Sparkles size={13} strokeWidth={1.75} />}
+          >
+            {IMPORTANCE_FILTER_LEVELS.map((level) => {
+              const selected = draft.importance.includes(level);
+              const badge =
+                level !== "normal"
+                  ? IMPORTANCE_BADGE[level as Exclude<ImportanceLevel, "normal">]
+                  : null;
+              return (
+                <FilterChip
+                  size="sm"
+                  key={level}
+                  selected={selected}
+                  check={selected}
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      importance: selected
+                        ? draft.importance.filter((x) => x !== level)
+                        : [...draft.importance, level],
+                    })
+                  }
+                >
+                  {badge ? `${badge.emoji} ` : ""}
+                  {IMPORTANCE_LABELS[level]}
+                </FilterChip>
+              );
+            })}
+          </FilterSection>
+
           {mzaKindHasAge(kind) ? (
             <FilterSection
               title="Edad"
@@ -675,6 +715,7 @@ function MzaCard({
                 {countdown}
               </span>
             ) : null}
+            <ImportanceBadge details={d} />
             {status === "cambiado" ? (
               <span className="rounded-full bg-amber-400/25 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
                 Cambiado
