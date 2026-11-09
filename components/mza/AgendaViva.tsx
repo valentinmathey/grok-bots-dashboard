@@ -55,6 +55,7 @@ import {
   type MzaZone,
 } from "@/lib/mendoza";
 import type { Post } from "@/lib/types";
+import { preferCompatibleImageUrl } from "@/lib/remote-image";
 
 type D = Record<string, unknown>;
 const str = (v: unknown) =>
@@ -695,10 +696,12 @@ function MzaCard({
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={image}
+            src={preferCompatibleImageUrl(image)}
             alt=""
             className={`h-14 w-14 shrink-0 object-cover ${kind === "evento-mza" ? "rounded-xl" : "rounded-full"}`}
             loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
           />
         ) : (
           <span
