@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 const BASE =
-  "inline-flex max-w-full items-center justify-center gap-1.5 rounded-full border font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "inline-flex max-w-full items-center justify-center gap-1.5 rounded-full border font-medium transition-[transform,opacity,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] active:opacity-90 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 const ON = "border-accent bg-accent text-accent-ink";
 const OFF = "border-line bg-card text-foreground hover:bg-chip";
 
@@ -44,7 +44,7 @@ export function FilterChip({
   );
   if (href) {
     return (
-      <Link href={href} className={cls} aria-pressed={selected}>
+      <Link href={href} scroll={false} prefetch className={cls} aria-pressed={selected}>
         {body}
       </Link>
     );
@@ -91,7 +91,7 @@ export function SegmentedControl({
     >
       {options.map((option) => {
         const selected = option.id === value;
-        const cls = `inline-flex min-h-11 items-center justify-center rounded-xl px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+        const cls = `inline-flex min-h-11 items-center justify-center rounded-xl px-2 text-sm transition-[transform,opacity,background-color,color] duration-150 ease-out active:scale-[0.97] touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
           selected
             ? "bg-accent font-semibold text-accent-ink"
             : "font-medium text-muted hover:bg-card hover:text-foreground"
@@ -101,6 +101,8 @@ export function SegmentedControl({
             <Link
               key={option.id}
               href={option.href}
+              scroll={false}
+              prefetch
               role="tab"
               aria-selected={selected}
               className={cls}
