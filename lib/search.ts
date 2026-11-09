@@ -1,5 +1,10 @@
 import { previewPlain } from "@/lib/format";
-import { matchesImportance, readImportance } from "@/lib/importance";
+import { readImportance } from "@/lib/importance";
+import {
+  matchesSearchUiFilters,
+  searchUiHasAdvanced,
+  type SearchUiFilters,
+} from "@/lib/search-filters";
 import type { Bot, Post } from "@/lib/types";
 
 export type SearchFilters = {
@@ -12,8 +17,12 @@ export type SearchFilters = {
   sort?: "relevance" | "newest";
   limit?: number;
   offset?: number;
-  /** Multi-select details.importance. */
+  /** Multi-select details.importance (legacy; prefer ui.importance). */
   importance?: string[];
+  /** Filtros del sheet de Buscar (fecha evento, edad, etc.). */
+  ui?: SearchUiFilters;
+  favoriteIds?: string[];
+  registeredIds?: string[];
 };
 
 export type SearchHit = {
@@ -101,23 +110,28 @@ export function memorySearch(
 ): { hits: SearchHit[]; total: number } {
   const q = filters.q.trim();
   const hasScope = Boolean(
-    filters.kinds?.length || filters.from || filters.to || filters.bots?.length,
+    filters.kinds?.length ||
+      filters.from ||
+      filters.to ||
+      filters.bots?.length ||
+      filters.importance?.length ||
+      (filters.ui && searchUiHasAdvanced(filters.ui)),
   );
   if (q.length < 2 && !hasScope) return { hits: [], total: 0 };
   const needle = fold(q);
   const words = needle.split(/\s+/).filter(Boolean);
+  const favSet = filters.favoriteIds ? new Set(filters.favoriteIds) : undefined;
+  const regSet = filters.registeredIds ? new Set(filters.registeredIds) : undefined;
   const scored = posts
     .filter((post) => {
       if (filters.bots?.length && !filters.bots.includes(post.bot.slug) && !filters.bots.includes(post.bot.id)) {
         return false;
       }
       if (filters.kinds?.length && !filters.kinds.includes(post.kind)) return false;
+      // from/to en SearchFilters = fecha de publicación (legacy API).
       if (filters.from && post.created_at.slice(0, 10) < filters.from) return false;
       if (filters.to && post.created_at.slice(0, 10) > filters.to) return false;
-      if (
-        filters.importance?.length &&
-        !matchesImportance((post.details ?? {}) as Record<string, unknown>, filters.importance)
-      ) {
+      if (filters.ui && !matchesSearchUiFilters(post, filters.ui, { favoriteIds: favSet, registeredIds: regSet })) {
         return false;
       }
       return true;

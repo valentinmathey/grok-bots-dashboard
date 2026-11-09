@@ -654,15 +654,21 @@ export function createSupabaseRepository(): BotsRepository {
       const { highlightSnippet, memorySearch } = await import("@/lib/search");
       const { readImportance } = await import("@/lib/importance");
       const q = filters.q.trim();
+      const { searchUiHasAdvanced } = await import("@/lib/search-filters");
       const hasScope = Boolean(
         filters.kinds?.length ||
           filters.from ||
           filters.to ||
           filters.bots?.length ||
-          filters.importance?.length,
+          filters.importance?.length ||
+          (filters.ui && searchUiHasAdvanced(filters.ui)),
       );
       if (q.length < 2 && !hasScope) return { hits: [], total: 0 };
-      if (filters.importance?.length) {
+      const useMemory = Boolean(
+        filters.importance?.length ||
+          (filters.ui && searchUiHasAdvanced(filters.ui)),
+      );
+      if (useMemory) {
         const fallback = await admin
           .from("posts")
           .select("*, bots!inner(id, name, slug, avatar_color, avatar_url)");

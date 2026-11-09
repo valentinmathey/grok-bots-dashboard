@@ -1,18 +1,16 @@
 import Link from "next/link";
 import { BotAvatar } from "@/components/BotAvatar";
-import { ChipRow, FilterChip } from "@/components/FilterChip";
-import { FilterToolbar } from "@/components/FilterToolbar";
+import { BuscarFilters } from "@/components/BuscarFilters";
+import { BuscarLive } from "@/components/BuscarLive";
 import { ImportanceBadge } from "@/components/ImportanceBadge";
 import { KindBadge } from "@/components/KindBadge";
-import { BuscarLive } from "@/components/BuscarLive";
 import { getRepository } from "@/lib/data";
 import {
-  IMPORTANCE_BADGE,
-  IMPORTANCE_FILTER_LEVELS,
-  IMPORTANCE_LABELS,
-  parseImportanceList,
-  type ImportanceLevel,
-} from "@/lib/importance";
+  countSearchUiFilters,
+  kindsForGroups,
+  parseSearchUiFilters,
+  searchUiHasAdvanced,
+} from "@/lib/search-filters";
 import { emptyResultLabel, resultCountLabel } from "@/lib/search-copy";
 
 export const dynamic = "force-dynamic";
@@ -20,141 +18,66 @@ export const dynamic = "force-dynamic";
 export default async function BuscarPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    q?: string;
-    bot?: string;
-    kind?: string;
-    sort?: string;
-    favorites?: string;
-    importance?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const q = (params.q ?? "").trim();
-  const importance = parseImportanceList(params.importance);
+  const q = (typeof params.q === "string" ? params.q : Array.isArray(params.q) ? params.q[0] : "")?.trim() ?? "";
+  const sort = typeof params.sort === "string" ? params.sort : undefined;
+  const filters = parseSearchUiFilters(params);
+  const advanced = searchUiHasAdvanced(filters);
   const repo = getRepository();
-  const [bots, result] = await Promise.all([
+
+  const [bots, favoriteIds, registeredIds] = await Promise.all([
     repo.listBots(),
-    q.length >= 2 || params.kind || importance?.length
-      ? repo.searchPosts({
-          q,
-          bots: params.bot ? [params.bot] : undefined,
-          kinds: params.kind ? [params.kind] : undefined,
-          favoritesOnly: params.favorites === "1",
-          sort: params.sort === "newest" ? "newest" : "relevance",
-          limit: 40,
-          importance,
-        })
-      : Promise.resolve({ hits: [], total: 0 }),
+    filters.favoritesOnly
+      ? import("@/lib/favorites-store").then((m) => m.listFavorites().then((rows) => rows.map((r) => r.post_id)))
+      : Promise.resolve(undefined as string[] | undefined),
+    filters.registered
+      ? import("@/lib/registrations-store").then((m) => m.listRegisteredIds())
+      : Promise.resolve(undefined as string[] | undefined),
   ]);
-  if (params.favorites === "1" && result.hits.length) {
-    const { listFavorites } = await import("@/lib/favorites-store");
-    const ids = new Set((await listFavorites()).map((row) => row.post_id));
-    result.hits = result.hits.filter((hit) => ids.has(hit.id));
-  }
 
-  function href(next: Record<string, string | undefined>) {
-    const query = new URLSearchParams();
-    const merged = {
-      q,
-      bot: params.bot,
-      kind: params.kind,
-      sort: params.sort,
-      favorites: params.favorites,
-      importance: params.importance,
-      ...next,
-    };
-    for (const [key, value] of Object.entries(merged)) {
-      if (value) query.set(key, value);
-    }
-    return `/buscar?${query.toString()}`;
-  }
+  const kinds = filters.kindGroups.length ? kindsForGroups(filters.kindGroups) : undefined;
+  const shouldSearch = q.length >= 2 || advanced;
 
-  function toggleImportance(level: ImportanceLevel) {
-    const cur = new Set(importance ?? []);
-    if (cur.has(level)) cur.delete(level);
-    else cur.add(level);
-    const next = IMPORTANCE_FILTER_LEVELS.filter((item) => cur.has(item));
-    return href({ importance: next.length ? next.join(",") : undefined });
-  }
+  const result = shouldSearch
+    ? await repo.searchPosts({
+        q,
+        bots: filters.bots.length ? filters.bots : undefined,
+        kinds,
+        sort: sort === "newest" ? "newest" : "relevance",
+        limit: 40,
+        importance: filters.importance.length ? filters.importance : undefined,
+        ui: filters,
+        favoriteIds,
+        registeredIds,
+      })
+    : { hits: [], total: 0 };
 
-  const count =
-    params.favorites === "1"
-      ? result.hits.length
-      : Math.max(result.total, result.hits.length);
+  const count = Math.max(result.total, result.hits.length);
+  const applied = countSearchUiFilters(filters);
 
   return (
     <div>
-      <h1 className="page-heading text-2xl font-semibold tracking-tight">
-        Buscar
-      </h1>
+      <h1 className="page-heading text-2xl font-semibold tracking-tight">Buscar</h1>
       <BuscarLive
         initialQ={q}
         toolbar={
           bots.length ? (
-            <FilterToolbar
-              applied={
-                Number(Boolean(params.bot)) +
-                Number(params.favorites === "1") +
-                Number(Boolean(importance?.length))
-              }
-              clearHref={href({
-                bot: undefined,
-                favorites: undefined,
-                importance: undefined,
-              })}
-            >
-              <ChipRow>
-                <FilterChip href={href({ bot: undefined })} selected={!params.bot}>
-                  Todos
-                </FilterChip>
-                {bots.map((bot) => (
-                  <FilterChip
-                    key={bot.id}
-                    href={href({ bot: bot.slug })}
-                    selected={params.bot === bot.slug}
-                  >
-                    <span className="min-w-0 truncate">{bot.name}</span>
-                  </FilterChip>
-                ))}
-                <FilterChip
-                  href={href({
-                    favorites: params.favorites === "1" ? undefined : "1",
-                  })}
-                  selected={params.favorites === "1"}
-                  check
-                >
-                  Solo favoritos
-                </FilterChip>
-              </ChipRow>
-              <ChipRow>
-                {IMPORTANCE_FILTER_LEVELS.map((level) => {
-                  const selected = Boolean(importance?.includes(level));
-                  const badge =
-                    level !== "normal"
-                      ? IMPORTANCE_BADGE[level as Exclude<ImportanceLevel, "normal">]
-                      : null;
-                  return (
-                    <FilterChip
-                      key={level}
-                      href={toggleImportance(level)}
-                      selected={selected}
-                      check={selected}
-                    >
-                      {badge ? `${badge.emoji} ` : ""}
-                      {IMPORTANCE_LABELS[level]}
-                    </FilterChip>
-                  );
-                })}
-              </ChipRow>
-            </FilterToolbar>
+            <BuscarFilters
+              q={q}
+              sort={sort}
+              filters={filters}
+              bots={bots.map((b) => ({ id: b.id, slug: b.slug, name: b.name }))}
+              resultsCount={count}
+            />
           ) : null
         }
       >
-        {q.length < 2 && !params.kind && !importance?.length ? (
+        {q.length < 2 && !advanced ? (
           <p className="text-sm text-muted">
-            Escribí al menos dos letras para buscar en todo lo que publicaron
-            tus bots.
+            Escribí al menos dos letras para buscar, o abrí Filtros
+            {applied ? ` (${applied})` : ""}.
           </p>
         ) : result.hits.length === 0 ? (
           <p className="surface rounded-3xl px-4 py-8 text-center text-sm text-muted">
@@ -168,10 +91,7 @@ export default async function BuscarPage({
             <ul className="space-y-2">
               {result.hits.map((hit) => (
                 <li key={hit.id}>
-                  <Link
-                    href={hit.url}
-                    className="surface flex gap-3 rounded-3xl p-3"
-                  >
+                  <Link href={hit.url} className="surface flex gap-3 rounded-3xl p-3" prefetch>
                     <BotAvatar bot={hit.bot} size="sm" />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
