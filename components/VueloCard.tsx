@@ -24,7 +24,6 @@ import { formatMoney } from "@/lib/format";
 import { AerolineaFichaSheet } from "@/components/AerolineaFicha";
 import {
   airlineKey,
-  airlineLabel,
   asVuelo,
   CATEGORIA_LABELS,
   type VueloCategoria,
@@ -413,7 +412,7 @@ export function VueloCard({
                   onClick={() => setFichaOpen(true)}
                   className="text-foreground underline decoration-dotted decoration-muted underline-offset-2 hover:text-accent"
                 >
-                  {airlineLabel(details)}
+                  {details.aerolinea}
                 </button>
                 {" · "}
                 {formatVueloFechas(details)}

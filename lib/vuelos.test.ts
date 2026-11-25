@@ -23,6 +23,9 @@ import {
   parseVuelosFilters,
   pickAerolineaFicha,
   uniqueAerolineas,
+  airlineKeys,
+  airlineLabel,
+  stripAirlineDecorations,
   uniqueDestinos,
   uniqueMeses,
   vuelosHref,
@@ -439,10 +442,14 @@ describe("aerolínea normalizada y ficha", () => {
     ar2.created_at = "2026-11-26T12:00:00Z";
     const jet = post({ ...base, aerolinea: "JetSMART", destino: "Santiago (SCL)" }, "jet");
     const options = uniqueAerolineas([ar1, ar2, jet]);
-    expect(options.map((item) => item.key).sort()).toEqual(["AR", "jetsmart"]);
-    expect(options.find((item) => item.key === "AR")?.label).toContain("AR");
+    expect(options.map((item) => item.key).sort()).toEqual(["AR", "AU", "JA"]);
+    expect(options.find((item) => item.key === "AR")?.label).toBe("Aerolíneas Argentinas (AR)");
+    expect(options.find((item) => item.key === "JA")?.label).toBe("JetSMART (JA)");
+    expect(options.every((item) => !/\d{2,4}/.test(item.label.replace(/\([A-Z0-9]{2,3}\)/, "")))).toBe(true);
     expect(matchesVuelosFilters(ar1, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR"] })).toBe(true);
     expect(matchesVuelosFilters(jet, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR"] })).toBe(false);
+    expect(matchesVuelosFilters(jet, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["JA"] })).toBe(true);
+    expect(matchesVuelosFilters(jet, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["jetsmart"] })).toBe(true);
     expect(countVuelosFilters({ ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR", "jetsmart"] })).toBe(2);
 
     const parsed = parseVuelosFilters({
@@ -477,6 +484,65 @@ describe("aerolínea normalizada y ficha", () => {
     const skippedNewer = pickAerolineaFicha([oldWithInfo, newerWithout], "AR");
     expect(skippedNewer?.postId).toBe("old");
     expect(skippedNewer?.info && "alianza" in skippedNewer.info ? skippedNewer.info.alianza : null).toBe("SkyTeam");
+  });
+});
+
+describe("filtro de aerolíneas sin número de vuelo", () => {
+  it("acepta aerolinea_normalizada y no exige republicar el texto de aerolinea", () => {
+    const parsed = parsePostDetails("vuelo", {
+      ...base,
+      aerolinea: "JetSMART (JA7730/JA7752)",
+      aerolinea_normalizada: { nombre: "JetSMART", iata: "ja" },
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const details = asVuelo(parsed.details);
+    expect(details?.aerolinea).toBe("JetSMART (JA7730/JA7752)");
+    expect(details?.aerolinea_normalizada).toEqual({ nombre: "JetSMART", iata: "JA" });
+    expect(details?.aerolinea_iata).toBe("JA");
+    expect(details?.aerolinea_nombre).toBe("JetSMART");
+    expect(airlineKeys(details!)).toEqual(["JA"]);
+    expect(airlineLabel(details!)).toBe("JetSMART (JA)");
+  });
+
+  it("acepta IATA alfanuméricos (G3, H2) y agrupa el texto sucio de respaldo", () => {
+    const jets = [
+      post({ ...base, aerolinea: "JetSMART (JA7730/JA7752)", destino: "CUN" }, "j1"),
+      post({ ...base, aerolinea: "JetSMART (JA872)", destino: "AEP" }, "j2"),
+      post({ ...base, aerolinea: "JetSMART", destino: "SCL" }, "j3"),
+    ];
+    const copa = post({ ...base, aerolinea: "Copa Airlines (CM118/CM293)", destino: "PTY" }, "c1");
+    const sky = post({ ...base, aerolinea: "SKY Airline (H2620)", destino: "GIG" }, "s1");
+    const mixed = post(
+      {
+        ...base,
+        aerolinea: "Aerolíneas Argentinas (AR1281/AR1250/G31230)",
+        destino: "GRU",
+        tramos: [
+          { numero_vuelo: "AR1281", origen: "MDZ", destino: "AEP" },
+          { numero_vuelo: "AR1250", origen: "AEP", destino: "EZE" },
+          { numero_vuelo: "G31230", origen: "EZE", destino: "GRU" },
+        ],
+      },
+      "mix",
+    );
+    const options = uniqueAerolineas([...jets, copa, sky, mixed]);
+    expect(options.map((item) => item.label)).toEqual([
+      "Aerolíneas Argentinas (AR)",
+      "Copa Airlines (CM)",
+      "GOL (G3)",
+      "JetSMART (JA)",
+      "Sky (H2)",
+    ]);
+    expect(options.every((item) => !item.label.includes("JA7730") && !item.label.includes("CM118"))).toBe(
+      true,
+    );
+    expect(stripAirlineDecorations("JetSMART (JA7730/JA7752)")).toBe("JetSMART");
+    expect(airlineKeys(asVuelo(mixed.details)!).sort()).toEqual(["AR", "G3"]);
+    expect(matchesVuelosFilters(mixed, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR"] })).toBe(true);
+    expect(matchesVuelosFilters(mixed, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["G3"] })).toBe(true);
+    expect(matchesVuelosFilters(jets[0], { ...EMPTY_VUELOS_FILTERS, aerolineas: ["G3"] })).toBe(false);
+    expect(matchesVuelosFilters(copa, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["CM"] })).toBe(true);
   });
 });
 

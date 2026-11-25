@@ -277,6 +277,16 @@ export function preprocessVueloInput(raw: unknown): unknown {
   if (next.aerolinea_iata == null && typeof next.iata === "string") {
     next.aerolinea_iata = next.iata;
   }
+  const normalizada = next.aerolinea_normalizada;
+  if (normalizada && typeof normalizada === "object" && !Array.isArray(normalizada)) {
+    const row = normalizada as Record<string, unknown>;
+    if (next.aerolinea_nombre == null) {
+      next.aerolinea_nombre = row.nombre ?? row.name ?? row.aerolinea;
+    }
+    if (next.aerolinea_iata == null) {
+      next.aerolinea_iata = row.iata ?? row.codigo ?? row.code;
+    }
+  }
   if ((typeof next.aerolinea !== "string" || !next.aerolinea.trim()) && typeof next.aerolinea_nombre === "string") {
     next.aerolinea = next.aerolinea_nombre;
   }
@@ -386,7 +396,7 @@ const iataCode = z.preprocess((value) => {
   z.literal("sin confirmar"),
   z
     .string()
-    .regex(/^[A-Z]{2,3}$/, "El código IATA tiene que tener 2 o 3 letras, o ser \"sin confirmar\""),
+    .regex(/^[A-Z0-9]{2,3}$/, "El código IATA tiene que tener 2 o 3 caracteres (letras o dígitos: JA, G3, H2), o ser \"sin confirmar\""),
 ]));
 
 const looseUrl = z.preprocess(
@@ -458,6 +468,11 @@ export const vueloCambioSchema = z.object({
   nuevo: cambioValor.optional(),
 });
 
+export const vueloAerolineaNormalizadaSchema = z.object({
+  nombre: looseText.optional(),
+  iata: iataCode.optional(),
+});
+
 export const vueloTramoSchema = z.object({
   numero_vuelo: z.string().trim().min(1).max(40).optional(),
   origen: z.string().trim().min(1).max(80).optional(),
@@ -469,6 +484,9 @@ export const vueloTramoSchema = z.object({
   operador: looseText.optional(),
   operador_nombre: looseText.optional(),
   operador_iata: iataCode.optional(),
+  aerolinea: looseText.optional(),
+  aerolinea_nombre: looseText.optional(),
+  aerolinea_iata: iataCode.optional(),
 });
 
 const vueloDetailsObjectSchema = z
@@ -518,6 +536,7 @@ const vueloDetailsObjectSchema = z
     notas: looseTextLong.optional(),
     aerolinea_nombre: looseText.optional(),
     aerolinea_iata: iataCode.optional(),
+    aerolinea_normalizada: vueloAerolineaNormalizadaSchema.optional(),
     aerolinea_info: vueloAerolineaInfoSchema.optional(),
     estado: z.enum(VUELO_ESTADOS).optional(),
     cambios: z.array(vueloCambioSchema).max(20).optional(),
@@ -547,6 +566,7 @@ export type VueloEquipajeDetalle = z.infer<typeof vueloEquipajeDetalleSchema>;
 export type VueloConexion = z.infer<typeof vueloConexionSchema>;
 export type VueloTramo = z.infer<typeof vueloTramoSchema>;
 export type VueloAerolineaInfo = z.infer<typeof vueloAerolineaInfoSchema>;
+export type VueloAerolineaNormalizada = z.infer<typeof vueloAerolineaNormalizadaSchema>;
 export type VueloPiezaEquipaje = z.infer<typeof vueloPiezaEquipajeSchema>;
 export type VueloDatoConFuente = z.infer<typeof vueloDatoConFuenteSchema>;
 export type VueloCambio = z.infer<typeof vueloCambioSchema>;
@@ -797,7 +817,7 @@ export function matchesVuelosFilters(post: Post, filters: VuelosFilters): boolea
     return false;
   }
   if (filters.categorias.length && !details.categoria) return false;
-  if (filters.aerolineas.length && !filters.aerolineas.includes(airlineKey(details))) {
+  if (filters.aerolineas.length && !matchesAirlineFilter(details, filters.aerolineas)) {
     return false;
   }
   if (!effectiveVuelosEstados(filters).includes(vueloEstado(details))) {
@@ -900,28 +920,196 @@ export function vuelosHref(
   return query ? `/bots/${slug}?${query}` : `/bots/${slug}`;
 }
 
+/** IATA conocidos → nombre canónico del filtro (sin número de vuelo). */
+export const AEROLINEA_IATA_NAMES: Record<string, string> = {
+  AA: "American Airlines",
+  AD: "Azul",
+  AM: "Aeroméxico",
+  AR: "Aerolíneas Argentinas",
+  AV: "Avianca",
+  CM: "Copa Airlines",
+  DL: "Delta",
+  DM: "Arajet",
+  G3: "GOL",
+  H2: "Sky",
+  JA: "JetSMART",
+  LA: "LATAM",
+  UA: "United",
+  VB: "Viva",
+};
+
+const AEROLINEA_NAME_IATA: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(AEROLINEA_IATA_NAMES).map(([iata, name]) => [fold(name), iata]),
+  ),
+  aerolineas: "AR",
+  "aerolineas-argentinas": "AR",
+  american: "AA",
+  "american-airlines": "AA",
+  "american-air-lines": "AA",
+  arajet: "DM",
+  avianca: "AV",
+  azul: "AD",
+  copa: "CM",
+  "copa-airlines": "CM",
+  delta: "DL",
+  "delta-air-lines": "DL",
+  "delta-airlines": "DL",
+  gol: "G3",
+  "gol-linhas": "G3",
+  "gol-linhas-aereas": "G3",
+  jetsmart: "JA",
+  "jet-smart": "JA",
+  latam: "LA",
+  "latam-airlines": "LA",
+  sky: "H2",
+  "sky-airline": "H2",
+  "sky-airlines": "H2",
+  united: "UA",
+  viva: "VB",
+};
+
+const IATA_CODE_RE = /^[A-Z0-9]{2,3}$/;
+const FLIGHT_NUMBER_PATTERN = String.raw`\b[A-Z][A-Z0-9][-\s]?\d{1,4}\b`;
+const FLIGHT_NUMBER_EXACT_RE = /^([A-Z][A-Z0-9])(\d{1,4})$/;
+
+function usableIata(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const iata = value.trim().toUpperCase();
+  if (!iata || iata === "SIN CONFIRMAR" || !IATA_CODE_RE.test(iata)) return null;
+  return iata;
+}
+
+/** Saca paréntesis y patrones de número de vuelo (JA7730, G31230, H2-620). */
+export function stripAirlineDecorations(value: string): string {
+  return value
+    .replace(/\([^)]*\)/g, " ")
+    .replace(new RegExp(FLIGHT_NUMBER_PATTERN, "gi"), " ")
+    .replace(/[/|,;]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function iataFromFlightNumber(value: string): string | null {
+  const compact = value.trim().toUpperCase().replace(/[\s-]/g, "");
+  const match = compact.match(FLIGHT_NUMBER_EXACT_RE);
+  return match ? match[1] : null;
+}
+
+export function extractIatasFromText(value: string): string[] {
+  const out: string[] = [];
+  for (const match of value.toUpperCase().matchAll(new RegExp(FLIGHT_NUMBER_PATTERN, "g"))) {
+    const iata = iataFromFlightNumber(match[0]);
+    if (iata && !out.includes(iata)) out.push(iata);
+  }
+  return out;
+}
+
+export function iataFromAirlineName(name: string): string | null {
+  const key = fold(stripAirlineDecorations(name));
+  return key ? (AEROLINEA_NAME_IATA[key] ?? null) : null;
+}
+
+export function canonicalAirlineKey(value: string): string {
+  const iata = usableIata(value);
+  if (iata) return iata;
+  return iataFromAirlineName(value) ?? fold(stripAirlineDecorations(value));
+}
+
+export function airlineOptionLabel(name: string, iata: string | null): string {
+  return iata ? `${name} (${iata})` : name;
+}
+
+function addAirlineOption(
+  map: Map<string, AerolineaOption>,
+  iataRaw: string | null | undefined,
+  nameRaw: string | null | undefined,
+) {
+  const cleaned = typeof nameRaw === "string" ? stripAirlineDecorations(nameRaw) : "";
+  const iata = usableIata(iataRaw) ?? (cleaned ? iataFromAirlineName(cleaned) : null);
+  const key = iata ?? (cleaned ? fold(cleaned) : "");
+  if (!key) return;
+  const name = (iata && AEROLINEA_IATA_NAMES[iata]) || cleaned || iata || key;
+  const next: AerolineaOption = {
+    key,
+    label: airlineOptionLabel(name, iata),
+    iata,
+  };
+  const prev = map.get(key);
+  if (!prev || (iata && !prev.iata) || (Boolean(iata && AEROLINEA_IATA_NAMES[iata]) && prev.label !== next.label)) {
+    map.set(key, next);
+  }
+}
+
+/** Aerolíneas de un vuelo: normalizada, tramos/codeshare y texto de `aerolinea` como respaldo. */
+export function flightAirlines(details: VueloDetails): AerolineaOption[] {
+  const map = new Map<string, AerolineaOption>();
+  const norm = details.aerolinea_normalizada;
+  if (norm) addAirlineOption(map, norm.iata, norm.nombre);
+  addAirlineOption(map, details.aerolinea_iata, details.aerolinea_nombre);
+  addAirlineOption(map, null, details.aerolinea);
+  for (const iata of extractIatasFromText(details.aerolinea)) {
+    addAirlineOption(map, iata, stripAirlineDecorations(details.aerolinea));
+  }
+  for (const tramo of details.tramos ?? []) {
+    if (tramo.numero_vuelo) {
+      addAirlineOption(map, iataFromFlightNumber(tramo.numero_vuelo), null);
+    }
+    if (tramo.aerolinea_iata || tramo.aerolinea_nombre || tramo.aerolinea) {
+      addAirlineOption(map, tramo.aerolinea_iata, tramo.aerolinea_nombre ?? tramo.aerolinea);
+    }
+    if (tramo.operador_iata || tramo.operador_nombre || tramo.operador) {
+      addAirlineOption(map, tramo.operador_iata, tramo.operador_nombre ?? tramo.operador);
+    }
+  }
+  return [...map.values()];
+}
+
 export function airlineIata(details: VueloDetails): string | null {
-  const raw = details.aerolinea_iata;
-  if (!raw || raw === "sin confirmar") return null;
-  return raw;
+  return flightAirlines(details)[0]?.iata ?? usableIata(details.aerolinea_iata);
+}
+
+export function airlineOptionName(option: AerolineaOption): string {
+  if (option.iata && AEROLINEA_IATA_NAMES[option.iata]) return AEROLINEA_IATA_NAMES[option.iata];
+  if (option.iata && option.label.endsWith(` (${option.iata})`)) {
+    return option.label.slice(0, -(option.iata.length + 3));
+  }
+  return option.label;
 }
 
 export function airlineName(details: VueloDetails): string {
+  const first = flightAirlines(details)[0];
+  if (first) return airlineOptionName(first);
   const nombre = details.aerolinea_nombre;
-  if (typeof nombre === "string" && nombre && nombre !== "sin confirmar") return nombre;
-  return details.aerolinea;
+  if (typeof nombre === "string" && nombre && nombre !== "sin confirmar") {
+    return stripAirlineDecorations(nombre) || nombre;
+  }
+  return stripAirlineDecorations(details.aerolinea) || details.aerolinea;
+}
+
+export function airlineKeys(details: VueloDetails): string[] {
+  return flightAirlines(details).map((item) => item.key);
 }
 
 export function airlineKey(details: VueloDetails): string {
-  const iata = airlineIata(details);
-  if (iata) return iata;
-  return fold(airlineName(details)) || fold(details.aerolinea);
+  return airlineKeys(details)[0] ?? fold(stripAirlineDecorations(details.aerolinea)) ?? fold(details.aerolinea);
 }
 
 export function airlineLabel(details: VueloDetails): string {
+  const first = flightAirlines(details)[0];
+  if (first) return first.label;
   const name = airlineName(details);
   const iata = airlineIata(details);
-  return iata ? `${name} (${iata})` : name;
+  return airlineOptionLabel(name, iata);
+}
+
+export function matchesAirlineFilter(details: VueloDetails, selected: string[]): boolean {
+  if (!selected.length) return true;
+  const keys = new Set(airlineKeys(details));
+  return selected.some((item) => {
+    const key = canonicalAirlineKey(item);
+    return keys.has(item) || (key ? keys.has(key) : false);
+  });
 }
 
 export type AerolineaOption = {
@@ -931,20 +1119,21 @@ export type AerolineaOption = {
 };
 
 export function uniqueAerolineas(posts: Post[]): AerolineaOption[] {
-  const map = new Map<string, { label: string; iata: string | null; at: string }>();
+  const map = new Map<string, { option: AerolineaOption; at: string }>();
   for (const post of posts) {
     const details = asVuelo(post.details);
     if (!details) continue;
-    const key = airlineKey(details);
-    if (!key) continue;
     const at = post.updated_at ?? post.created_at;
-    const prev = map.get(key);
-    if (!prev || at >= prev.at) {
-      map.set(key, { label: airlineLabel(details), iata: airlineIata(details), at });
+    for (const option of flightAirlines(details)) {
+      if (!option.key) continue;
+      const prev = map.get(option.key);
+      if (!prev || at >= prev.at || (option.iata && !prev.option.iata)) {
+        map.set(option.key, { option, at });
+      }
     }
   }
-  return [...map.entries()]
-    .map(([key, value]) => ({ key, label: value.label, iata: value.iata }))
+  return [...map.values()]
+    .map((row) => row.option)
     .sort((a, b) => a.label.localeCompare(b.label, "es"));
 }
 
@@ -976,18 +1165,21 @@ export function pickAerolineaFicha(posts: Post[], key: string): AerolineaFicha |
   const candidates = posts
     .map((post) => ({ post, details: asVuelo(post.details) }))
     .filter((row): row is { post: Post; details: VueloDetails } =>
-      Boolean(row.details && airlineKey(row.details) === key),
+      Boolean(row.details && airlineKeys(row.details).includes(key)),
     )
     .sort((a, b) =>
       (b.post.updated_at ?? b.post.created_at).localeCompare(a.post.updated_at ?? a.post.created_at),
     );
   if (!candidates.length) return null;
   const withInfo = candidates.find((row) => hasAerolineaFicha(row.details)) ?? candidates[0];
+  const option = flightAirlines(withInfo.details).find((item) => item.key === key);
+  const iata = option?.iata ?? (IATA_CODE_RE.test(key) ? key : null);
+  const nombre = option ? airlineOptionName(option) : airlineName(withInfo.details);
   return {
     key,
-    label: airlineLabel(withInfo.details),
-    nombre: airlineName(withInfo.details),
-    iata: airlineIata(withInfo.details),
+    label: option?.label ?? airlineOptionLabel(nombre, iata),
+    nombre,
+    iata,
     info: withInfo.details.aerolinea_info ?? null,
     postId: withInfo.post.id,
     sourceAt: withInfo.post.updated_at ?? withInfo.post.created_at,

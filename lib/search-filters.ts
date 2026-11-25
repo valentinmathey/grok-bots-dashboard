@@ -13,7 +13,7 @@ import {
 } from "@/lib/mendoza";
 import { postAudio } from "@/lib/post-audio";
 import type { Post } from "@/lib/types";
-import { airlineKey, asVuelo, normalizeVueloCategoria, type VueloCategoria } from "@/lib/vuelos";
+import { asVuelo, matchesAirlineFilter, normalizeVueloCategoria, type VueloCategoria } from "@/lib/vuelos";
 
 /** Presets de fecha de evento (hora Mendoza). */
 export const SEARCH_DATE_PRESETS = [
@@ -311,7 +311,7 @@ export function matchesSearchUiFilters(
     if (post.kind !== "vuelo") return false;
     const details = asVuelo(post.details);
     if (!details) return false;
-    if (f.aerolineas.length && !f.aerolineas.includes(airlineKey(details))) return false;
+    if (f.aerolineas.length && !matchesAirlineFilter(details, f.aerolineas)) return false;
     if (f.categorias.length && (!details.categoria || !f.categorias.includes(details.categoria))) {
       return false;
     }
