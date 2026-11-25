@@ -9,6 +9,7 @@ import {
   NotebookPen,
   Sparkles,
   Target,
+  Plane,
   Workflow,
 } from "lucide-react";
 import { kindLabel } from "@/lib/format";
@@ -62,6 +63,10 @@ const KNOWN: Record<string, { className: string; Icon: typeof Sparkles }> = {
   workflow: {
     className: "bg-slate-500/14 text-slate-800 dark:text-slate-200",
     Icon: Workflow,
+  },
+  vuelo: {
+    className: "bg-sky-500/14 text-sky-800 dark:text-sky-200",
+    Icon: Plane,
   },
 };
 

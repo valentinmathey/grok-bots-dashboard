@@ -109,6 +109,7 @@ const LOCAL_AVATAR_SLUGS = new Set([
   "gastronomia-mendoza",
   "recitales-mendoza",
   "eventos-tech-mdz",
+  "vuelos",
 ]);
 
 export function localAvatarPath(slug: string): string | null {

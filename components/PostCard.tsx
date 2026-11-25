@@ -20,6 +20,7 @@ import { CardCover, CardHeaderPad } from "@/components/CollapsedCover";
 import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { RankingCard } from "@/components/RankingCard";
 import { ResumenCard } from "@/components/ResumenCard";
+import { VueloCard } from "@/components/VueloCard";
 import { WorkflowCard } from "@/components/WorkflowCard";
 import { isEventPast, isEventToday } from "@/lib/event-time";
 import { filtersToSearchParams, type FeedQuery } from "@/lib/filters";
@@ -89,6 +90,9 @@ export function PostCard({
   }
   if (post.kind === "workflow" && asWorkflow(post.details)) {
     return <WorkflowCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
+  }
+  if (post.kind === "vuelo") {
+    return <VueloCard post={post} href={href} defaultOpen={defaultOpen} {...chrome} />;
   }
   return (
     <StandardPostCard
