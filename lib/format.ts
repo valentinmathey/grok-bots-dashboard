@@ -14,6 +14,7 @@ const KIND_LABELS: Record<string, string> = {
   newsletter: "Newsletter",
   informe: "Finanzas",
   workflow: "Workflow",
+  vuelo: "Vuelo",
 };
 
 export const KIND_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ export const KIND_COLORS: Record<string, string> = {
   ranking: "#ea580c",
   report: "#d97706",
   aviso: "#65a30d",
+  vuelo: "#0284c7",
 };
 
 const FALLBACK_KIND_COLORS = ["#db2777", "#0891b2", "#ca8a04", "#4338ca", "#be123c", "#0e7490"];

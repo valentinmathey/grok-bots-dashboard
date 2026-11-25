@@ -8,6 +8,7 @@ import { PostFeed } from "@/components/PostFeed";
 import { EventoChanges } from "@/components/EventoChanges";
 import { pickEventoChanges } from "@/lib/evento-changes";
 import { AgendaViva } from "@/components/mza/AgendaViva";
+import { VuelosView } from "@/components/VuelosView";
 import { cookies } from "next/headers";
 import { VISIT_COOKIE } from "@/lib/last-seen";
 import { MZA_BOT_SLUGS, MZA_KINDS, type MzaKind } from "@/lib/mendoza";
@@ -55,6 +56,10 @@ export default async function BotPage({
     showAgendaViva && mzaKind
       ? await repo.listPostsByBot(bot.id, { kind: mzaKind })
       : [];
+  const showVuelos = bot.slug === "vuelos" && search.vista !== "feed";
+  const vueloPosts = showVuelos
+    ? await repo.listPostsByBot(bot.id, { kind: "vuelo" })
+    : [];
   const visitRaw = showAgendaViva
     ? (await cookies()).get(VISIT_COOKIE)?.value
     : undefined;
@@ -167,6 +172,18 @@ export default async function BotPage({
             nowIso={new Date().toISOString()}
             baselineIso={visitRaw ? decodeURIComponent(visitRaw) : null}
           />
+          <p className="text-center">
+            <Link
+              href={`/bots/${bot.slug}?vista=feed`}
+              className="text-xs font-medium text-accent"
+            >
+              Ver todas las publicaciones
+            </Link>
+          </p>
+        </>
+      ) : showVuelos ? (
+        <>
+          <VuelosView posts={vueloPosts} bot={requestBot} />
           <p className="text-center">
             <Link
               href={`/bots/${bot.slug}?vista=feed`}

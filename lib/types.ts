@@ -11,6 +11,7 @@ export const KNOWN_KINDS = [
   "newsletter",
   "informe",
   "workflow",
+  "vuelo",
 ] as const;
 
 export type KnownKind = (typeof KNOWN_KINDS)[number];

@@ -37,6 +37,7 @@ export const SEARCH_KIND_GROUPS = [
   { id: "finanzas", label: "Finanzas", kinds: ["informe"] },
   { id: "alojamiento", label: "Alojamiento", kinds: ["alojamiento"] },
   { id: "oportunidades", label: "Oportunidades", kinds: ["oportunidades"] },
+  { id: "vuelos", label: "Vuelos", kinds: ["vuelo"] },
 ] as const;
 
 export type SearchKindGroupId = (typeof SEARCH_KIND_GROUPS)[number]["id"];

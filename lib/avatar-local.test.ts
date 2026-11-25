@@ -13,6 +13,11 @@ describe("local avatars", () => {
     expect(a.letter).toBe("E");
   });
 
+  it("sirve PNG propio para vuelos", () => {
+    expect(localAvatarPath("vuelos")).toBe("/avatars/vuelos.png");
+    expect(resolveAvatar({ slug: "vuelos", name: "Vuelos" }).url).toBe("/avatars/vuelos.png");
+  });
+
   it("deja el remoto si no hay PNG local", () => {
     expect(localAvatarPath("paraguayo-crack")).toBeNull();
     const a = resolveAvatar({

@@ -98,6 +98,8 @@ describe("search-filters", () => {
       expect.arrayContaining(["evento", "evento-mza", "informe"]),
     );
     expect(matchesSearchUiFilters(post({ kind: "ranking" }), { ...EMPTY_SEARCH_UI_FILTERS, kindGroups: ["productos"] })).toBe(true);
+    expect(kindsForGroups(["vuelos"])).toEqual(["vuelo"]);
+    expect(matchesSearchUiFilters(post({ kind: "vuelo" }), { ...EMPTY_SEARCH_UI_FILTERS, kindGroups: ["vuelos"] })).toBe(true);
   });
 
   it("parsea URL y cuenta filtros", () => {

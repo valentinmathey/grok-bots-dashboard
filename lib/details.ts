@@ -1,4 +1,5 @@
 import { MZA_SCHEMAS, isMzaKind } from "@/lib/mendoza";
+import { vueloDetailsSchema, type VueloDetails } from "@/lib/vuelos";
 import { z } from "zod";
 import { importanceFields } from "@/lib/importance";
 import {
@@ -374,6 +375,7 @@ export type PostDetails =
   | AlojamientoDetails
   | ResumenDetails
   | OportunidadesDetails
+  | VueloDetails
   | Record<string, unknown>;
 
 export type OportunidadItemFilters = {
@@ -399,6 +401,12 @@ export function parsePostDetails(
     }
     if (isMzaKind(kind)) {
       return { ok: false, message: `kind ${kind} requiere details (zone, source_url, source_id…)` };
+    }
+    if (kind === "vuelo") {
+      return {
+        ok: false,
+        message: "kind vuelo requiere details (destino, origen, aerolinea, fecha_ida, un precio y link)",
+      };
     }
     return { ok: true, details: null };
   }
@@ -496,6 +504,18 @@ export function parsePostDetails(
       return {
         ok: false,
         message: "Los details de workflow no son válidos",
+        issues: parsed.error.issues,
+      };
+    }
+    return { ok: true, details: parsed.data };
+  }
+
+  if (kind === "vuelo") {
+    const parsed = vueloDetailsSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: "Los details de vuelo no son válidos",
         issues: parsed.error.issues,
       };
     }
