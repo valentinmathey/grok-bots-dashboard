@@ -78,7 +78,7 @@ function Detail({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex min-w-0 justify-between gap-3 text-sm">
       <dt className="shrink-0 text-muted">{label}</dt>
-      <dd className="min-w-0 text-right font-medium [overflow-wrap:anywhere]">{value}</dd>
+      <dd className="min-w-0 text-right font-medium break-words [overflow-wrap:anywhere]">{value}</dd>
     </div>
   );
 }
@@ -122,9 +122,21 @@ function DetalleVuelo({ details }: { details: VueloDetails }) {
     details.precio_vuelta != null ||
     details.precio_total_ida_vuelta != null;
   const hasCompra = details.low_cost != null || Boolean(details.sitio_compra) || Boolean(details.link_directo);
+  const hasResumen =
+    Boolean(details.equipaje && details.equipaje !== "sin confirmar") ||
+    Boolean(details.escalas && details.escalas !== "sin confirmar") ||
+    Boolean(details.notas);
 
   return (
     <div className="space-y-4">
+      {hasResumen ? (
+        <Section title="Detalle">
+          <Detail label="Escalas" value={formatLoose(details.escalas)} />
+          <Detail label="Equipaje" value={formatLoose(details.equipaje)} />
+          <Detail label="Notas" value={formatLoose(details.notas)} />
+        </Section>
+      ) : null}
+
       {hasBag ? (
         <Section title="Equipaje">
           <Detail label="Artículo personal / mochila" value={formatLoose(bag?.articulo_personal ?? bag?.mochila)} />
@@ -341,19 +353,19 @@ export function VueloCard({
               {escalas ? (
                 <li className="flex items-center gap-1.5">
                   <Plane size={14} strokeWidth={1.75} className="shrink-0" />
-                  <span>{escalas}</span>
+                  <span className="min-w-0 [overflow-wrap:anywhere] break-words">{escalas}</span>
                 </li>
               ) : null}
               {duracion ? (
                 <li className="flex items-center gap-1.5">
                   <Clock size={14} strokeWidth={1.75} className="shrink-0" />
-                  <span>{duracion}</span>
+                  <span className="min-w-0 [overflow-wrap:anywhere] break-words">{duracion}</span>
                 </li>
               ) : null}
               {equipaje ? (
                 <li className="flex items-start gap-1.5">
                   <Briefcase size={14} strokeWidth={1.75} className="mt-0.5 shrink-0" />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{equipaje}</span>
+                  <span className="min-w-0 [overflow-wrap:anywhere] break-words line-clamp-3">{equipaje}</span>
                 </li>
               ) : null}
             </ul>

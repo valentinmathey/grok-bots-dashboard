@@ -45,6 +45,14 @@ const ymd = z
 
 const money = z.number().finite().min(0).max(10_000_000);
 
+/** Textos largos (equipaje, tarifa, notas…). Si se pasa, la validación falla: no recortamos. */
+export const VUELO_TEXT_MAX = 1000;
+/** Tope del JSON de details de un vuelo. */
+export const VUELO_DETAILS_MAX_CHARS = 64_000;
+
+const textTooLong = (campo = "Este texto") =>
+  `${campo} no puede superar ${VUELO_TEXT_MAX} caracteres (no se recorta: acortalo o dividilo)`;
+
 function fold(value: string): string {
   return value
     .normalize("NFD")
@@ -98,18 +106,22 @@ function preprocessFlag(value: unknown): unknown {
 
 const looseFlag = z.preprocess(
   preprocessFlag,
-  z.union([z.boolean(), z.literal("sin confirmar"), z.string().trim().min(1).max(160)]),
+  z.union([
+    z.boolean(),
+    z.literal("sin confirmar"),
+    z.string().trim().min(1).max(VUELO_TEXT_MAX, textTooLong()),
+  ]),
 );
 
 const looseText = z.preprocess(
   (value) => (isSinConfirmar(value) ? "sin confirmar" : value),
-  z.union([z.literal("sin confirmar"), z.string().trim().min(1).max(200)]),
+  z.union([
+    z.literal("sin confirmar"),
+    z.string().trim().min(1).max(VUELO_TEXT_MAX, textTooLong()),
+  ]),
 );
 
-const looseTextLong = z.preprocess(
-  (value) => (isSinConfirmar(value) ? "sin confirmar" : value),
-  z.union([z.literal("sin confirmar"), z.string().trim().min(1).max(400)]),
-);
+const looseTextLong = looseText;
 
 export type LooseFlag = boolean | "sin confirmar" | string;
 export type LooseNumber = number | "sin confirmar";
@@ -227,7 +239,7 @@ export const vueloEquipajeDetalleSchema = z.object({
 export const vueloTarifaSchema = z.union([
   looseText,
   z.object({
-    nombre: z.string().trim().min(1).max(80).optional(),
+    nombre: z.string().trim().min(1).max(VUELO_TEXT_MAX, textTooLong("tarifa.nombre")).optional(),
     cambios: looseFlag.optional(),
     reembolso: looseFlag.optional(),
     eleccion_asiento: looseFlag.optional(),
@@ -295,6 +307,10 @@ const vueloDetailsObjectSchema = z
     variacion: z.enum(VUELO_VARIACIONES).optional(),
     precio_usd_previo: looseNumber.optional(),
     source_id: z.string().trim().min(1).max(80).optional(),
+    notas: looseTextLong.optional(),
+  })
+  .refine((value) => JSON.stringify(value).length <= VUELO_DETAILS_MAX_CHARS, {
+    message: `details de vuelo no puede superar ${VUELO_DETAILS_MAX_CHARS} caracteres (no se recorta)`,
   })
   .refine((value) => hasPrice(value), {
     message: "Mandá al menos un precio (precio_usd, precio_ars, precio_original o precio_total_ida_vuelta)",
@@ -469,7 +485,10 @@ export function equipajeLabel(details: VueloDetails): string | null {
 
 export function hasVueloDetalle(details: VueloDetails): boolean {
   return Boolean(
-    details.equipaje_detalle ||
+    details.equipaje ||
+      details.escalas ||
+      details.notas ||
+      details.equipaje_detalle ||
       details.tarifa ||
       (details.conexiones && details.conexiones.length) ||
       (details.tramos && details.tramos.length) ||
