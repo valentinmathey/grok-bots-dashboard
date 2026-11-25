@@ -1,10 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   ArrowUpDown,
   CalendarDays,
+  CircleDot,
   MapPin,
+  Plane,
   PlaneTakeoff,
   SlidersHorizontal,
   Tag,
@@ -16,6 +19,7 @@ import { VueloCard } from "@/components/VueloCard";
 import type { PostCardBot } from "@/components/PostCardHeader";
 import type { Post } from "@/lib/types";
 import {
+  buildAerolineaFichas,
   CATEGORIA_LABELS,
   countVuelosFilters,
   EMPTY_VUELOS_FILTERS,
@@ -23,11 +27,18 @@ import {
   matchesVuelosFilters,
   ORIGEN_LABELS,
   sortVuelos,
+  toggleVuelosEstados,
+  uniqueAerolineas,
   uniqueDestinos,
   uniqueMeses,
+  vuelosHref,
   VUELO_CATEGORIAS,
+  VUELO_ESTADO_LABELS,
+  VUELO_ESTADOS,
   VUELO_ORIGENES,
+  effectiveVuelosEstados,
   type VueloCategoria,
+  type VueloEstado,
   type VueloOrigen,
   type VuelosFilters,
   type VuelosSort,
@@ -40,16 +51,22 @@ function toggle<T>(list: T[], value: T): T[] {
 export function VuelosView({
   posts,
   bot,
+  filters,
+  slug = "vuelos",
 }: {
   posts: Post[];
   bot?: PostCardBot | null;
+  filters: VuelosFilters;
+  slug?: string;
 }) {
-  const [filters, setFilters] = useState<VuelosFilters>(EMPTY_VUELOS_FILTERS);
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<VuelosFilters>(filters);
 
   const destinos = useMemo(() => uniqueDestinos(posts), [posts]);
   const meses = useMemo(() => uniqueMeses(posts), [posts]);
+  const aerolineas = useMemo(() => uniqueAerolineas(posts), [posts]);
+  const fichas = useMemo(() => buildAerolineaFichas(posts), [posts]);
   const visible = useMemo(
     () => sortVuelos(posts.filter((post) => matchesVuelosFilters(post, filters)), filters.sort),
     [posts, filters],
@@ -57,7 +74,7 @@ export function VuelosView({
   const active = countVuelosFilters(filters);
 
   function apply(next: VuelosFilters) {
-    setFilters(next);
+    router.push(vuelosHref(next, {}, slug));
   }
 
   return (
@@ -104,13 +121,13 @@ export function VuelosView({
           body={
             posts.length === 0
               ? "Cuando el bot publique una búsqueda, los vuelos aparecen acá."
-              : "Probá otro destino, origen, mes o categoría."
+              : "Probá otro destino, origen, mes, aerolínea o categoría."
           }
         />
       ) : (
         <div className="space-y-3">
           {visible.map((post) => (
-            <VueloCard key={post.id} post={post} bot={bot} />
+            <VueloCard key={post.id} post={post} bot={bot} fichas={fichas} />
           ))}
         </div>
       )}
@@ -206,6 +223,36 @@ export function VuelosView({
 
           <section>
             <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+              <Plane size={13} strokeWidth={1.75} />
+              Aerolínea
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <FilterChip
+                selected={!draft.aerolineas.length}
+                onClick={() => setDraft({ ...draft, aerolineas: [] })}
+              >
+                Todas
+              </FilterChip>
+              {aerolineas.map((aerolinea) => (
+                <FilterChip
+                  key={aerolinea.key}
+                  selected={draft.aerolineas.includes(aerolinea.key)}
+                  check={draft.aerolineas.includes(aerolinea.key)}
+                  onClick={() =>
+                    setDraft({
+                      ...draft,
+                      aerolineas: toggle(draft.aerolineas, aerolinea.key),
+                    })
+                  }
+                >
+                  {aerolinea.label}
+                </FilterChip>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
               <Tag size={13} strokeWidth={1.75} />
               Categoría
             </p>
@@ -232,6 +279,44 @@ export function VuelosView({
                 </FilterChip>
               ))}
             </div>
+          </section>
+
+          <section>
+            <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+              <CircleDot size={13} strokeWidth={1.75} />
+              Estado
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <FilterChip
+                selected={effectiveVuelosEstados(draft).length === VUELO_ESTADOS.length}
+                onClick={() =>
+                  setDraft({ ...draft, estados: [...VUELO_ESTADOS] })
+                }
+              >
+                Todos
+              </FilterChip>
+              {VUELO_ESTADOS.map((estado) => {
+                const selected = effectiveVuelosEstados(draft).includes(estado);
+                return (
+                  <FilterChip
+                    key={estado}
+                    selected={selected}
+                    check={selected}
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        estados: toggleVuelosEstados(draft.estados, estado as VueloEstado),
+                      })
+                    }
+                  >
+                    {VUELO_ESTADO_LABELS[estado]}
+                  </FilterChip>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-muted">
+              Los no disponibles quedan ocultos hasta que los actives.
+            </p>
           </section>
 
           <section>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowDownRight,
@@ -21,25 +21,42 @@ import {
 import { PostCardHeader, type PostCardBot } from "@/components/PostCardHeader";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { formatMoney } from "@/lib/format";
+import { AerolineaFichaSheet } from "@/components/AerolineaFicha";
 import {
+  airlineKey,
+  airlineLabel,
   asVuelo,
   CATEGORIA_LABELS,
+  type VueloCategoria,
   equipajeLabel,
   escalasLabel,
   formatFlag,
   formatLoose,
+  formatCambioCampo,
+  formatCambioValor,
+  formatTramoOperador,
   formatUsd,
   formatVueloFechas,
   hasVueloDetalle,
   ofertaHref,
   ORIGEN_LABELS,
+  pickAerolineaFicha,
   precioResumen,
   VARIACION_LABELS,
+  vueloEstado,
+  type AerolineaFicha,
   type LooseNumber,
   type VueloDetails,
   type VueloVariacion,
 } from "@/lib/vuelos";
 import type { Post } from "@/lib/types";
+
+const CATEGORIA_CHIP: Record<VueloCategoria, string> = {
+  "mas-barato": "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+  equilibrado: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
+  "mas-rapido": "bg-violet-500/15 text-violet-800 dark:text-violet-200",
+};
+
 
 function VariacionChip({ details }: { details: VueloDetails }) {
   const variacion: VueloVariacion | undefined = details.variacion;
@@ -222,11 +239,42 @@ function DetalleVuelo({ details }: { details: VueloDetails }) {
                   <Detail label="Salida (hora local)" value={formatLoose(tramo.salida)} />
                   <Detail label="Llegada (hora local)" value={formatLoose(tramo.llegada)} />
                   <Detail label="Duración" value={formatLoose(tramo.duracion)} />
+                  <Detail
+                    label="Codeshare"
+                    value={
+                      typeof tramo.codeshare === "boolean"
+                        ? formatFlag(tramo.codeshare)
+                        : formatLoose(tramo.codeshare)
+                    }
+                  />
+                  <Detail label="Operador" value={formatTramoOperador(tramo)} />
                 </dl>
               </div>
             );
           })}
           <Detail label="Duración total" value={formatLoose(details.duracion_total)} />
+        </Section>
+      ) : null}
+
+      {details.cambios?.length ? (
+        <Section title="Cambios">
+          {details.cambios.map((cambio, index) => {
+            const anterior = formatCambioValor(cambio.anterior);
+            const siguiente = formatCambioValor(cambio.nuevo);
+            const value =
+              anterior && siguiente
+                ? `${anterior} → ${siguiente}`
+                : siguiente
+                  ? siguiente
+                  : anterior;
+            return (
+              <Detail
+                key={`${cambio.campo}-${index}`}
+                label={formatCambioCampo(cambio.campo)}
+                value={value}
+              />
+            );
+          })}
         </Section>
       ) : null}
 
@@ -269,15 +317,18 @@ export function VueloCard({
   defaultOpen = false,
   bot,
   allowRequest = true,
+  fichas,
 }: {
   post: Post;
   href?: string;
   defaultOpen?: boolean;
   bot?: PostCardBot | null;
   allowRequest?: boolean;
+  fichas?: Record<string, AerolineaFicha>;
 }) {
   const { open, toggle, headerRef } = useExpandable(defaultOpen);
   const bodyId = useId();
+  const [fichaOpen, setFichaOpen] = useState(false);
   const details = asVuelo(post.details);
   const title = details?.destino ?? post.title;
   const price = details ? precioResumen(details) : null;
@@ -287,11 +338,18 @@ export function VueloCard({
   const cta = details ? ofertaHref(details) : null;
   const ctaLabel = details?.sitio_compra ? `Ver en ${details.sitio_compra}` : "Ver oferta";
   const canExpand = Boolean(post.body_markdown?.trim() || (details && hasVueloDetalle(details)));
+  const ficha = useMemo(() => {
+    if (!details) return null;
+    const key = airlineKey(details);
+    return fichas?.[key] ?? pickAerolineaFicha([post], key);
+  }, [details, fichas, post]);
 
   return (
     <article
       id={`post-${post.id}`}
-      className="surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl"
+      className={`surface min-w-0 scroll-mt-20 overflow-hidden rounded-3xl${
+        details && vueloEstado(details) === "no-disponible" ? " opacity-60" : ""
+      }`}
       {...cardCollapseProps(open, toggle)}
     >
       <ExpandableHeader
@@ -321,13 +379,23 @@ export function VueloCard({
             details ? (
               <>
                 {details.categoria ? (
-                  <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-sky-800 dark:text-sky-200">
+                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${CATEGORIA_CHIP[details.categoria]}`}>
                     {CATEGORIA_LABELS[details.categoria]}
                   </span>
                 ) : null}
                 {details.low_cost === true ? (
                   <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900 dark:text-amber-200">
                     Low cost
+                  </span>
+                ) : null}
+                {vueloEstado(details) === "cambiado" ? (
+                  <span className="rounded-full bg-amber-400/25 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                    Cambió
+                  </span>
+                ) : null}
+                {vueloEstado(details) === "no-disponible" ? (
+                  <span className="rounded-full bg-zinc-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
+                    No disponible
                   </span>
                 ) : null}
                 <VariacionChip details={details} />
@@ -339,7 +407,14 @@ export function VueloCard({
               <p className="text-sm text-muted">
                 {ORIGEN_LABELS[details.origen]} → {details.destino}
                 {" · "}
-                {details.aerolinea}
+                <button
+                  type="button"
+                  data-no-collapse
+                  onClick={() => setFichaOpen(true)}
+                  className="text-foreground underline decoration-dotted decoration-muted underline-offset-2 hover:text-accent"
+                >
+                  {airlineLabel(details)}
+                </button>
                 {" · "}
                 {formatVueloFechas(details)}
               </p>
@@ -403,6 +478,12 @@ export function VueloCard({
           </div>
         ) : null}
       </ExpandableBody>
+      <AerolineaFichaSheet
+        open={fichaOpen}
+        onClose={() => setFichaOpen(false)}
+        ficha={ficha}
+        details={details}
+      />
     </article>
   );
 }

@@ -16,8 +16,16 @@ import {
   normalizeVueloCategoria,
   sampleVueloDetails,
   sortVuelos,
+  effectiveVuelosEstados,
+  isDefaultVuelosEstados,
+  normalizeVueloEstado,
+  vueloEstado,
+  parseVuelosFilters,
+  pickAerolineaFicha,
+  uniqueAerolineas,
   uniqueDestinos,
   uniqueMeses,
+  vuelosHref,
   VUELO_DETAILS_MAX_CHARS,
   VUELO_TEXT_MAX,
 } from "./vuelos";
@@ -67,7 +75,7 @@ describe("vuelo details", () => {
     expect(failed).toEqual([]);
     const first = asVuelo(raw.vuelos[0]);
     expect(first?.origen).toBe("MDZ");
-    expect(first?.categoria).toBe("más barato");
+    expect(first?.categoria).toBe("mas-barato");
     expect(first?.escalas).toBe("Directo");
   });
 
@@ -95,7 +103,7 @@ describe("vuelo details", () => {
     expect(details?.duracion_total).toBe("Ida: 8h 30m");
     expect(details?.link).toBe("https://www.kayak.com/flights");
     expect(details?.moneda).toBe("USD");
-    expect(details?.categoria).toBe("mejor equilibrio");
+    expect(details?.categoria).toBe("equilibrado");
     expect(details?.escalas).toBe("1 escala (LIM)");
     expect(details?.equipaje).toContain("27.5");
   });
@@ -112,9 +120,14 @@ describe("vuelo details", () => {
   it("acepta ida sola y normaliza categorías con tilde o slug", () => {
     const { fecha_vuelta: _fv, variacion: _v, ...ida } = base;
     expect(parsePostDetails("vuelo", { ...ida, escalas: "Directo" }).ok).toBe(true);
-    expect(normalizeVueloCategoria("más barato")).toBe("más barato");
-    expect(normalizeVueloCategoria("mas-barato")).toBe("más barato");
-    expect(normalizeVueloCategoria("Mejor Equilibrio")).toBe("mejor equilibrio");
+    expect(normalizeVueloCategoria("más barato")).toBe("mas-barato");
+    expect(normalizeVueloCategoria("mas-barato")).toBe("mas-barato");
+    expect(normalizeVueloCategoria("Mejor Equilibrio")).toBe("equilibrado");
+    expect(normalizeVueloCategoria("mejor-equilibrio")).toBe("equilibrado");
+    expect(normalizeVueloCategoria("más rápido")).toBe("mas-rapido");
+    expect(parsePostDetails("vuelo", { ...base, categoria: "mejor-equilibrio" }).ok).toBe(true);
+    const saved = parsePostDetails("vuelo", { ...base, categoria: "mejor equilibrio" });
+    expect(saved.ok && asVuelo(saved.details)?.categoria).toBe("equilibrado");
   });
 
   it("acepta el mínimo: destino, origen, aerolínea, fecha de ida, precio y link", () => {
@@ -223,7 +236,7 @@ describe("vuelo labels y filtros", () => {
         precio_usd: 120,
         fecha_ida: "2027-01-10",
         fecha_vuelta: "2027-01-20",
-        categoria: "más barato",
+        categoria: "mas-barato",
         origen: "SCL",
       },
       "c",
@@ -245,7 +258,7 @@ describe("vuelo labels y filtros", () => {
       countVuelosFilters({
         ...EMPTY_VUELOS_FILTERS,
         destinos: ["A"],
-        categorias: ["más barato"],
+        categorias: ["mas-barato"],
       }),
     ).toBe(2);
     expect(sortVuelos(posts, "precio").map((p) => p.id)).toEqual(["c", "m"]);
@@ -338,5 +351,226 @@ describe("límites de texto de vuelo", () => {
     const issues = JSON.stringify(parsed.issues ?? parsed.message);
     expect(issues).toContain(String(VUELO_DETAILS_MAX_CHARS));
     expect(issues.toLowerCase()).toContain("no se recorta");
+  });
+});
+
+describe("aerolínea normalizada y ficha", () => {
+  const airlinePayload = {
+    ...base,
+    aerolinea: "Aerolíneas Argentinas",
+    aerolinea_nombre: "Aerolíneas Argentinas",
+    aerolinea_iata: "ar",
+    aerolinea_info: {
+      tipo: "full service",
+      alianza: "SkyTeam",
+      equipaje_estandar: {
+        mochila: { incluido: true, kg: 10, texto: "bajo el asiento" },
+        carry_on: { incluido: true, kg: 8 },
+        valija_despachada: { incluido: false, kg: 23, texto: "sin confirmar" },
+      },
+      puntualidad: { valor: "82%", fuente: "OAG 2026", url: "https://www.oag.com/on-time" },
+      reputacion: "sin confirmar",
+      politica_equipaje: "https://www.aerolineas.com.ar/equipaje",
+      fuentes: [
+        { nombre: "Sitio oficial", url: "https://www.aerolineas.com.ar" },
+        "https://www.iata.org",
+      ],
+    },
+    tramos: [
+      {
+        numero_vuelo: "AR1651",
+        origen: "MDZ",
+        destino: "AEP",
+        codeshare: true,
+        operador: "Austral",
+        operador_iata: "AU",
+      },
+    ],
+  };
+
+  it("acepta ficha, IATA, sin confirmar, codeshare y aliases", () => {
+    const parsed = parsePostDetails("vuelo", airlinePayload);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const details = asVuelo(parsed.details);
+    expect(details?.aerolinea_iata).toBe("AR");
+    expect(details?.aerolinea_info?.tipo).toBe("tradicional");
+    expect(details?.aerolinea_info?.equipaje_estandar && typeof details.aerolinea_info.equipaje_estandar === "object").toBe(true);
+    const bag =
+      details?.aerolinea_info?.equipaje_estandar &&
+      typeof details.aerolinea_info.equipaje_estandar === "object"
+        ? details.aerolinea_info.equipaje_estandar
+        : null;
+    expect(bag && "valija" in bag).toBe(true);
+    expect(details?.aerolinea_info?.politica_equipaje_url).toBe(
+      "https://www.aerolineas.com.ar/equipaje",
+    );
+    expect(details?.aerolinea_info?.reputacion).toBe("sin confirmar");
+    expect(details?.tramos?.[0]?.codeshare).toBe(true);
+    expect(details?.tramos?.[0]?.operador_iata).toBe("AU");
+  });
+
+  it("acepta aerolinea como objeto y no rompe posts viejos", () => {
+    const asObject = parsePostDetails("vuelo", {
+      ...base,
+      aerolinea: { nombre: "Copa Airlines", iata: "CM", info: { tipo: "tradicional", alianza: "Star Alliance" } },
+    });
+    expect(asObject.ok).toBe(true);
+    if (asObject.ok) {
+      const details = asVuelo(asObject.details);
+      expect(details?.aerolinea).toBe("Copa Airlines");
+      expect(details?.aerolinea_iata).toBe("CM");
+      expect(details?.aerolinea_info?.alianza).toBe("Star Alliance");
+    }
+    const legacy = parsePostDetails("vuelo", base);
+    expect(legacy.ok).toBe(true);
+    if (legacy.ok) {
+      expect(asVuelo(legacy.details)?.aerolinea_info).toBeUndefined();
+      expect(asVuelo(legacy.details)?.aerolinea).toBe("Aerolíneas Argentinas");
+    }
+  });
+
+  it("agrupa por IATA o nombre normalizado, filtra y arma la URL", () => {
+    const ar1 = post({ ...airlinePayload, destino: "Buenos Aires (AEP)" }, "ar1");
+    const ar2 = post(
+      { ...base, aerolinea: "Aerolineas Argentinas", aerolinea_iata: "AR", destino: "Córdoba (COR)" },
+      "ar2",
+    );
+    ar2.created_at = "2026-11-26T12:00:00Z";
+    const jet = post({ ...base, aerolinea: "JetSMART", destino: "Santiago (SCL)" }, "jet");
+    const options = uniqueAerolineas([ar1, ar2, jet]);
+    expect(options.map((item) => item.key).sort()).toEqual(["AR", "jetsmart"]);
+    expect(options.find((item) => item.key === "AR")?.label).toContain("AR");
+    expect(matchesVuelosFilters(ar1, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR"] })).toBe(true);
+    expect(matchesVuelosFilters(jet, { ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR"] })).toBe(false);
+    expect(countVuelosFilters({ ...EMPTY_VUELOS_FILTERS, aerolineas: ["AR", "jetsmart"] })).toBe(2);
+
+    const parsed = parseVuelosFilters({
+      destino: "Buenos Aires (AEP)",
+      origen: "MDZ",
+      aerolinea: "AR,jetsmart",
+      sort: "fecha",
+    });
+    expect(parsed.aerolineas).toEqual(["AR", "jetsmart"]);
+    expect(parsed.origenes).toEqual(["MDZ"]);
+    expect(parsed.sort).toBe("fecha");
+    const href = vuelosHref(parsed);
+    expect(href).toContain("/bots/vuelos?");
+    expect(href).toContain("aerolinea=AR%2Cjetsmart");
+    expect(href).toContain("sort=fecha");
+  });
+
+  it("toma la ficha del post más reciente que la tenga", () => {
+    const oldWithInfo = post({ ...airlinePayload, aerolinea_info: { tipo: "tradicional", alianza: "SkyTeam" } }, "old");
+    oldWithInfo.created_at = "2026-11-01T12:00:00Z";
+    const newerWithout = post({ ...base, aerolinea: "Aerolíneas Argentinas", aerolinea_iata: "AR" }, "new");
+    newerWithout.created_at = "2026-11-20T12:00:00Z";
+    const newestWithInfo = post(
+      { ...airlinePayload, aerolinea_info: { tipo: "tradicional", alianza: "SkyTeam", puntualidad: "84%" } },
+      "newest",
+    );
+    newestWithInfo.created_at = "2026-11-24T12:00:00Z";
+    const ficha = pickAerolineaFicha([oldWithInfo, newerWithout, newestWithInfo], "AR");
+    expect(ficha?.postId).toBe("newest");
+    expect(ficha?.info && "puntualidad" in ficha.info ? ficha.info.puntualidad : null).toBe("84%");
+
+    const skippedNewer = pickAerolineaFicha([oldWithInfo, newerWithout], "AR");
+    expect(skippedNewer?.postId).toBe("old");
+    expect(skippedNewer?.info && "alianza" in skippedNewer.info ? skippedNewer.info.alianza : null).toBe("SkyTeam");
+  });
+});
+
+describe("estado y cambios del vuelo", () => {
+  it("normaliza estado, acepta cambios y oculta no disponibles por defecto", () => {
+    const parsed = parsePostDetails("vuelo", {
+      ...base,
+      status: "no disponible",
+      cambios: [
+        { field: "precio", from: 189, to: 210 },
+        { campo: "equipaje", valor_anterior: "Carry-on incluido", valor_nuevo: "Solo mochila" },
+      ],
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const details = asVuelo(parsed.details);
+    expect(details?.estado).toBe("no-disponible");
+    expect(details?.cambios).toEqual([
+      { campo: "precio", anterior: 189, nuevo: 210 },
+      { campo: "equipaje", anterior: "Carry-on incluido", nuevo: "Solo mochila" },
+    ]);
+    expect(normalizeVueloEstado("agotado")).toBe("no-disponible");
+    expect(vueloEstado(details!)).toBe("no-disponible");
+    const hidden = post(parsed.details, "gone");
+    expect(matchesVuelosFilters(hidden, EMPTY_VUELOS_FILTERS)).toBe(false);
+    expect(
+      matchesVuelosFilters(hidden, { ...EMPTY_VUELOS_FILTERS, estados: ["no-disponible"] }),
+    ).toBe(true);
+    expect(isDefaultVuelosEstados([])).toBe(true);
+    expect(effectiveVuelosEstados(EMPTY_VUELOS_FILTERS)).toEqual(["activo", "cambiado"]);
+    expect(countVuelosFilters({ ...EMPTY_VUELOS_FILTERS, estados: ["no-disponible"] })).toBe(1);
+    expect(countVuelosFilters(EMPTY_VUELOS_FILTERS)).toBe(0);
+    const href = vuelosHref({ ...EMPTY_VUELOS_FILTERS, estados: ["no-disponible"] });
+    expect(href).toContain("estado=no-disponible");
+    expect(parseVuelosFilters({ estado: "cambiado,no-disponible" }).estados).toEqual([
+      "cambiado",
+      "no-disponible",
+    ]);
+  });
+});
+
+describe("upsert de vuelo por source_id", () => {
+  it("re-enviar el mismo source_id actualiza el vuelo en vez de duplicarlo", async () => {
+    const { MemoryRepository } = await import("./memory-repository");
+    const { hashApiKey } = await import("./api-keys");
+    const { publishPost } = await import("./publishing");
+    const repo = new MemoryRepository();
+    const key = "gb_test_vuelos";
+    repo.bots.push({
+      id: "bot_v",
+      name: "Vuelos",
+      slug: "vuelos",
+      description: "",
+      status: null,
+      status_updated_at: null,
+      created_at: "",
+      updated_at: "",
+    } as never);
+    repo.keys.push({
+      botId: "bot_v",
+      hash: hashApiKey(key),
+      prefix: "gb_test_v",
+      revokedAt: null,
+    } as never);
+    const payload = {
+      title: "MDZ → Buenos Aires (AEP)",
+      body: "Oferta",
+      kind: "vuelo",
+      details: { ...base, source_id: "mdz-aep-ar-2026-12-10", precio_usd: 189, categoria: "mejor-equilibrio" },
+    };
+    const first = await publishPost(repo, `Bearer ${key}`, payload);
+    expect(first.ok && first.status).toBe(201);
+    const again = await publishPost(repo, `Bearer ${key}`, {
+      ...payload,
+      details: {
+        ...payload.details,
+        precio_usd: 210,
+        estado: "cambiado",
+        categoria: "equilibrado",
+        cambios: [{ campo: "precio", anterior: 189, nuevo: 210 }],
+      },
+    });
+    expect(again.ok && again.status).toBe(200);
+    expect(again.ok && "upserted" in again.data && again.data.upserted).toBe(true);
+    expect(repo.posts.filter((item) => item.bot_id === "bot_v")).toHaveLength(1);
+    const stored = asVuelo(repo.posts[0].details);
+    expect(stored?.precio_usd).toBe(210);
+    expect(stored?.estado).toBe("cambiado");
+    expect(stored?.categoria).toBe("equilibrado");
+    const other = await publishPost(repo, `Bearer ${key}`, {
+      ...payload,
+      details: { ...payload.details, source_id: "otro-id", destino: "Cancún (CUN)" },
+    });
+    expect(other.ok && other.status).toBe(201);
+    expect(repo.posts.filter((item) => item.bot_id === "bot_v")).toHaveLength(2);
   });
 });

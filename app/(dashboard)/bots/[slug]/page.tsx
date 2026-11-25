@@ -9,6 +9,7 @@ import { EventoChanges } from "@/components/EventoChanges";
 import { pickEventoChanges } from "@/lib/evento-changes";
 import { AgendaViva } from "@/components/mza/AgendaViva";
 import { VuelosView } from "@/components/VuelosView";
+import { parseVuelosFilters } from "@/lib/vuelos";
 import { cookies } from "next/headers";
 import { VISIT_COOKIE } from "@/lib/last-seen";
 import { MZA_BOT_SLUGS, MZA_KINDS, type MzaKind } from "@/lib/mendoza";
@@ -60,6 +61,7 @@ export default async function BotPage({
   const vueloPosts = showVuelos
     ? await repo.listPostsByBot(bot.id, { kind: "vuelo" })
     : [];
+  const vuelosFilters = showVuelos ? parseVuelosFilters(search) : null;
   const visitRaw = showAgendaViva
     ? (await cookies()).get(VISIT_COOKIE)?.value
     : undefined;
@@ -183,7 +185,7 @@ export default async function BotPage({
         </>
       ) : showVuelos ? (
         <>
-          <VuelosView posts={vueloPosts} bot={requestBot} />
+          <VuelosView posts={vueloPosts} bot={requestBot} filters={vuelosFilters!} slug={bot.slug} />
           <p className="text-center">
             <Link
               href={`/bots/${bot.slug}?vista=feed`}

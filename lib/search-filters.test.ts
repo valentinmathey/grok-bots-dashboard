@@ -131,4 +131,64 @@ describe("search-filters", () => {
     expect(countSearchUiFilters(f)).toBeGreaterThanOrEqual(10);
     expect(searchUiHref("n8n", EMPTY_SEARCH_UI_FILTERS, { favoritesOnly: true })).toContain("favorites=1");
   });
+
+  it("filtra vuelos por aerolínea y lo persiste en la URL", () => {
+    const vueloAr = post({
+      kind: "vuelo",
+      details: {
+        destino: "Buenos Aires (AEP)",
+        origen: "MDZ",
+        aerolinea: "Aerolíneas Argentinas",
+        aerolinea_iata: "AR",
+        fecha_ida: "2026-12-10",
+        precio_usd: 189,
+        link: "https://www.google.com/travel/flights",
+      },
+    });
+    const vueloJet = post({
+      kind: "vuelo",
+      details: {
+        destino: "Santiago",
+        origen: "MDZ",
+        aerolinea: "JetSMART",
+        fecha_ida: "2026-12-12",
+        precio_usd: 99,
+        link: "https://www.jetsmart.com",
+      },
+    });
+    const f = parseSearchUiFilters({ tipo: "vuelos", aerolinea: "AR" });
+    expect(f.kindGroups).toEqual(["vuelos"]);
+    expect(f.aerolineas).toEqual(["AR"]);
+    expect(countSearchUiFilters(f)).toBe(2);
+    expect(matchesSearchUiFilters(vueloAr, f)).toBe(true);
+    expect(matchesSearchUiFilters(vueloJet, f)).toBe(false);
+    expect(matchesSearchUiFilters(post({ kind: "evento" }), f)).toBe(false);
+    expect(searchUiHref("", EMPTY_SEARCH_UI_FILTERS, { kindGroups: ["vuelos"], aerolineas: ["AR", "jetsmart"] })).toContain(
+      "aerolinea=AR%2Cjetsmart",
+    );
+  });
+
+  it("filtra vuelos por categoría y acepta el alias mejor-equilibrio", () => {
+    const vuelo = post({
+      kind: "vuelo",
+      details: {
+        destino: "Buenos Aires (AEP)",
+        origen: "MDZ",
+        aerolinea: "Aerolíneas Argentinas",
+        fecha_ida: "2026-12-10",
+        precio_usd: 189,
+        link: "https://www.google.com/travel/flights",
+        categoria: "mejor-equilibrio",
+      },
+    });
+    const f = parseSearchUiFilters({ tipo: "vuelos", categoria: "mejor-equilibrio" });
+    expect(f.categorias).toEqual(["equilibrado"]);
+    expect(matchesSearchUiFilters(vuelo, f)).toBe(true);
+    expect(
+      matchesSearchUiFilters(vuelo, { ...EMPTY_SEARCH_UI_FILTERS, kindGroups: ["vuelos"], categorias: ["mas-rapido"] }),
+    ).toBe(false);
+    expect(searchUiHref("", EMPTY_SEARCH_UI_FILTERS, { kindGroups: ["vuelos"], categorias: ["mas-barato", "equilibrado"] })).toContain(
+      "categoria=mas-barato%2Cequilibrado",
+    );
+  });
 });
