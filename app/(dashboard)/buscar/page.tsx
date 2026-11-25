@@ -12,6 +12,7 @@ import {
   searchUiHasAdvanced,
 } from "@/lib/search-filters";
 import { emptyResultLabel, resultCountLabel } from "@/lib/search-copy";
+import { uniqueAerolineas } from "@/lib/vuelos";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,12 @@ export default async function BuscarPage({
   ]);
 
   const kinds = filters.kindGroups.length ? kindsForGroups(filters.kindGroups) : undefined;
+  const showVuelosFilters = filters.kindGroups.includes("vuelos");
+  const vuelosBot = showVuelosFilters ? bots.find((bot) => bot.slug === "vuelos") : undefined;
+  const vueloPosts = vuelosBot
+    ? await repo.listPostsByBot(vuelosBot.id, { kind: "vuelo" })
+    : [];
+  const aerolineas = uniqueAerolineas(vueloPosts);
   const shouldSearch = q.length >= 2 || advanced;
 
   const result = shouldSearch
@@ -70,6 +77,7 @@ export default async function BuscarPage({
               filters={filters}
               bots={bots.map((b) => ({ id: b.id, slug: b.slug, name: b.name }))}
               resultsCount={count}
+              aerolineas={aerolineas}
             />
           ) : null
         }

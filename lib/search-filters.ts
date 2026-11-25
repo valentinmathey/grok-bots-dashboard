@@ -13,6 +13,7 @@ import {
 } from "@/lib/mendoza";
 import { postAudio } from "@/lib/post-audio";
 import type { Post } from "@/lib/types";
+import { airlineKey, asVuelo, normalizeVueloCategoria, type VueloCategoria } from "@/lib/vuelos";
 
 /** Presets de fecha de evento (hora Mendoza). */
 export const SEARCH_DATE_PRESETS = [
@@ -56,6 +57,8 @@ export type SearchUiFilters = {
   favoritesOnly: boolean;
   kindGroups: SearchKindGroupId[];
   bots: string[];
+  aerolineas: string[];
+  categorias: VueloCategoria[];
 };
 
 export const EMPTY_SEARCH_UI_FILTERS: SearchUiFilters = {
@@ -72,6 +75,8 @@ export const EMPTY_SEARCH_UI_FILTERS: SearchUiFilters = {
   favoritesOnly: false,
   kindGroups: [],
   bots: [],
+  aerolineas: [],
+  categorias: [],
 };
 
 function parseYmd(ymd: string): Date {
@@ -180,6 +185,17 @@ export function parseSearchUiFilters(
     favoritesOnly: first(search, "favorites") === "1",
     kindGroups,
     bots,
+    aerolineas: (first(search, "aerolinea") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    categorias: (first(search, "categoria") ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .map((s) => normalizeVueloCategoria(s) ?? s)
+      .filter((s): s is VueloCategoria =>
+        s === "mas-barato" || s === "equilibrado" || s === "mas-rapido",
+      ),
   };
 }
 
@@ -195,7 +211,9 @@ export function countSearchUiFilters(f: SearchUiFilters): number {
     Number(f.hasAudio) +
     Number(f.favoritesOnly) +
     Number(f.kindGroups.length > 0) +
-    Number(f.bots.length > 0)
+    Number(f.bots.length > 0) +
+    Number(f.aerolineas.length > 0) +
+    Number(f.categorias.length > 0)
   );
 }
 
@@ -233,6 +251,8 @@ export function searchUiHref(
   if (next.favoritesOnly) params.set("favorites", "1");
   if (next.kindGroups.length) params.set("tipo", next.kindGroups.join(","));
   if (next.bots.length) params.set("bot", next.bots.join(","));
+  if (next.aerolineas.length) params.set("aerolinea", next.aerolineas.join(","));
+  if (next.categorias.length) params.set("categoria", next.categorias.join(","));
   const s = params.toString();
   return s ? `/buscar?${s}` : "/buscar";
 }
@@ -285,6 +305,16 @@ export function matchesSearchUiFilters(
   if (f.kindGroups.length) {
     const allowed = kindsForGroups(f.kindGroups);
     if (!allowed.includes(post.kind)) return false;
+  }
+
+  if (f.aerolineas.length || f.categorias.length) {
+    if (post.kind !== "vuelo") return false;
+    const details = asVuelo(post.details);
+    if (!details) return false;
+    if (f.aerolineas.length && !f.aerolineas.includes(airlineKey(details))) return false;
+    if (f.categorias.length && (!details.categoria || !f.categorias.includes(details.categoria))) {
+      return false;
+    }
   }
 
   if (f.importance.length && !matchesImportance(d, f.importance)) return false;

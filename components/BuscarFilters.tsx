@@ -12,6 +12,7 @@ import {
   Tag,
   Wallet,
   Bot as BotIcon,
+  Plane,
 } from "lucide-react";
 import { ChipRow, FilterChip } from "@/components/FilterChip";
 import { DateRangeField } from "@/components/DateRangeField";
@@ -32,6 +33,12 @@ import {
   type SearchUiFilters,
 } from "@/lib/search-filters";
 import {
+  CATEGORIA_LABELS,
+  VUELO_CATEGORIAS,
+  type AerolineaOption,
+  type VueloCategoria,
+} from "@/lib/vuelos";
+import {
   IMPORTANCE_BADGE,
   IMPORTANCE_FILTER_LEVELS,
   IMPORTANCE_LABELS,
@@ -51,12 +58,14 @@ export function BuscarFilters({
   filters,
   bots,
   resultsCount,
+  aerolineas = [],
 }: {
   q: string;
   sort?: string;
   filters: SearchUiFilters;
   bots: BotOption[];
   resultsCount: number;
+  aerolineas?: AerolineaOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -114,6 +123,20 @@ export function BuscarFilters({
         .map((slug) => bots.find((b) => b.slug === slug)?.name ?? slug)
         .join(", "),
       removeHref: searchUiHref(q, optimistic, { bots: [] }, sort),
+    });
+  }
+  if (optimistic.aerolineas.length) {
+    activeChips.push({
+      label: optimistic.aerolineas
+        .map((key) => aerolineas.find((item) => item.key === key)?.label ?? key)
+        .join(", "),
+      removeHref: searchUiHref(q, optimistic, { aerolineas: [] }, sort),
+    });
+  }
+  if (optimistic.categorias.length) {
+    activeChips.push({
+      label: optimistic.categorias.map((item) => CATEGORIA_LABELS[item]).join(", "),
+      removeHref: searchUiHref(q, optimistic, { categorias: [] }, sort),
     });
   }
 
@@ -323,14 +346,21 @@ export function BuscarFilters({
                   size="sm"
                   selected={selected}
                   check={selected}
-                  onClick={() =>
+                  onClick={() => {
+                    const kindGroups = toggleInList(
+                      optimistic.kindGroups,
+                      g.id as SearchKindGroupId,
+                    );
                     patch({
-                      kindGroups: toggleInList(
-                        optimistic.kindGroups,
-                        g.id as SearchKindGroupId,
-                      ),
-                    })
-                  }
+                      kindGroups,
+                      aerolineas: kindGroups.includes("vuelos")
+                        ? optimistic.aerolineas
+                        : [],
+                      categorias: kindGroups.includes("vuelos")
+                        ? optimistic.categorias
+                        : [],
+                    });
+                  }}
                 >
                   <Tag size={12} strokeWidth={1.75} className="mr-0.5 inline" />
                   {g.label}
@@ -339,6 +369,77 @@ export function BuscarFilters({
             })}
           </ChipRow>
         </FilterGroup>
+
+        {optimistic.kindGroups.includes("vuelos") ? (
+          <FilterGroup label="Aerolínea">
+            <p className="flex items-center gap-1.5 text-[11px] text-muted">
+              <Plane size={12} strokeWidth={1.75} />
+              Según las publicaciones de Vuelos. Podés elegir más de una.
+            </p>
+            <ChipRow>
+              <FilterChip
+                size="sm"
+                selected={!optimistic.aerolineas.length}
+                onClick={() => patch({ aerolineas: [] })}
+              >
+                Todas
+              </FilterChip>
+              {aerolineas.map((aerolinea) => {
+                const selected = optimistic.aerolineas.includes(aerolinea.key);
+                return (
+                  <FilterChip
+                    key={aerolinea.key}
+                    size="sm"
+                    selected={selected}
+                    check={selected}
+                    onClick={() =>
+                      patch({
+                        aerolineas: toggleInList(optimistic.aerolineas, aerolinea.key),
+                      })
+                    }
+                  >
+                    <span className="min-w-0 truncate">{aerolinea.label}</span>
+                  </FilterChip>
+                );
+              })}
+            </ChipRow>
+          </FilterGroup>
+        ) : null}
+
+        {optimistic.kindGroups.includes("vuelos") ? (
+          <FilterGroup label="Categoría">
+            <ChipRow>
+              <FilterChip
+                size="sm"
+                selected={!optimistic.categorias.length}
+                onClick={() => patch({ categorias: [] })}
+              >
+                Todas
+              </FilterChip>
+              {VUELO_CATEGORIAS.map((categoria) => {
+                const selected = optimistic.categorias.includes(categoria);
+                return (
+                  <FilterChip
+                    key={categoria}
+                    size="sm"
+                    selected={selected}
+                    check={selected}
+                    onClick={() =>
+                      patch({
+                        categorias: toggleInList(
+                          optimistic.categorias,
+                          categoria as VueloCategoria,
+                        ),
+                      })
+                    }
+                  >
+                    {CATEGORIA_LABELS[categoria]}
+                  </FilterChip>
+                );
+              })}
+            </ChipRow>
+          </FilterGroup>
+        ) : null}
 
         <FilterGroup label="Bots">
           <p className="flex items-center gap-1.5 text-[11px] text-muted">

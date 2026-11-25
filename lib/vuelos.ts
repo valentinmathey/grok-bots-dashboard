@@ -6,8 +6,8 @@ import type { Post } from "@/lib/types";
 export const VUELO_ORIGENES = ["MDZ", "SCL"] as const;
 export type VueloOrigen = (typeof VUELO_ORIGENES)[number];
 
-/** Valores canónicos, como los publica el bot Vuelos. */
-export const VUELO_CATEGORIAS = ["mejor equilibrio", "más barato"] as const;
+/** Valores canónicos de categoría. `mejor-equilibrio` se normaliza a `equilibrado`. */
+export const VUELO_CATEGORIAS = ["mas-barato", "equilibrado", "mas-rapido"] as const;
 export type VueloCategoria = (typeof VUELO_CATEGORIAS)[number];
 
 export const VUELO_VARIACIONES = ["bajo", "subio", "nuevo", "igual"] as const;
@@ -19,8 +19,9 @@ export const ORIGEN_LABELS: Record<VueloOrigen, string> = {
 };
 
 export const CATEGORIA_LABELS: Record<VueloCategoria, string> = {
-  "mejor equilibrio": "Mejor equilibrio",
-  "más barato": "Más barato",
+  "mas-barato": "Más barato",
+  equilibrado: "Equilibrado",
+  "mas-rapido": "Más rápido",
 };
 
 export const VARIACION_LABELS: Record<VueloVariacion, string> = {
@@ -29,6 +30,26 @@ export const VARIACION_LABELS: Record<VueloVariacion, string> = {
   nuevo: "Nuevo",
   igual: "Igual",
 };
+
+export const VUELO_AEROLINEA_TIPOS = ["low cost", "tradicional"] as const;
+export type VueloAerolineaTipo = (typeof VUELO_AEROLINEA_TIPOS)[number];
+
+export const AEROLINEA_TIPO_LABELS: Record<VueloAerolineaTipo, string> = {
+  "low cost": "Low cost",
+  tradicional: "Tradicional",
+};
+
+export const VUELO_ESTADOS = ["activo", "cambiado", "no-disponible"] as const;
+export type VueloEstado = (typeof VUELO_ESTADOS)[number];
+
+export const VUELO_ESTADO_LABELS: Record<VueloEstado, string> = {
+  activo: "Activo",
+  cambiado: "Cambió",
+  "no-disponible": "No disponible",
+};
+
+/** Sin selección explícita se ocultan los no disponibles. */
+export const DEFAULT_VUELOS_ESTADOS: VueloEstado[] = ["activo", "cambiado"];
 
 const httpUrl = z
   .string()
@@ -70,8 +91,41 @@ function isSinConfirmar(value: unknown): boolean {
 
 export function normalizeVueloCategoria(value: string): VueloCategoria | null {
   const key = fold(value);
-  if (key === "mas-barato") return "más barato";
-  if (key === "mejor-equilibrio") return "mejor equilibrio";
+  if (["mas-barato", "masbarato", "barato"].includes(key)) return "mas-barato";
+  if (
+    ["equilibrado", "mejor-equilibrio", "mejorequilibrio", "equilibrio"].includes(key)
+  ) {
+    return "equilibrado";
+  }
+  if (["mas-rapido", "masrapido", "rapido"].includes(key)) return "mas-rapido";
+  return null;
+}
+
+export function normalizeAerolineaTipo(value: string): VueloAerolineaTipo | null {
+  const key = fold(value);
+  if (["low-cost", "lowcost", "lcc"].includes(key)) return "low cost";
+  if (["tradicional", "legacy", "full-service", "fullservice", "network"].includes(key)) {
+    return "tradicional";
+  }
+  return null;
+}
+
+export function normalizeVueloEstado(value: string): VueloEstado | null {
+  const key = fold(value);
+  if (["activo", "disponible", "active", "ok"].includes(key)) return "activo";
+  if (["cambiado", "cambio", "changed"].includes(key)) return "cambiado";
+  if (
+    [
+      "no-disponible",
+      "nodisponible",
+      "no-available",
+      "unavailable",
+      "agotado",
+      "sold-out",
+    ].includes(key)
+  ) {
+    return "no-disponible";
+  }
   return null;
 }
 
@@ -206,6 +260,75 @@ export function preprocessVueloInput(raw: unknown): unknown {
   if (next.articulo_personal == null && next.mochila != null) {
     next.articulo_personal = next.mochila;
   }
+  if (next.aerolinea && typeof next.aerolinea === "object" && !Array.isArray(next.aerolinea)) {
+    const airline = next.aerolinea as Record<string, unknown>;
+    if (next.aerolinea_nombre == null) {
+      next.aerolinea_nombre = airline.nombre ?? airline.name ?? airline.aerolinea;
+    }
+    if (next.aerolinea_iata == null) {
+      next.aerolinea_iata = airline.iata ?? airline.codigo ?? airline.code;
+    }
+    if (next.aerolinea_info == null && airline.info) {
+      next.aerolinea_info = airline.info;
+    }
+    const name = airline.nombre ?? airline.name ?? airline.aerolinea;
+    if (typeof name === "string") next.aerolinea = name;
+  }
+  if (next.aerolinea_iata == null && typeof next.iata === "string") {
+    next.aerolinea_iata = next.iata;
+  }
+  if ((typeof next.aerolinea !== "string" || !next.aerolinea.trim()) && typeof next.aerolinea_nombre === "string") {
+    next.aerolinea = next.aerolinea_nombre;
+  }
+  if (next.aerolinea_info && typeof next.aerolinea_info === "object" && !Array.isArray(next.aerolinea_info)) {
+    const info = next.aerolinea_info as Record<string, unknown>;
+    const bag = info.equipaje_estandar;
+    if (bag && typeof bag === "object" && !Array.isArray(bag)) {
+      const pieces = bag as Record<string, unknown>;
+      if (pieces.valija == null) {
+        pieces.valija = pieces.valija_despachada ?? pieces.valijas ?? pieces.valijas_despachadas;
+      }
+      if (pieces.carry_on == null) {
+        pieces.carry_on = pieces.carryon ?? pieces.equipaje_mano;
+      }
+      info.equipaje_estandar = pieces;
+    }
+    if (info.politica_equipaje_url == null) {
+      info.politica_equipaje_url =
+        info.politica_equipaje ?? info.link_equipaje ?? info.equipaje_url;
+    }
+    if (typeof info.tipo === "string") {
+      if (isSinConfirmar(info.tipo)) {
+        info.tipo = "sin confirmar";
+      } else {
+        info.tipo = normalizeAerolineaTipo(info.tipo) ?? info.tipo;
+      }
+    }
+    next.aerolinea_info = info;
+  }
+  if (next.estado == null && typeof next.status === "string") {
+    next.estado = next.status;
+  }
+  if (typeof next.estado === "string") {
+    next.estado = normalizeVueloEstado(next.estado) ?? next.estado;
+  }
+  if (Array.isArray(next.cambios)) {
+    next.cambios = next.cambios.map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+      const row = item as Record<string, unknown>;
+      return {
+        ...row,
+        campo: row.campo ?? row.field ?? row.nombre,
+        anterior:
+          row.anterior ??
+          row.valor_anterior ??
+          row.previo ??
+          row.from ??
+          row.before,
+        nuevo: row.nuevo ?? row.valor_nuevo ?? row.actual ?? row.to ?? row.after,
+      };
+    });
+  }
   return next;
 }
 
@@ -254,6 +377,87 @@ export const vueloConexionSchema = z.object({
   visa_transito: looseFlag.optional(),
 });
 
+const iataCode = z.preprocess((value) => {
+  if (value == null || value === "") return undefined;
+  if (isSinConfirmar(value)) return "sin confirmar";
+  if (typeof value === "string") return value.trim().toUpperCase();
+  return value;
+}, z.union([
+  z.literal("sin confirmar"),
+  z
+    .string()
+    .regex(/^[A-Z]{2,3}$/, "El código IATA tiene que tener 2 o 3 letras, o ser \"sin confirmar\""),
+]));
+
+const looseUrl = z.preprocess(
+  (value) => (isSinConfirmar(value) ? "sin confirmar" : value),
+  z.union([httpUrl, z.literal("sin confirmar")]),
+);
+
+export const vueloPiezaEquipajeSchema = z.union([
+  looseFlag,
+  looseText,
+  z.object({
+    incluido: looseFlag.optional(),
+    kg: looseNumber.optional(),
+    texto: looseText.optional(),
+  }),
+]);
+
+export const vueloDatoConFuenteSchema = z.union([
+  looseText,
+  looseNumber,
+  z.object({
+    valor: z.union([looseText, looseNumber]).optional(),
+    texto: looseText.optional(),
+    url: looseUrl.optional(),
+    fuente: looseText.optional(),
+  }),
+]);
+
+export const vueloFuenteSchema = z.union([
+  looseText,
+  looseUrl,
+  z.object({
+    nombre: looseText.optional(),
+    url: looseUrl.optional(),
+  }),
+]);
+
+export const vueloAerolineaInfoSchema = z.object({
+  tipo: z
+    .union([z.enum(VUELO_AEROLINEA_TIPOS), z.literal("sin confirmar")])
+    .optional(),
+  alianza: looseText.optional(),
+  equipaje_estandar: z
+    .union([
+      looseText,
+      z.object({
+        mochila: vueloPiezaEquipajeSchema.optional(),
+        carry_on: vueloPiezaEquipajeSchema.optional(),
+        valija: vueloPiezaEquipajeSchema.optional(),
+      }),
+    ])
+    .optional(),
+  puntualidad: vueloDatoConFuenteSchema.optional(),
+  reputacion: vueloDatoConFuenteSchema.optional(),
+  politica_equipaje_url: looseUrl.optional(),
+  fuentes: z.union([looseText, z.array(vueloFuenteSchema).max(12)]).optional(),
+});
+
+const cambioValor = z.union([
+  z.string().trim().max(VUELO_TEXT_MAX, textTooLong("cambios")),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+
+export const vueloCambioSchema = z.object({
+  campo: z.string().trim().min(1).max(80),
+  anterior: cambioValor.optional(),
+  nuevo: cambioValor.optional(),
+});
+
 export const vueloTramoSchema = z.object({
   numero_vuelo: z.string().trim().min(1).max(40).optional(),
   origen: z.string().trim().min(1).max(80).optional(),
@@ -261,6 +465,10 @@ export const vueloTramoSchema = z.object({
   salida: looseText.optional(),
   llegada: looseText.optional(),
   duracion: looseText.optional(),
+  codeshare: z.union([looseFlag, looseText]).optional(),
+  operador: looseText.optional(),
+  operador_nombre: looseText.optional(),
+  operador_iata: iataCode.optional(),
 });
 
 const vueloDetailsObjectSchema = z
@@ -308,6 +516,11 @@ const vueloDetailsObjectSchema = z
     precio_usd_previo: looseNumber.optional(),
     source_id: z.string().trim().min(1).max(80).optional(),
     notas: looseTextLong.optional(),
+    aerolinea_nombre: looseText.optional(),
+    aerolinea_iata: iataCode.optional(),
+    aerolinea_info: vueloAerolineaInfoSchema.optional(),
+    estado: z.enum(VUELO_ESTADOS).optional(),
+    cambios: z.array(vueloCambioSchema).max(20).optional(),
   })
   .refine((value) => JSON.stringify(value).length <= VUELO_DETAILS_MAX_CHARS, {
     message: `details de vuelo no puede superar ${VUELO_DETAILS_MAX_CHARS} caracteres (no se recorta)`,
@@ -333,6 +546,10 @@ export type VueloDetails = z.infer<typeof vueloDetailsObjectSchema>;
 export type VueloEquipajeDetalle = z.infer<typeof vueloEquipajeDetalleSchema>;
 export type VueloConexion = z.infer<typeof vueloConexionSchema>;
 export type VueloTramo = z.infer<typeof vueloTramoSchema>;
+export type VueloAerolineaInfo = z.infer<typeof vueloAerolineaInfoSchema>;
+export type VueloPiezaEquipaje = z.infer<typeof vueloPiezaEquipajeSchema>;
+export type VueloDatoConFuente = z.infer<typeof vueloDatoConFuenteSchema>;
+export type VueloCambio = z.infer<typeof vueloCambioSchema>;
 
 export function asVuelo(details: unknown): VueloDetails | null {
   const parsed = vueloDetailsSchema.safeParse(details ?? {});
@@ -501,7 +718,10 @@ export function hasVueloDetalle(details: VueloDetails): boolean {
       details.precio_total_ida_vuelta != null ||
       details.low_cost != null ||
       details.sitio_compra ||
-      details.link_directo,
+      details.link_directo ||
+      (details.cambios && details.cambios.length) ||
+      details.estado === "cambiado" ||
+      details.estado === "no-disponible",
   );
 }
 
@@ -512,6 +732,8 @@ export type VuelosFilters = {
   origenes: VueloOrigen[];
   meses: string[];
   categorias: VueloCategoria[];
+  aerolineas: string[];
+  estados: VueloEstado[];
   sort: VuelosSort;
 };
 
@@ -520,15 +742,41 @@ export const EMPTY_VUELOS_FILTERS: VuelosFilters = {
   origenes: [],
   meses: [],
   categorias: [],
+  aerolineas: [],
+  estados: [],
   sort: "precio",
 };
+
+export function vueloEstado(details: VueloDetails): VueloEstado {
+  return details.estado ?? "activo";
+}
+
+export function effectiveVuelosEstados(filters: VuelosFilters): VueloEstado[] {
+  return filters.estados.length ? filters.estados : DEFAULT_VUELOS_ESTADOS;
+}
+
+export function isDefaultVuelosEstados(estados: VueloEstado[]): boolean {
+  if (!estados.length) return true;
+  if (estados.length !== DEFAULT_VUELOS_ESTADOS.length) return false;
+  return DEFAULT_VUELOS_ESTADOS.every((estado) => estados.includes(estado));
+}
+
+export function toggleVuelosEstados(current: VueloEstado[], value: VueloEstado): VueloEstado[] {
+  const effective = effectiveVuelosEstados({ ...EMPTY_VUELOS_FILTERS, estados: current });
+  const next = effective.includes(value)
+    ? effective.filter((item) => item !== value)
+    : [...effective, value];
+  return isDefaultVuelosEstados(next) ? [] : next;
+}
 
 export function countVuelosFilters(filters: VuelosFilters): number {
   return (
     filters.destinos.length +
     filters.origenes.length +
     filters.meses.length +
-    filters.categorias.length
+    filters.categorias.length +
+    filters.aerolineas.length +
+    Number(!isDefaultVuelosEstados(filters.estados))
   );
 }
 
@@ -549,6 +797,12 @@ export function matchesVuelosFilters(post: Post, filters: VuelosFilters): boolea
     return false;
   }
   if (filters.categorias.length && !details.categoria) return false;
+  if (filters.aerolineas.length && !filters.aerolineas.includes(airlineKey(details))) {
+    return false;
+  }
+  if (!effectiveVuelosEstados(filters).includes(vueloEstado(details))) {
+    return false;
+  }
   return true;
 }
 
@@ -589,6 +843,223 @@ export function uniqueMeses(posts: Post[]): string[] {
   return [...seen].sort();
 }
 
+function firstSearchValue(search: Record<string, string | string[] | undefined>, key: string) {
+  const value = search[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function splitList(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function parseVuelosFilters(
+  search: Record<string, string | string[] | undefined>,
+): VuelosFilters {
+  const origenes = splitList(firstSearchValue(search, "origen")).filter((item): item is VueloOrigen =>
+    (VUELO_ORIGENES as readonly string[]).includes(item),
+  );
+  const categorias = splitList(firstSearchValue(search, "categoria"))
+    .map((item) => normalizeVueloCategoria(item) ?? item)
+    .filter((item): item is VueloCategoria =>
+      (VUELO_CATEGORIAS as readonly string[]).includes(item),
+    );
+  const meses = splitList(firstSearchValue(search, "mes")).filter((item) => /^\d{4}-\d{2}$/.test(item));
+  const sortRaw = firstSearchValue(search, "sort");
+  const sort: VuelosSort = sortRaw === "fecha" ? "fecha" : "precio";
+  return {
+    destinos: splitList(firstSearchValue(search, "destino")),
+    origenes,
+    meses,
+    categorias,
+    aerolineas: splitList(firstSearchValue(search, "aerolinea")),
+    estados: splitList(firstSearchValue(search, "estado"))
+      .map((item) => normalizeVueloEstado(item) ?? item)
+      .filter((item): item is VueloEstado => (VUELO_ESTADOS as readonly string[]).includes(item)),
+    sort,
+  };
+}
+
+export function vuelosHref(
+  filters: VuelosFilters,
+  patch: Partial<VuelosFilters> = {},
+  slug = "vuelos",
+): string {
+  const next: VuelosFilters = { ...filters, ...patch };
+  const params = new URLSearchParams();
+  if (next.destinos.length) params.set("destino", next.destinos.join(","));
+  if (next.origenes.length) params.set("origen", next.origenes.join(","));
+  if (next.meses.length) params.set("mes", next.meses.join(","));
+  if (next.categorias.length) params.set("categoria", next.categorias.join(","));
+  if (next.aerolineas.length) params.set("aerolinea", next.aerolineas.join(","));
+  if (!isDefaultVuelosEstados(next.estados)) params.set("estado", next.estados.join(","));
+  if (next.sort !== "precio") params.set("sort", next.sort);
+  const query = params.toString();
+  return query ? `/bots/${slug}?${query}` : `/bots/${slug}`;
+}
+
+export function airlineIata(details: VueloDetails): string | null {
+  const raw = details.aerolinea_iata;
+  if (!raw || raw === "sin confirmar") return null;
+  return raw;
+}
+
+export function airlineName(details: VueloDetails): string {
+  const nombre = details.aerolinea_nombre;
+  if (typeof nombre === "string" && nombre && nombre !== "sin confirmar") return nombre;
+  return details.aerolinea;
+}
+
+export function airlineKey(details: VueloDetails): string {
+  const iata = airlineIata(details);
+  if (iata) return iata;
+  return fold(airlineName(details)) || fold(details.aerolinea);
+}
+
+export function airlineLabel(details: VueloDetails): string {
+  const name = airlineName(details);
+  const iata = airlineIata(details);
+  return iata ? `${name} (${iata})` : name;
+}
+
+export type AerolineaOption = {
+  key: string;
+  label: string;
+  iata: string | null;
+};
+
+export function uniqueAerolineas(posts: Post[]): AerolineaOption[] {
+  const map = new Map<string, { label: string; iata: string | null; at: string }>();
+  for (const post of posts) {
+    const details = asVuelo(post.details);
+    if (!details) continue;
+    const key = airlineKey(details);
+    if (!key) continue;
+    const at = post.updated_at ?? post.created_at;
+    const prev = map.get(key);
+    if (!prev || at >= prev.at) {
+      map.set(key, { label: airlineLabel(details), iata: airlineIata(details), at });
+    }
+  }
+  return [...map.entries()]
+    .map(([key, value]) => ({ key, label: value.label, iata: value.iata }))
+    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+}
+
+export function hasAerolineaFicha(details: VueloDetails): boolean {
+  const info = details.aerolinea_info;
+  if (!info) return false;
+  return Boolean(
+    info.tipo != null ||
+      info.alianza ||
+      info.equipaje_estandar ||
+      info.puntualidad != null ||
+      info.reputacion != null ||
+      info.politica_equipaje_url ||
+      info.fuentes,
+  );
+}
+
+export type AerolineaFicha = {
+  key: string;
+  label: string;
+  nombre: string;
+  iata: string | null;
+  info: VueloAerolineaInfo | null;
+  postId: string | null;
+  sourceAt: string | null;
+};
+
+export function pickAerolineaFicha(posts: Post[], key: string): AerolineaFicha | null {
+  const candidates = posts
+    .map((post) => ({ post, details: asVuelo(post.details) }))
+    .filter((row): row is { post: Post; details: VueloDetails } =>
+      Boolean(row.details && airlineKey(row.details) === key),
+    )
+    .sort((a, b) =>
+      (b.post.updated_at ?? b.post.created_at).localeCompare(a.post.updated_at ?? a.post.created_at),
+    );
+  if (!candidates.length) return null;
+  const withInfo = candidates.find((row) => hasAerolineaFicha(row.details)) ?? candidates[0];
+  return {
+    key,
+    label: airlineLabel(withInfo.details),
+    nombre: airlineName(withInfo.details),
+    iata: airlineIata(withInfo.details),
+    info: withInfo.details.aerolinea_info ?? null,
+    postId: withInfo.post.id,
+    sourceAt: withInfo.post.updated_at ?? withInfo.post.created_at,
+  };
+}
+
+export function buildAerolineaFichas(posts: Post[]): Record<string, AerolineaFicha> {
+  const out: Record<string, AerolineaFicha> = {};
+  for (const option of uniqueAerolineas(posts)) {
+    const ficha = pickAerolineaFicha(posts, option.key);
+    if (ficha) out[option.key] = ficha;
+  }
+  return out;
+}
+
+export function formatPiezaEquipaje(value: VueloPiezaEquipaje | undefined): string | null {
+  if (value == null) return null;
+  if (typeof value === "boolean") return formatFlag(value, "Incluida", "No incluida");
+  if (typeof value === "string" || typeof value === "number") return formatLoose(value);
+  const parts = [
+    formatFlag(value.incluido, "Incluida", "No incluida"),
+    typeof value.kg === "number" ? `${value.kg} kg` : formatLoose(value.kg),
+    formatLoose(value.texto),
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+export function formatDatoConFuente(value: VueloDatoConFuente | undefined): {
+  texto: string | null;
+  fuente: string | null;
+  url: string | null;
+} {
+  if (value == null) return { texto: null, fuente: null, url: null };
+  if (typeof value === "string" || typeof value === "number") {
+    return { texto: formatLoose(value), fuente: null, url: null };
+  }
+  const texto =
+    formatLoose(value.texto) ??
+    (typeof value.valor === "number" ? String(value.valor) : formatLoose(value.valor));
+  const url = value.url && value.url !== "sin confirmar" ? value.url : null;
+  return { texto, fuente: formatLoose(value.fuente), url };
+}
+
+export function formatFuentes(
+  value: VueloAerolineaInfo["fuentes"] | undefined,
+): { label: string; url: string | null }[] {
+  if (value == null) return [];
+  if (typeof value === "string") {
+    const label = formatLoose(value);
+    return label ? [{ label, url: value.startsWith("http") ? value : null }] : [];
+  }
+  const rows: { label: string; url: string | null }[] = [];
+  for (const item of value) {
+    if (typeof item === "string") {
+      const label = formatLoose(item);
+      if (label) rows.push({ label, url: item.startsWith("http") ? item : null });
+      continue;
+    }
+    const url = item.url && item.url !== "sin confirmar" ? item.url : null;
+    const label = formatLoose(item.nombre) ?? url;
+    if (label) rows.push({ label, url });
+  }
+  return rows;
+}
+
+export function formatTramoOperador(tramo: VueloTramo): string | null {
+  const name = formatLoose(tramo.operador_nombre) ?? formatLoose(tramo.operador);
+  const iata = tramo.operador_iata && tramo.operador_iata !== "sin confirmar" ? tramo.operador_iata : null;
+  if (name && iata) return `${name} (${iata})`;
+  return name ?? (iata ? iata : null);
+}
+
 /** Ejemplo mínimo alineado al JSON que publica Vuelos. */
 export function sampleVueloDetails(): VueloDetails {
   return {
@@ -603,9 +1074,35 @@ export function sampleVueloDetails(): VueloDetails {
     precio_usd: 189,
     precio_original: 189,
     moneda: "USD",
-    categoria: "mejor equilibrio",
+    categoria: "equilibrado",
     link: "https://www.google.com/travel/flights",
     fecha_busqueda: "2026-11-25",
     variacion: "nuevo",
   };
 }
+
+export function formatCambioValor(value: VueloCambio["anterior"]): string | null {
+  if (value == null) return null;
+  if (typeof value === "boolean") return value ? "Sí" : "No";
+  if (typeof value === "number") return String(value);
+  return formatLoose(value);
+}
+
+export function formatCambioCampo(campo: string): string {
+  const labels: Record<string, string> = {
+    precio: "Precio",
+    precio_usd: "Precio USD",
+    precio_ars: "Precio ARS",
+    equipaje: "Equipaje",
+    horarios: "Horarios",
+    horario: "Horarios",
+    escalas: "Escalas",
+    duracion: "Duración",
+    duracion_total: "Duración",
+    tarifa: "Tarifa",
+    fecha_ida: "Fecha de ida",
+    fecha_vuelta: "Fecha de vuelta",
+  };
+  return labels[fold(campo).replace(/-/g, "_")] ?? campo.replace(/_/g, " ");
+}
+
