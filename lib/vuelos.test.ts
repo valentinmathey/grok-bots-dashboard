@@ -18,6 +18,8 @@ import {
   sortVuelos,
   uniqueDestinos,
   uniqueMeses,
+  VUELO_DETAILS_MAX_CHARS,
+  VUELO_TEXT_MAX,
 } from "./vuelos";
 
 const base = sampleVueloDetails();
@@ -248,5 +250,93 @@ describe("vuelo labels y filtros", () => {
     ).toBe(2);
     expect(sortVuelos(posts, "precio").map((p) => p.id)).toEqual(["c", "m"]);
     expect(sortVuelos(posts, "fecha").map((p) => p.id)).toEqual(["m", "c"]);
+  });
+});
+
+describe("límites de texto de vuelo", () => {
+  it("acepta textos de 1000 caracteres y no los recorta", () => {
+    const longText = "x".repeat(VUELO_TEXT_MAX);
+    const parsed = parsePostDetails("vuelo", {
+      destino: "Punta Cana (PUJ)",
+      origen: "SCL",
+      aerolinea: "JetSMART",
+      fecha_ida: "2027-01-12",
+      precio_usd: 350,
+      link: "https://www.kayak.com/flights",
+      equipaje: longText,
+      notas: longText,
+      tarifa: {
+        nombre: longText,
+        cambios: longText,
+        reembolso: longText,
+        eleccion_asiento: longText,
+      },
+      equipaje_detalle: {
+        articulo_personal: longText,
+        carry_on: longText,
+        valijas_despachadas: longText,
+        costo_extra: longText,
+      },
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const details = asVuelo(parsed.details);
+    expect(details?.equipaje).toBe(longText);
+    expect(details?.notas).toBe(longText);
+    expect(details?.tarifa && typeof details.tarifa === "object" && details.tarifa.cambios).toBe(longText);
+    expect(details?.equipaje_detalle?.articulo_personal).toBe(longText);
+  });
+
+  it("si se pasa del límite, falla con error claro y no recorta", () => {
+    const tooLong = "y".repeat(VUELO_TEXT_MAX + 1);
+    const parsed = parsePostDetails("vuelo", {
+      destino: "Punta Cana (PUJ)",
+      origen: "SCL",
+      aerolinea: "JetSMART",
+      fecha_ida: "2027-01-12",
+      precio_usd: 350,
+      link: "https://www.kayak.com/flights",
+      equipaje: tooLong,
+    });
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    expect(parsed.message.toLowerCase()).toContain("válidos");
+    const issues = JSON.stringify(parsed.issues ?? []);
+    expect(issues).toContain(String(VUELO_TEXT_MAX));
+    expect(issues.toLowerCase()).toContain("no se recorta");
+  });
+
+  it("rechaza details que superan el tope total, sin recortar", () => {
+    const blob = "z".repeat(VUELO_TEXT_MAX);
+    const parsed = parsePostDetails("vuelo", {
+      destino: "Punta Cana (PUJ)",
+      origen: "SCL",
+      aerolinea: "JetSMART",
+      fecha_ida: "2027-01-12",
+      precio_usd: 350,
+      link: "https://www.kayak.com/flights",
+      notas: blob,
+      equipaje: blob,
+      escalas: blob,
+      duracion_total: blob,
+      tramos: Array.from({ length: 12 }, (_, i) => ({
+        numero_vuelo: `XX${i}`,
+        duracion: blob,
+        salida: blob,
+        llegada: blob,
+      })),
+      conexiones: Array.from({ length: 8 }, (_, i) => ({
+        aeropuerto: `XX${i}`,
+        espera: blob,
+        visa_transito: blob,
+        cambio_aeropuerto: blob,
+        cambio_terminal: blob,
+      })),
+    });
+    expect(parsed.ok).toBe(false);
+    if (parsed.ok) return;
+    const issues = JSON.stringify(parsed.issues ?? parsed.message);
+    expect(issues).toContain(String(VUELO_DETAILS_MAX_CHARS));
+    expect(issues.toLowerCase()).toContain("no se recorta");
   });
 });
